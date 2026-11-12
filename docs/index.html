@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>烬渊 · Ashen Abyss</title>
+<style>:root{--ember:#ff6a2a;--bone:#e8e2d6;--ink:#07060a}html,body{background:var(--ink);height:100%;color:var(--bone);-webkit-user-select:none;user-select:none;margin:0;font-family:Noto Serif SC,Songti SC,SimSun,Georgia,serif;overflow:hidden}#game{width:100%;height:100%;display:block;position:fixed;inset:0}#hud{pointer-events:none;text-shadow:0 2px 6px #000;position:fixed;inset:0}.panel{width:min(36vw,420px);position:absolute;top:18px}#player{left:20px}#enemy{text-align:right;opacity:0;transition:opacity .3s;right:20px}.name{letter-spacing:.12em;margin-bottom:6px;font-size:15px}.bar{background:#0009;border:1px solid #5b5560;height:14px;overflow:hidden;transform:skew(-18deg)}.bar>i{background:linear-gradient(#d94a3a,#7a1f1f);width:100%;height:100%;transition:width .12s;display:block}.bar.en{width:70%;height:7px;margin-top:5px}.bar.en>i{background:linear-gradient(#ffb347, var(--ember));width:0}#enemy .bar{margin-left:auto}#enemy .bar>i{background:linear-gradient(#b9b4ad,#55555c);margin-left:auto}#wave{letter-spacing:.3em;opacity:.7;font-size:13px;position:absolute;top:18px;left:50%;transform:translate(-50%)}#combo{text-align:right;opacity:0;font-style:italic;transition:opacity .25s;position:absolute;top:26vh;right:5vw}#combo-n{color:var(--ember);font-size:84px;font-weight:900;line-height:1}#combo small{letter-spacing:.4em;font-size:14px;display:block}#combo.pop #combo-n{animation:.18s pop}@keyframes pop{0%{transform:scale(1.5)}to{transform:scale(1)}}#flash{text-align:center;letter-spacing:.5em;opacity:0;font-size:30px;position:absolute;top:30vh;left:0;right:0}#flash.show{animation:2.2s flash}@keyframes flash{0%{opacity:0;letter-spacing:1em}15%,70%{opacity:1;letter-spacing:.5em}to{opacity:0}}#banner{text-align:center;background:radial-gradient(#000a 0%,#000d 70%);flex-direction:column;justify-content:center;align-items:center;display:none;position:absolute;inset:0}#banner.show{animation:.6s fadein;display:flex}@keyframes fadein{0%{opacity:0}}#banner-title{letter-spacing:.3em;background:linear-gradient(#f4e9d8 30%, var(--ember));color:#0000;text-shadow:none;-webkit-background-clip:text;background-clip:text;margin-right:-.3em;font-size:clamp(48px,9vw,120px);font-weight:900}#banner-sub{letter-spacing:.15em;opacity:.9;margin-top:18px;font-size:16px;line-height:1.9}#banner-sub b{color:var(--ember)}#banner-sub em{letter-spacing:.6em;opacity:.6;font-size:13px}#help{opacity:.55;letter-spacing:.05em;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7;position:absolute;bottom:14px;left:20px}</style>
+  <script type="module" crossorigin src="./assets/index-DumCRKKa.js"></script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="player" class="panel"><div class="name" id="p-name"></div><div class="bar"><i id="p-hp"></i></div><div class="bar en"><i id="p-en"></i></div></div>
+  <div id="enemy" class="panel"><div class="name" id="e-name"></div><div class="bar"><i id="e-hp"></i></div></div>
+  <div id="wave"></div>
+  <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
+  <div id="flash"></div>
+  <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
+  <div id="help">
+    WASD 移动 · →→ 冲刺 · 空格 跳 · L 闪避<br>
+    J 轻拳 K 重拳 U 轻脚 I 重脚 · 1 2 3 4 技能<br>
+    ↓→+J 冲锋斩 · ↓→+K 盾击 · ↓↑+I 升天斩 · 连段:轻 → 重 → 指令技 → 技能
+  </div>
+</div>
+</body>
+</html>

@@ -67,7 +67,6 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
 
 export const isAlive = (f: Fighter) => f.state !== 'dead' && f.hp > 0;
 export const isAirborne = (f: Fighter) => f.y > 0 || f.state === 'jump' || f.state === 'launched';
-const isActionable = (f: Fighter) => f.state === 'idle' || f.state === 'walk' || f.state === 'run';
 
 function setState(f: Fighter, s: Fighter['state']) {
   f.state = s;

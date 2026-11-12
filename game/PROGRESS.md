@@ -12,7 +12,7 @@
 ## 当前状态
 
 - [x] 设计文档 `docs/DESIGN.md`
-- [ ] M1 可玩原型
+- [x] M1 可玩原型(凯尔 + 2 种敌人 + 1 个房间 4 波;模拟层 7 项单测;Playwright 冒烟测试)
 - [ ] M2 战斗完整
 - [ ] M3 内容(10 角色、路线图、故事)
 - [ ] M4 浏览器端 AI 训练
@@ -21,8 +21,14 @@
 
 ## 下一步
 
-搭建 Vite + TS + Three.js 骨架,实现 M1。
+M2:抓投、防御/破防、按键配置界面、音效;然后 M3 的其余 9 个角色。
+
+## 常用命令(在 game/ 下)
+
+- `npm test` 模拟层单测
+- `npm run build:pages` 构建到仓库根 `docs/`(GitHub Pages 用,每次改动后都要跑并提交)
+- `npx vite preview --port 4173 &` 然后 `npm run e2e` 冒烟测试,截图在 `test-results/`
 
 ## 待用户处理
 
-- 在仓库 Settings → Pages 中把 Source 设为 GitHub Actions(部署工作流推送后)
+- 开启 GitHub Pages:见 `docs/GITHUB-ACCESS.md`(分支 `claude/elegant-planck-qpupha`,文件夹 `/docs`)

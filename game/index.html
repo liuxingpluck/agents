@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>烬渊 · Ashen Abyss</title>
+<style>
+  :root { --ember: #ff6a2a; --bone: #e8e2d6; --ink: #07060a; }
+  html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; color: var(--bone);
+    font-family: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif; user-select: none; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 2px 6px #000; }
+  .panel { position: absolute; top: 18px; width: min(36vw, 420px); }
+  #player { left: 20px; } #enemy { right: 20px; text-align: right; opacity: 0; transition: opacity .3s; }
+  .name { font-size: 15px; letter-spacing: .12em; margin-bottom: 6px; }
+  .bar { height: 14px; background: #0009; border: 1px solid #5b5560; transform: skewX(-18deg); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 100%; background: linear-gradient(#d94a3a, #7a1f1f); transition: width .12s; }
+  .bar.en { height: 7px; margin-top: 5px; width: 70%; } .bar.en > i { background: linear-gradient(#ffb347, var(--ember)); width: 0; }
+  #enemy .bar { margin-left: auto; } #enemy .bar > i { margin-left: auto; background: linear-gradient(#b9b4ad, #55555c); }
+  #wave { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font-size: 13px; letter-spacing: .3em; opacity: .7; }
+  #combo { position: absolute; right: 5vw; top: 26vh; text-align: right; opacity: 0; transition: opacity .25s; font-style: italic; }
+  #combo-n { font-size: 84px; font-weight: 900; color: var(--ember); line-height: 1; }
+  #combo small { display: block; letter-spacing: .4em; font-size: 14px; }
+  #combo.pop #combo-n { animation: pop .18s; } @keyframes pop { from { transform: scale(1.5); } to { transform: scale(1); } }
+  #flash { position: absolute; left: 0; right: 0; top: 30vh; text-align: center; font-size: 30px; letter-spacing: .5em; opacity: 0; }
+  #flash.show { animation: flash 2.2s; } @keyframes flash { 0% { opacity: 0; letter-spacing: 1em; } 15%, 70% { opacity: 1; letter-spacing: .5em; } 100% { opacity: 0; } }
+  #banner { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
+    background: radial-gradient(ellipse at center, #000a 0%, #000d 70%); text-align: center; }
+  #banner.show { display: flex; animation: fadein .6s; } @keyframes fadein { from { opacity: 0; } }
+  #banner-title { font-size: clamp(48px, 9vw, 120px); font-weight: 900; letter-spacing: .3em; margin-right: -.3em;
+    background: linear-gradient(#f4e9d8 30%, var(--ember)); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
+  #banner-sub { margin-top: 18px; font-size: 16px; line-height: 1.9; letter-spacing: .15em; opacity: .9; }
+  #banner-sub b { color: var(--ember); } #banner-sub em { letter-spacing: .6em; opacity: .6; font-size: 13px; }
+  #help { position: absolute; left: 20px; bottom: 14px; font-size: 12px; opacity: .55; line-height: 1.7; letter-spacing: .05em;
+    font-family: ui-monospace, Menlo, Consolas, monospace; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="player" class="panel"><div class="name" id="p-name"></div><div class="bar"><i id="p-hp"></i></div><div class="bar en"><i id="p-en"></i></div></div>
+  <div id="enemy" class="panel"><div class="name" id="e-name"></div><div class="bar"><i id="e-hp"></i></div></div>
+  <div id="wave"></div>
+  <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
+  <div id="flash"></div>
+  <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
+  <div id="help">
+    WASD 移动 · →→ 冲刺 · 空格 跳 · L 闪避<br>
+    J 轻拳 K 重拳 U 轻脚 I 重脚 · 1 2 3 4 技能<br>
+    ↓→+J 冲锋斩 · ↓→+K 盾击 · ↓↑+I 升天斩 · 连段:轻 → 重 → 指令技 → 技能
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
