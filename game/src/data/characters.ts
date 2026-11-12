@@ -9,6 +9,11 @@ import { morgan, extras as morganExtras } from './chars/morgan';
 import { odran } from './chars/odran';
 import { li } from './chars/li';
 import { nola } from './chars/nola';
+import { enemies as ch1 } from './enemies/ch1';
+import { enemies as ch2 } from './enemies/ch2';
+import { enemies as ch3 } from './enemies/ch3';
+import { enemies as ch4 } from './enemies/ch4';
+import { enemies as ch5 } from './enemies/ch5';
 
 const { LIGHT: L, HEAVY: H, COMMAND: C, SKILL: S, SUPER: U } = Tier;
 
@@ -78,7 +83,9 @@ export const HEROES: CharacterDef[] = [kael, brynn, sera, ilex, rook, vesper, mo
 
 /** 全部角色表(可选角色 + 敌人 + 召唤物),模拟层按 id 查找 */
 export const ROSTER: Record<string, CharacterDef> = {};
-for (const c of [...HEROES, husk, brute, ...morganExtras]) ROSTER[c.id] = c;
+/** 全部敌人与 Boss(不含召唤物) */
+export const ENEMIES: CharacterDef[] = [husk, brute, ...ch1, ...ch2, ...ch3, ...ch4, ...ch5];
+for (const c of [...HEROES, ...ENEMIES, ...morganExtras]) ROSTER[c.id] = c;
 
 /** 可选角色的 id 列表 */
 export const PLAYABLE = HEROES.map(c => c.id);

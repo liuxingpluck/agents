@@ -201,6 +201,11 @@ export interface Fighter {
   grabTarget: number;
   /** 抓取保持的剩余帧数,归零时投出 */
   grabTimer: number;
+  /**
+   * AI 专用的直接出招请求:填入招式 id,角色在下一次可行动时直接使出(仍受能量限制),然后清空。
+   * 脚本 AI 用它来放指令技和技能,省去模拟搓招。玩家与神经网络不使用这个字段。
+   */
+  aiMove?: string;
   /** 控制器私有状态(脚本 AI 用) */
   brain: Record<string, number>;
   deadFrame: number;
@@ -235,6 +240,45 @@ export interface RoomDef {
   theme: string;
   /** 每一波的敌人:角色 id 列表 */
   waves: string[][];
+  /** 进入房间时显示的一句剧情(可选) */
+  story?: string;
+}
+
+/** 路线图上的一个节点(对应一个房间) */
+export interface MapNode {
+  id: string;
+  /** 所在路线:0 上路 / 1 中路 / 2 下路 */
+  lane: 0 | 1 | 2;
+  /** 从左到右的列号(0 起),同一列的节点互为分支 */
+  col: number;
+  /** 房间 id */
+  room: string;
+  /** battle 普通战斗 / elite 精英 / rest 休整(回血,无敌人) / boss 首领 */
+  kind: 'battle' | 'elite' | 'rest' | 'boss';
+  /** 通关后可前往的节点 id(可跨路线,形成「野区」换路) */
+  next: string[];
+}
+
+/** 一章:一张 3 路路线图,最后汇合到 Boss */
+export interface ChapterDef {
+  id: string;
+  name: string;
+  /** 章节开场剧情(逐行显示) */
+  intro: string[];
+  /** 击败 Boss 后的剧情 */
+  outro: string[];
+  nodes: MapNode[];
+  /** 开局可选的起点节点 id(通常是三路各一个) */
+  start: string[];
+}
+
+/** 用户自制内容包(编辑器导出 / 导入的格式,也是存在 localStorage 里的格式) */
+export interface ContentPack {
+  format: 'ashen-abyss-pack';
+  version: 1;
+  characters: CharacterDef[];
+  rooms: RoomDef[];
+  chapters: ChapterDef[];
 }
 
 export const SIM = {

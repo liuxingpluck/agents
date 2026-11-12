@@ -171,6 +171,9 @@ function startMove(w: World, f: Fighter, m: MoveDef) {
   if (m.projectile || m.anim === 'cast') w.events.push({ type: 'cast', id: f.id });
 }
 
+/** 同强度的另一个攻击键 */
+const SIBLING: Partial<Record<BtnName, BtnName>> = { LP: 'LK', LK: 'LP', HP: 'HK', HK: 'HP' };
+
 function canUse(f: Fighter, m: MoveDef | undefined, air: boolean): m is MoveDef {
   if (!m) return false;
   if (!!m.air !== air) return false;
@@ -196,11 +199,15 @@ function pickMove(w: World, f: Fighter, minTier: number): MoveDef | null {
     const m = d.moves[d.skills[i]];
     if (canUse(f, m, air) && m.tier > minTier) { consume(f, b); return m; }
   }
-  // 指令技
-  for (const c of d.commands) {
-    if (!buffered(w, f, c.button)) continue;
-    const m = d.moves[c.move];
-    if (canUse(f, m, air) && m.tier > minTier && hasMotion(f, c.motion, w.frame)) { consume(f, c.button); return m; }
+  // 指令技。第一轮要求按键完全一致;第二轮允许同强度的另一个键代替
+  // (轻拳≈轻脚、重拳≈重脚),这样「轻 / 重」两键的简易操作也能搓出所有指令技。
+  for (let pass = 0; pass < 2; pass++) {
+    for (const c of d.commands) {
+      const btn = pass === 0 ? c.button : SIBLING[c.button];
+      if (!btn || !buffered(w, f, btn)) continue;
+      const m = d.moves[c.move];
+      if (canUse(f, m, air) && m.tier > minTier && hasMotion(f, c.motion, w.frame)) { consume(f, btn); return m; }
+    }
   }
   // 普通技(重攻击优先于轻攻击)
   const table = air ? d.airNormals : d.normals;
@@ -224,6 +231,12 @@ function startJump(f: Fighter) {
 }
 
 function tryGroundAction(w: World, f: Fighter): boolean {
+  // 脚本 AI 的直接出招请求
+  if (f.aiMove) {
+    const am = f.def.moves[f.aiMove];
+    f.aiMove = undefined;
+    if (canUse(f, am, false)) { startMove(w, f, am); return true; }
+  }
   const m = pickMove(w, f, -1);
   if (m) { startMove(w, f, m); return true; }
   if (buffered(w, f, 'JUMP')) { consume(f, 'JUMP'); startJump(f); return true; }
@@ -315,6 +328,15 @@ function updateFighter(w: World, f: Fighter) {
           if (--f.grabTimer <= 0) doThrow(w, f);
           break;
         }
+      }
+      // 抓投抢招:普通技刚起手的头几帧里,如果轻拳 + 轻脚 都按住了,改出抓投。
+      // (两个键很难同一帧按下,先到的那个键会先出一下普通技,这里把它顶掉。)
+      if (f.moveFrame <= 4 && !m.grab && m.tier <= Tier.HEAVY && f.y <= 0 && f.def.moves.grab
+        && (f.input & Btn.LP) && (f.input & Btn.LK) && (buffered(w, f, 'LP') || buffered(w, f, 'LK'))
+        && canUse(f, f.def.moves.grab, false)) {
+        consume(f, 'LP'); consume(f, 'LK');
+        startMove(w, f, f.def.moves.grab);
+        break;
       }
       f.moveFrame++;
       const air = f.y > 0;
