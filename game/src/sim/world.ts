@@ -40,13 +40,15 @@ export interface World {
   /** 清版模式下由波次生成敌人;对战/训练模式关闭 */
   useWaves: boolean;
   defaultEnemyAI: Controller | null;
+  /** 召唤物使用的控制器 */
+  summonAI: Controller | null;
 }
 
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
   return {
     frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], events: [],
     controllers: new Map(), nextId: 1, wave: 0, waveTimer: 30, cleared: false, useWaves: true,
-    defaultEnemyAI: null,
+    defaultEnemyAI: null, summonAI: null,
   };
 }
 
@@ -57,7 +59,7 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
     hp: def.stats.hp, energy: 0,
     move: null, moveFrame: 0, moveHit: false, hitIds: [], lastRehitFrame: 0,
     stun: 0, hitstop: 0, comboCount: 0, comboValue: 0, comboDamage: 0, comboMoveUses: {}, juggle: 0, invuln: 0,
-    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, brain: {}, deadFrame: 0,
+    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
   };
   w.fighters.push(f);
   if (ctrl) w.controllers.set(f.id, ctrl);
@@ -180,6 +182,11 @@ function canUse(f: Fighter, m: MoveDef | undefined, air: boolean): m is MoveDef 
 function pickMove(w: World, f: Fighter, minTier: number): MoveDef | null {
   const air = isAirborne(f);
   const d = f.def;
+  // 抓取:轻拳 + 轻脚 同时按(两键都在缓冲内即可)
+  if (!air && d.moves.grab && d.moves.grab.tier > minTier && buffered(w, f, 'LP') && buffered(w, f, 'LK')) {
+    consume(f, 'LP'); consume(f, 'LK');
+    return d.moves.grab;
+  }
   // 技能
   for (let i = 0; i < d.skills.length && i < SKILL_BTNS.length; i++) {
     const b = SKILL_BTNS[i];
@@ -233,6 +240,29 @@ function tryGroundAction(w: World, f: Fighter): boolean {
   return false;
 }
 
+/** 出手帧的附加效果:治疗、召唤、瞬移 */
+function castEffects(w: World, f: Fighter, m: MoveDef) {
+  if (m.teleport) {
+    f.x = Math.min(w.room.width - 0.5, Math.max(0.5, f.x + f.facing * m.teleport));
+  }
+  if (m.heal) {
+    for (const a of w.fighters) {
+      if (a.team !== f.team || !isAlive(a)) continue;
+      if (Math.abs(a.x - f.x) > 4 || Math.abs(a.z - f.z) > 2.5) continue;
+      a.hp = Math.min(a.def.stats.hp, a.hp + m.heal);
+    }
+  }
+  if (m.summon && w.roster[m.summon]) {
+    const mine = w.fighters.filter(a => a.brain.owner === f.id && isAlive(a));
+    if (mine.length < 2) {
+      const s = spawnFighter(w, w.roster[m.summon], f.team, f.x + f.facing * 1.2, f.z, w.summonAI ?? w.defaultEnemyAI ?? undefined);
+      s.facing = f.facing;
+      s.brain.owner = f.id;
+      s.brain.life = 60 * 20;
+    }
+  }
+}
+
 // ---------- 状态更新 ----------
 
 function land(w: World, f: Fighter) {
@@ -273,6 +303,17 @@ function updateFighter(w: World, f: Fighter) {
     }
     case 'attack': {
       const m = f.move!;
+      // 抓取保持中:不推进招式帧,把对手锁在身前,计时结束后投出
+      if (f.grabTarget) {
+        const t = w.fighters.find(x => x.id === f.grabTarget);
+        if (!t || t.state !== 'grabbed') { f.grabTarget = 0; f.grabTimer = 0; }
+        else {
+          f.vx = 0; f.vz = 0;
+          t.x = f.x + f.facing * 0.75; t.z = f.z; t.y = 0; t.facing = (-f.facing) as 1 | -1;
+          if (--f.grabTimer <= 0) doThrow(w, f);
+          break;
+        }
+      }
       f.moveFrame++;
       const air = f.y > 0;
       if (air) f.vy -= SIM.GRAVITY * (m.selfLaunch ? 0.9 : 1);
@@ -286,6 +327,7 @@ function updateFighter(w: World, f: Fighter) {
           life: m.projectile.life, hitIds: [],
         });
       }
+      if (f.moveFrame === m.startup) castEffects(w, f, m);
       if (f.moveFrame === m.startup && !m.projectile) w.events.push({ type: 'whiff', id: f.id, heavy: m.tier >= Tier.HEAVY });
       // 取消:命中确认后(飞行道具出手后)才允许
       const confirmed = f.moveHit || (!!m.projectile && f.moveFrame > m.startup + 2 && m.tier < Tier.SKILL);
@@ -333,6 +375,13 @@ function updateFighter(w: World, f: Fighter) {
       if (f.stateFrame >= SIM.GETUP_FRAMES) { setState(f, 'idle'); resetCombo(f); f.invuln = SIM.GETUP_INVULN; }
       break;
     }
+    case 'grabbed': {
+      // 位置由抓取者控制;若抓取者已不在抓取状态则恢复自由
+      f.vx = 0; f.vy = 0; f.vz = 0;
+      const g = w.fighters.find(x => x.grabTarget === f.id);
+      if (!g || g.state !== 'attack') { setState(f, 'idle'); resetCombo(f); }
+      break;
+    }
     case 'dead': f.vx = 0; f.vz = 0; break;
   }
 
@@ -353,18 +402,80 @@ function updateFighter(w: World, f: Fighter) {
 
 // ---------- 命中 ----------
 
+/** 目标是否受「连击保护」:Boss 与玩家方不能被无限连 */
+function comboLimitOf(v: Fighter): number {
+  if (v.def.role === 'boss') return SIM.COMBO_LIMIT_BOSS;
+  if (v.team === 0) return SIM.COMBO_LIMIT_PLAYER;
+  return Infinity; // 普通怪没有硬上限,只要不断换招就能一直连到死
+}
+
+/** 放开被抓的对手(抓取者被打断或投出后调用) */
+function releaseGrab(w: World, f: Fighter) {
+  if (!f.grabTarget) return;
+  const t = w.fighters.find(x => x.id === f.grabTarget);
+  f.grabTarget = 0; f.grabTimer = 0;
+  if (t && t.state === 'grabbed') { setState(t, 'idle'); resetCombo(t); }
+}
+
+/** Boss 挣脱:原地进入无敌,并把周围的敌对角色震退 */
+function bossBurst(w: World, v: Fighter) {
+  setState(v, 'idle');
+  v.vx = 0; v.vy = 0; v.y = 0;
+  v.invuln = 90;
+  v.brain.rage = 240; // 挣脱后一段时间内出招更快(脚本 AI 读取)
+  resetCombo(v);
+  for (const o of w.fighters) {
+    if (o.team === v.team || !isAlive(o)) continue;
+    if (Math.abs(o.x - v.x) > 3 || Math.abs(o.z - v.z) > 2) continue;
+    if (o.state === 'knockdown' || o.state === 'getup' || o.invuln > 0) continue;
+    releaseGrab(w, o);
+    setState(o, 'hitstun');
+    o.stun = 22;
+    o.vx = (o.x >= v.x ? 1 : -1) * 0.22;
+    o.hitstop = 6;
+  }
+}
+
+/**
+ * 结算一次命中。所有伤害(近战、飞行道具、投技)都走这里。
+ *
+ * 防无限连的规则(记录在受害者身上,回到自由状态时清零):
+ *  1. 伤害补正:连击数越高单击伤害越低,下限 10%——连得再长收益也在下降。
+ *  2. 僵直衰减:同一招在一套连段里每重复一次,僵直减少 35%;换新招不衰减。
+ *     所以「同一套循环」会越来越接不上,而不断变招可以一直连。
+ *  3. 同一招超过 MOVE_REUSE_LIMIT 次:对手强制挣脱。
+ *  4. 普通怪没有硬上限,可以被连到死;Boss 和玩家方有连击值上限,
+ *     达到后强制挣脱(Boss 原地震开周围敌人,玩家被击飞并获得无敌)。
+ *  5. 空中追打每次浮空高度递减(JUGGLE_DECAY),浮空连段自然会落地。
+ *
+ * @param atk  攻击者(飞行道具的主人可能已不存在,传 null)
+ * @param team 攻击方队伍
+ * @param dir  击退方向
+ * @param v    受害者
+ * @param m    招式
+ * @param hx,hy 命中点(特效用)
+ * @returns 是否真的打中(无敌、倒地等情况返回 false)
+ */
 function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: Fighter, m: MoveDef, hx: number, hy: number): boolean {
   if (v.team === team || v.invuln > 0) return false;
-  if (v.state === 'knockdown' || v.state === 'getup' || v.state === 'dead') return false;
+  if (v.state === 'knockdown' || v.state === 'getup' || v.state === 'dead' || v.state === 'grabbed') return false;
+  const airborne = v.y > 0 || v.state === 'launched';
+  if (m.grab && (airborne || !atk)) return false; // 抓不到空中的对手
+
   const inCombo = v.state === 'hitstun' || v.state === 'launched';
   if (!inCombo) resetCombo(v);
   v.comboCount++;
   v.comboValue += m.comboValue;
   const uses = (v.comboMoveUses[m.id] = (v.comboMoveUses[m.id] ?? 0) + 1);
-  const scale = Math.max(SIM.DAMAGE_SCALE_MIN, 1 - SIM.DAMAGE_SCALE_STEP * (v.comboCount - 1));
+
+  // 伤害补正
+  let scale = Math.max(SIM.DAMAGE_SCALE_MIN, 1 - SIM.DAMAGE_SCALE_STEP * (v.comboCount - 1));
+  const isBoss = v.def.role === 'boss';
+  if (isBoss && v.comboDamage > v.def.stats.hp * SIM.BOSS_COMBO_DAMAGE_CAP) scale = SIM.DAMAGE_SCALE_MIN;
   let dmg = Math.max(1, Math.round(m.damage * scale));
 
-  const armored = v.state === 'attack' && !!v.move?.armor && v.moveFrame <= v.move.startup + v.move.active;
+  // 霸体:出招前摇与判定期间不被打断,只吃减免后的伤害。抓取无视霸体。
+  const armored = !m.grab && v.state === 'attack' && !!v.move?.armor && v.moveFrame <= v.move.startup + v.move.active;
   if (armored) dmg = Math.max(1, Math.round(dmg * 0.6));
   v.hp -= dmg;
   v.comboDamage += dmg;
@@ -379,25 +490,41 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   w.events.push({ type: 'hit', x: hx, y: hy, z: v.z, heavy, attacker: atk?.id ?? -1, victim: v.id, damage: dmg, combo: v.comboCount });
 
   const wgt = 1 / v.def.stats.weight;
-  const forced = v.comboValue >= SIM.COMBO_LIMIT || uses > SIM.MOVE_REUSE_LIMIT;
-  const airborne = v.y > 0 || v.state === 'launched';
 
+  // 击杀:无论什么招都打飞
   if (v.hp <= 0) {
     v.hp = 0;
+    releaseGrab(w, v);
     setState(v, 'launched');
     v.y = Math.max(v.y, 0.001); v.vy = 0.26; v.vx = dir * 0.16; v.vz = 0;
     v.invuln = 9999;
+    v.hitstop += 6; if (atk) atk.hitstop += 6; // 击杀顿帧
     w.events.push({ type: 'ko', id: v.id, team: v.team });
     return true;
   }
-  if (armored && !forced) return true;
+  if (armored) return true;
+  releaseGrab(w, v); // 被打中的人如果正抓着别人,松手
+
+  // 强制挣脱判定
+  const forced = v.comboValue >= comboLimitOf(v) || uses > SIM.MOVE_REUSE_LIMIT;
   if (forced) {
-    // 连击上限:强制击飞脱离,落地前无敌
+    w.events.push({ type: 'comboBreak', victim: v.id });
+    if (isBoss) { bossBurst(w, v); return true; }
     setState(v, 'launched');
     v.y = Math.max(v.y, 0.001); v.vy = 0.24; v.vx = dir * 0.2; v.vz = 0;
     v.invuln = 120;
-    w.events.push({ type: 'comboBreak', victim: v.id });
-  } else if (m.launch || airborne) {
+    return true;
+  }
+
+  if (m.grab && atk) {
+    // 抓住:受害者锁在抓取者身前,由抓取者的出招流程负责投出
+    setState(v, 'grabbed');
+    v.vx = 0; v.vy = 0; v.vz = 0;
+    atk.grabTarget = v.id;
+    atk.grabTimer = m.grab.hold;
+    return true;
+  }
+  if (m.launch || airborne) {
     setState(v, 'launched');
     const base = m.launch ?? 0.17;
     v.vy = base * Math.pow(SIM.JUGGLE_DECAY, v.juggle) * Math.min(1.15, 0.6 + 0.4 * wgt);
@@ -409,10 +536,26 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
     v.y = 0.001; v.vy = 0.19; v.vx = dir * m.pushX * wgt; v.vz = 0;
   } else {
     setState(v, 'hitstun');
-    v.stun = m.hitstun;
+    // 同一招重复使用,僵直衰减
+    v.stun = Math.max(5, Math.round(m.hitstun * (1 - SIM.STUN_DECAY_PER_REUSE * (uses - 1))));
     v.vx = dir * m.pushX * wgt; v.vz = 0;
   }
   return true;
+}
+
+/** 抓取保持结束:把对手投出去(按住后方向则向身后投) */
+function doThrow(w: World, f: Fighter) {
+  const m = f.move!;
+  const t = w.fighters.find(x => x.id === f.grabTarget);
+  f.grabTarget = 0; f.grabTimer = 0;
+  if (!t || t.state !== 'grabbed' || !m.grab) return;
+  const back = (relDir(f, f.input) & REL_B) !== 0;
+  const dir = (back ? -f.facing : f.facing) as 1 | -1;
+  if (back) t.x = f.x - f.facing * 0.5;
+  // 投出也按一次命中结算(计入连击与伤害补正)
+  setState(t, 'hitstun');
+  const throwMove: MoveDef = { ...m, id: m.id + ':throw', grab: undefined, damage: m.grab.throwDamage, launch: m.grab.throwVy, pushX: m.grab.throwVx * 2, tier: Tier.HEAVY, hitstop: 8 };
+  applyHit(w, f, f.team, dir, t, throwMove, t.x, t.y + 1);
 }
 
 function resolveHits(w: World) {
@@ -497,13 +640,17 @@ export function step(w: World, inputs?: Map<number, number>) {
     feedInput(w, f, inp);
   }
   for (const f of w.fighters) {
+    if (f.brain.life !== undefined && isAlive(f) && --f.brain.life <= 0) {
+      f.hp = 0; f.state = 'dead'; f.move = null; f.deadFrame = w.frame - 60;
+      continue;
+    }
     if (f.hitstop > 0) { f.hitstop--; continue; }
     updateFighter(w, f);
   }
   resolveHits(w);
   updateProjectiles(w);
   // 清理尸体
-  if (w.frame % 30 === 0) w.fighters = w.fighters.filter(f => !(f.state === 'dead' && f.team !== 0 && w.frame - f.deadFrame > 90));
+  if (w.frame % 30 === 0) w.fighters = w.fighters.filter(f => !(f.state === 'dead' && (f.team !== 0 || f.brain.owner !== undefined) && w.frame - f.deadFrame > 90));
   updateWaves(w);
   w.frame++;
 }

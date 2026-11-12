@@ -1,0 +1,81 @@
+// 程序化音效:全部用 WebAudio 实时合成,不需要任何音频文件。
+// 打击感的一半来自声音——轻击是短促的「啪」,重击多一层低频「咚」,击杀再加一段下滑音。
+import { SimEvent } from '../sim/types';
+
+export class Sfx {
+  private ctx: AudioContext | null = null;
+  private master: GainNode | null = null;
+  private noise: AudioBuffer | null = null;
+  /** 总音量 0..1 */
+  volume = 0.5;
+
+  /**
+   * 浏览器要求用户有过交互才能出声,所以在第一次按键时调用。
+   * 重复调用是安全的。
+   */
+  unlock() {
+    if (this.ctx) { void this.ctx.resume(); return; }
+    try {
+      this.ctx = new AudioContext();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.volume;
+      this.master.connect(this.ctx.destination);
+      // 预生成 1 秒白噪声,所有带噪声的音效共用
+      const len = this.ctx.sampleRate;
+      this.noise = this.ctx.createBuffer(1, len, len);
+      const d = this.noise.getChannelData(0);
+      let s = 12345;
+      for (let i = 0; i < len; i++) { s = (s * 16807) % 2147483647; d[i] = (s / 2147483647) * 2 - 1; }
+    } catch { this.ctx = null; }
+  }
+
+  /**
+   * 一段带滤波的噪声爆破。
+   * @param dur 时长(秒) @param freq 滤波中心频率 @param gain 音量 @param type 滤波类型
+   */
+  private burst(dur: number, freq: number, gain: number, type: BiquadFilterType = 'bandpass', q = 1) {
+    const c = this.ctx; if (!c || !this.master || !this.noise) return;
+    const src = c.createBufferSource(); src.buffer = this.noise;
+    src.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = c.createGain();
+    g.gain.setValueAtTime(gain, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+    src.connect(f).connect(g).connect(this.master);
+    src.start(c.currentTime, Math.random() * 0.5, dur);
+  }
+
+  /**
+   * 一个频率下滑的振荡音(用来做低频冲击、击杀音)。
+   * @param f0 起始频率 @param f1 结束频率 @param dur 时长(秒)
+   */
+  private tone(f0: number, f1: number, dur: number, gain: number, wave: OscillatorType = 'sine') {
+    const c = this.ctx; if (!c || !this.master) return;
+    const o = c.createOscillator(); o.type = wave;
+    o.frequency.setValueAtTime(f0, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), c.currentTime + dur);
+    const g = c.createGain();
+    g.gain.setValueAtTime(gain, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+    o.connect(g).connect(this.master);
+    o.start(); o.stop(c.currentTime + dur);
+  }
+
+  /** 把模拟层这一帧的事件翻译成声音 */
+  handle(events: SimEvent[]) {
+    if (!this.ctx) return;
+    for (const e of events) {
+      switch (e.type) {
+        case 'hit':
+          if (e.heavy) { this.burst(0.14, 900, 0.9, 'bandpass', 0.7); this.tone(150, 45, 0.18, 0.9); }
+          else { this.burst(0.07, 1800, 0.7, 'bandpass', 0.8); this.tone(220, 110, 0.06, 0.35); }
+          break;
+        case 'whiff': this.burst(e.heavy ? 0.16 : 0.09, e.heavy ? 500 : 1100, 0.16, 'bandpass', 2.5); break;
+        case 'ko': this.tone(320, 40, 0.5, 0.8, 'sawtooth'); this.burst(0.35, 400, 0.6, 'lowpass'); break;
+        case 'comboBreak': this.tone(90, 400, 0.25, 0.6, 'square'); this.burst(0.3, 2500, 0.4, 'highpass'); break;
+        case 'land': this.burst(0.08, 180, 0.35, 'lowpass'); break;
+        case 'cast': this.tone(500, 1200, 0.2, 0.2, 'triangle'); break;
+      }
+    }
+  }
+}

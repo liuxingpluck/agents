@@ -96,6 +96,17 @@ export interface MoveDef {
   projectile?: ProjectileDef;
   /** 可多段命中:每隔多少帧重新允许命中 */
   rehit?: number;
+  /** 出手帧为自己与附近队友(4 米内)回复生命 */
+  heal?: number;
+  /** 出手帧召唤一个友方单位(roster 中的角色 id),同一施放者最多 2 个 */
+  summon?: string;
+  /** 出手帧沿朝向瞬移的距离(米),负值为后撤 */
+  teleport?: number;
+  /**
+   * 强制抓取:命中后把对手锁在身前 hold 帧,然后投出。
+   * 抓取无视霸体,但抓不到空中、倒地的对手。按住后方向可向身后投。
+   */
+  grab?: { hold: number; throwDamage: number; throwVx: number; throwVy: number };
 }
 
 export interface CommandDef {
@@ -150,7 +161,7 @@ export interface CharacterDef {
 
 export type FState =
   | 'idle' | 'walk' | 'run' | 'jump' | 'attack' | 'hitstun' | 'launched'
-  | 'knockdown' | 'getup' | 'dodge' | 'dead';
+  | 'knockdown' | 'getup' | 'dodge' | 'grabbed' | 'dead';
 
 export interface Fighter {
   id: number;
@@ -186,6 +197,10 @@ export interface Fighter {
   /** 按键缓冲:按钮名 -> 按下的帧 */
   buffer: Partial<Record<BtnName, number>>;
   airActions: number;
+  /** 正在抓着的对手 id(0 表示没有) */
+  grabTarget: number;
+  /** 抓取保持的剩余帧数,归零时投出 */
+  grabTimer: number;
   /** 控制器私有状态(脚本 AI 用) */
   brain: Record<string, number>;
   deadFrame: number;
@@ -227,10 +242,19 @@ export const SIM = {
   GRAVITY: 0.022,
   INPUT_BUFFER: 8,
   MOTION_WINDOW: 20,
-  COMBO_LIMIT: 30,
-  MOVE_REUSE_LIMIT: 2,
-  DAMAGE_SCALE_STEP: 0.08,
-  DAMAGE_SCALE_MIN: 0.2,
+  /** 受保护目标(Boss)的连击值上限:达到后强制挣脱并震开周围敌人 */
+  COMBO_LIMIT_BOSS: 14,
+  /** 玩家方被连击的上限:达到后强制击飞脱离并获得无敌,防止被小怪围殴致死 */
+  COMBO_LIMIT_PLAYER: 9,
+  /** 同一招在一套连段里最多用几次;超过则对手强制挣脱 */
+  MOVE_REUSE_LIMIT: 3,
+  /** 同一招每多用一次,造成的僵直减少的比例(换新招不受影响) */
+  STUN_DECAY_PER_REUSE: 0.35,
+  /** 连击伤害补正:每多一击伤害降低的比例,以及下限 */
+  DAMAGE_SCALE_STEP: 0.07,
+  DAMAGE_SCALE_MIN: 0.1,
+  /** Boss 在一套连段中受到的伤害超过最大生命的这个比例后,伤害压到下限 */
+  BOSS_COMBO_DAMAGE_CAP: 0.25,
   JUGGLE_DECAY: 0.86,
   KNOCKDOWN_FRAMES: 40,
   GETUP_FRAMES: 22,

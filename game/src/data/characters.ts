@@ -23,6 +23,7 @@ export const kael: CharacterDef = {
     mv('rush', '冲锋斩', C, 'thrust', [7, 8, 16], 14, box(0.2, 1.9, 0.6, 1.5), [22, 8, 0.12], { moveX: 0.2 }),
     mv('rise', '升天斩', C, 'upper', [5, 10, 20], 16, box(0, 1.4, 0.2, 2.6), [24, 9, 0.02], { launch: 0.36, selfLaunch: 0.3, invuln: 8 }),
     mv('bash', '盾击', C, 'punchR', [8, 5, 18], 13, box(0.2, 1.4, 0.4, 1.7), [26, 9, 0.3], { knockdown: true, moveX: 0.08, armor: true }),
+    mv('grab', '缴械投', C, 'punchL', [5, 3, 22], 4, box(0.1, 1.0, 0.4, 1.6, 0.5), [10, 4, 0], { grab: { hold: 22, throwDamage: 16, throwVx: 0.2, throwVy: 0.3 } }),
     mv('wave', '烬刃波', S, 'cast', [12, 2, 20], 16, box(0, 0, 0, 0, 0.6), [22, 6, 0.12], { cost: 20, projectile: { speed: 0.26, life: 50, radius: 0.35, y: 1.1, color: '#ff6a2a' } }),
     mv('whirl', '旋风斩', S, 'spin', [6, 24, 16], 7, box(-1.6, 1.6, 0.4, 1.6, 1.0), [20, 3, 0.02], { cost: 25, rehit: 6, armor: true }),
     mv('quake', '裂地', S, 'slam', [14, 5, 24], 22, box(-0.4, 2.4, 0, 1.2, 1.3), [26, 10, 0.05], { cost: 30, launch: 0.33 }),

@@ -142,7 +142,10 @@ export class Rig {
     const p = this.pose;
     for (const key of Object.keys(p) as (keyof Pose)[]) p[key] += (tgt[key] - p[key]) * k;
 
-    this.root.position.set(f.x, f.y + p.lift, f.z);
+    // 顿帧期间受击者左右抖动,强化「打中了」的感觉
+    const hurt = f.state === 'hitstun' || f.state === 'launched' || f.state === 'grabbed';
+    const jitter = f.hitstop > 0 && hurt ? Math.sin(time * 90) * 0.06 : 0;
+    this.root.position.set(f.x + jitter, f.y + p.lift, f.z);
     this.root.rotation.y = (f.facing === 1 ? 0 : Math.PI) + p.spin;
     this.body.rotation.z = p.tilt;
     this.body.position.y = this.hipY - p.crouch + (p.tilt !== 0 ? Math.abs(Math.sin(p.tilt)) * -this.hipY * 0.75 : 0);
@@ -206,6 +209,11 @@ function targetPose(f: Fighter, t: number): Pose {
       p.tilt = Math.PI / 2; p.armL = -1.4; p.armR = -1.2; p.legL = 0.1; p.legR = -0.1;
       break;
     }
+    case 'grabbed': {
+      // 被揪住:身体后仰、双脚离地挣扎
+      p.lean = -0.5; p.lift = 0.18; p.armL = -1.2; p.armR = -1.4; p.legL = 0.4; p.legR = -0.2; p.kneeL = 0.6; p.kneeR = 0.4;
+      break;
+    }
     case 'getup': {
       const k = Math.min(1, f.stateFrame / SIM.GETUP_FRAMES);
       p.tilt = (1 - k) * 1.2; p.crouch = 0.3 * (1 - k); p.lean = 0.5 * (1 - k); p.kneeL = 0.8 * (1 - k); p.kneeR = 0.8 * (1 - k);
@@ -218,6 +226,8 @@ function targetPose(f: Fighter, t: number): Pose {
 
 function attackPose(f: Fighter, p: Pose) {
   const m = f.move!;
+  // 抓住对手时:单手前伸揪住
+  if (f.grabTarget) { p.armL = 1.5; p.foreL = 0.1; p.armR = -0.6; p.foreR = 1.6; p.lean = 0.15; p.legL = 0.35; p.legR = -0.3; return; }
   const wind = f.moveFrame < m.startup;
   const strike = !wind && f.moveFrame < m.startup + m.active + 3;
   const a = wind ? 0 : strike ? 1 : 0.4; // 0 蓄势 1 击出

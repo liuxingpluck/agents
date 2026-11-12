@@ -6,11 +6,13 @@ import { ROOMS } from './data/rooms';
 import { GameRenderer } from './render/renderer';
 import { InputManager } from './ui/input';
 import { Hud } from './ui/hud';
+import { Sfx } from './render/audio';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const gfx = new GameRenderer(canvas);
 const input = new InputManager();
 const hud = new Hud();
+const sfx = new Sfx();
 
 type Phase = 'title' | 'play' | 'clear' | 'dead';
 let phase: Phase = 'title';
@@ -37,6 +39,7 @@ function rank(): string {
 }
 
 input.onKey = code => {
+  sfx.unlock();
   if (code !== 'Enter' && code !== 'NumpadEnter') return;
   if (phase !== 'play') startRoom();
 };
@@ -67,6 +70,7 @@ function frame(now: number) {
     const hpBefore = player.hp;
     step(world, inputs);
     gfx.handleEvents(world.events);
+    sfx.handle(world.events);
     hud.update(world, player, STEP);
     if (phase === 'play') {
       stats.frames++;

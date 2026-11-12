@@ -47,13 +47,49 @@ describe('combat sim', () => {
     expect(e.juggle).toBe(1);
   });
 
-  it('连击值达到上限后强制脱离', () => {
+  it('同一招重复使用:僵直递减,超过次数强制挣脱', () => {
     const { w, p, e } = duel();
     e.hp = 99999;
-    e.state = 'hitstun'; e.stun = 30; e.comboValue = SIM.COMBO_LIMIT - 1; e.comboCount = 5;
+    const stuns: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      // 每次只打一下 lk1,并保持对手处于连击状态
+      p.state = 'idle'; p.move = null; p.buffer = {}; p.x = e.x - 1; p.hitstop = 0; e.hitstop = 0;
+      run(w, p.id, [[Btn.LK, 2], [0, 4]]);
+      stuns.push(e.stun);
+      if (e.state === 'hitstun') e.stun = 30;
+    }
+    expect(stuns[1]).toBeLessThan(stuns[0]);
+    expect(stuns[2]).toBeLessThan(stuns[1]);
+    expect(e.state).toBe('launched'); // 第 4 次:强制挣脱
+    expect(e.invuln).toBeGreaterThan(60);
+  });
+
+  it('普通怪没有连击硬上限,玩家方有', () => {
+    const { w, p, e } = duel();
+    e.hp = 99999; e.state = 'hitstun'; e.stun = 30; e.comboValue = 200; e.comboCount = 50;
     run(w, p.id, [[Btn.LP, 2], [0, 6]]);
-    expect(w.fighters.find(f => f.id === e.id)!.invuln).toBeGreaterThan(60);
+    expect(e.state).toBe('hitstun');
+    // 反过来:玩家被连到上限会强制脱离
+    const d2 = duel();
+    d2.p.state = 'hitstun'; d2.p.stun = 30; d2.p.comboValue = SIM.COMBO_LIMIT_PLAYER - 1; d2.p.comboCount = 4;
+    d2.e.facing = -1;
+    run(d2.w, d2.e.id, [[Btn.LP, 2], [0, 22]]);
+    expect(d2.p.state).toBe('launched');
+    expect(d2.p.invuln).toBeGreaterThan(60);
+  });
+
+  it('抓取:无视霸体,保持后投出', () => {
+    const { w, p, e } = duel();
+    // 让敌人处于霸体出招中
+    e.facing = -1;
+    run(w, e.id, [[Btn.HP, 2], [0, 6]]);
+    expect(e.move?.armor).toBe(true);
+    run(w, p.id, [[Btn.LP | Btn.LK, 2], [0, 8]]);
+    expect(e.state).toBe('grabbed');
+    expect(p.grabTarget).toBe(e.id);
+    run(w, p.id, [[0, 34]]);
     expect(e.state).toBe('launched');
+    expect(p.grabTarget).toBe(0);
   });
 
   it('同样的种子与输入得到完全相同的结果', () => {
