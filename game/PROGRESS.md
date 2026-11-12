@@ -22,15 +22,18 @@
   - [ ] 3 路路线图、5 章房间、Boss(role 'boss')、过关动画、故事演出
 - [ ] M4 浏览器端 AI 训练
   - [x] 观测 / 策略网络 / 进化策略 / 评估(`src/ml/`),Node 下验证能学到东西(`tests/ml.test.ts`)
-  - [ ] Web Worker 并行、训练页面 `train.html`、存档、让训练出的 AI 上场
+  - [x] Web Worker 并行、训练页面 `train.html`(曲线 + 实时观战 + 导入导出)、localStorage 存档
+    - 实测:3 线程 75 秒跑 206 代,对脚本 AI 胜率 0% → 100%(`node tests/e2e/train.mjs`)
+  - [ ] 让训练出的 AI 在正式游戏里上场(对战模式 / 精英敌人);脚本 AI 太弱,需要更强的陪练与课程;WebGPU 加速(阶段二)
 - [ ] M5 角色与地图编辑器
 - [ ] M6 打磨
 
 ## 下一步
 
-1. M4 剩余:`src/ml/worker.ts`、`src/ml/trainer.ts`、`train.html`(index.html 右下角已有链接,vite 需配多页面入口)
-2. M3 剩余:路线图 + Boss + 更多房间
-3. M2 剩余、M5、M6
+1. M3 剩余:3 路路线图 + Boss(role 'boss',连击保护已实现)+ 更多房间 + 过关动画
+2. M4 剩余:训练出的 AI 上场
+3. M2 剩余(防御、按键配置界面)、M5 编辑器、M6 打磨
+4. 给 render/ 与 ui/ 下的函数补全中文注释(用户要求注释全面)
 
 ## 已知问题 / 备注
 

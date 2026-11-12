@@ -103,7 +103,7 @@ export class GameRenderer {
     // 近景剪影
     for (let x = -2; x < W + 4; x += 5 + rnd() * 6) {
       const fg = new THREE.Mesh(new THREE.BoxGeometry(0.8 + rnd(), 0.6 + rnd() * 1.4, 0.8), dark);
-      fg.position.set(x, fg.geometry.parameters.height / 2, D + 1.6 + rnd());
+      fg.position.set(x, fg.geometry.parameters.height / 2, D + 2.6 + rnd());
       this.stage.add(fg);
     }
     // 灰雪 / 余烬粒子
