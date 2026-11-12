@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     target: 'es2022',
     // 多页面:游戏本体 + AI 训练场
-    rollupOptions: { input: { main: 'index.html', train: 'train.html' } },
+    rollupOptions: { input: { main: 'index.html', train: 'train.html', editor: 'editor.html' } },
   },
   worker: { format: 'es' },
 });

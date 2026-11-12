@@ -38,6 +38,15 @@ export class Hud {
       $('e-hp').style.width = `${Math.max(0, (t.hp / t.def.stats.hp) * 100)}%`;
     } else box.style.opacity = '0';
 
+    // Boss 血条:场上有存活的 Boss 时显示在屏幕下方
+    const boss = w.fighters.find(f => f.def.role === 'boss' && f.team !== player.team && f.hp > 0);
+    const bossEl = $('boss');
+    if (boss) {
+      bossEl.classList.add('show');
+      $('boss-name').textContent = `${boss.def.name}${boss.def.title ? ' · ' + boss.def.title : ''}`;
+      $('boss-hp').style.width = `${(boss.hp / boss.def.stats.hp) * 100}%`;
+    } else bossEl.classList.remove('show');
+
     $('wave').textContent = w.cleared ? '' : `第 ${Math.min(w.wave, w.room.waves.length)} / ${w.room.waves.length} 波`;
   }
 
@@ -52,5 +61,8 @@ export class Hud {
     $('banner-sub').innerHTML = sub;
     $('banner').classList.add('show');
   }
+  /** 显示 / 隐藏「GO →」前进提示 */
+  go(show: boolean) { $('go').classList.toggle('show', show); }
+
   hideBanner() { $('banner').classList.remove('show'); }
 }

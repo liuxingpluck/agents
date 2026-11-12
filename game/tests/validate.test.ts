@@ -187,3 +187,12 @@ describe('validatePack', () => {
     expect(validatePack('abc', [], [])).not.toEqual([]);
   });
 });
+
+describe('编辑器模板', () => {
+  it('空白英雄模板通过校验', async () => {
+    const { blankHero, blankRoom, blankChapter } = await import('../src/editor/templates');
+    expect(validateCharacter(blankHero('my_hero'), builtinChars)).toEqual([]);
+    expect(validateRoom(blankRoom('my_room'), builtinChars)).toEqual([]);
+    expect(validateChapter(blankChapter('my_ch', 'outpost'), builtinRooms)).toEqual([]);
+  });
+});

@@ -45,6 +45,27 @@
   #detail h2 { margin: 0 0 6px; font-size: 26px; letter-spacing: .15em; } #detail h2 small { font-size: 14px; opacity: .65; margin-left: 10px; }
   #detail p { margin: 4px 0; } .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; opacity: .75; }
   #select .tip { margin-top: 10px; font-size: 12px; opacity: .55; letter-spacing: .15em; }
+  #boss { position: absolute; left: 50%; bottom: 64px; width: min(60vw, 720px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .4s; }
+  #boss.show { opacity: 1; } #boss .name { color: var(--ember); letter-spacing: .3em; }
+  #boss .bar { height: 12px; } #boss .bar > i { background: linear-gradient(#ff8a4a, #8a1f10); }
+  #go { position: absolute; right: 5vw; top: 44vh; font-size: 54px; font-weight: 900; font-style: italic; color: var(--ember); opacity: 0; letter-spacing: .1em; }
+  #go.show { animation: go 0.9s infinite; } @keyframes go { 0%, 100% { opacity: 1; transform: translateX(0); } 50% { opacity: .35; transform: translateX(16px); } }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity .4s; }
+  #fade.on { opacity: 1; }
+  #map { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #000c 0%, #000f 80%); pointer-events: auto; }
+  #map.show { display: flex; animation: fadein .4s; }
+  #map h1 { font-size: 24px; letter-spacing: .4em; margin: 0 0 6px; font-weight: 400; }
+  #map-svg { width: min(820px, 94vw); height: auto; }
+  #map-info { min-height: 3.4em; text-align: center; font-size: 14px; line-height: 1.7; letter-spacing: .1em; }
+  #map-info b { color: var(--ember); }
+  #map .tip { font-size: 12px; opacity: .55; letter-spacing: .15em; margin-top: 6px; }
+  .card { background-size: cover; background-position: center 20%; }
+  .card.art b, .card.art span { text-shadow: 0 1px 6px #000, 0 0 12px #000; align-self: flex-end; margin-right: 8px; }
+  #select-row { display: flex; gap: 22px; align-items: flex-start; width: min(708px, 90vw); margin-top: 22px; }
+  #select-row #detail { margin-top: 0; flex: 1; width: auto; }
+  #full { height: 300px; display: none; filter: drop-shadow(0 0 18px #000); }
+  #banner.art { background-size: cover; background-position: center; }
   #links { position: absolute; right: 20px; bottom: 14px; font-size: 12px; pointer-events: auto; }
   #links a { color: var(--bone); opacity: .6; margin-left: 14px; } #links a:hover { opacity: 1; color: var(--ember); }
   #help { position: absolute; left: 20px; bottom: 14px; font-size: 12px; opacity: .55; line-height: 1.7; letter-spacing: .05em;
@@ -60,9 +81,14 @@
   <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
   <div id="flash"></div>
   <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
-  <div id="select"><h1>选择持名者</h1><div id="cards"></div><div id="detail"></div>
+  <div id="select"><h1>选择持名者</h1><div id="cards"></div><div id="select-row"><div id="detail"></div><img id="full" alt="" /></div>
     <div class="tip">A / D 切换 · Enter 或 J 确认 · 战斗中按 Esc 返回这里</div></div>
-  <div id="links"><a href="./train.html">AI 训练场</a></div>
+  <div id="boss"><div class="name" id="boss-name"></div><div class="bar"><i id="boss-hp"></i></div></div>
+  <div id="go">GO →</div>
+  <div id="map"><h1 id="map-title"></h1><svg id="map-svg" viewBox="0 0 820 400"></svg><div id="map-info"></div>
+    <div class="tip">W / S / A / D 选择下一站 · Enter 或 J 出发 · 相邻的路线可以互通</div></div>
+  <div id="fade"></div>
+  <div id="links"><a href="./train.html">AI 训练场</a><a href="./editor.html">角色 / 地图编辑器</a></div>
   <div id="help">
     WASD 移动 · →→ 冲刺 · 空格 跳 · Shift 闪避<br>
     J 轻攻击(↓+J 踢技) · K 重攻击(↓+K 挑空) · J+K 抓投<br>

@@ -2,7 +2,18 @@
 import * as THREE from 'three';
 import { World } from '../sim/world';
 import { RoomDef, SimEvent } from '../sim/types';
-import { Rig } from './rig';
+import { ActorView, hasSprites, Rig, SpriteRig } from './rig';
+import { findArt } from './art';
+
+/** 场景主题配色:天空、雾、地面、石墙、飘落粒子、火光 */
+interface Palette { sky: string; fog: string; ground: string; road: string; slab: string; stone: string; ash: string; fire: string }
+const PALETTES: Record<string, Palette> = {
+  ashsnow: { sky: '#0d0c14', fog: '#12101a', ground: '#25232c', road: '#3b3844', slab: '#474350', stone: '#23222b', ash: '#b9b4ad', fire: '#ff5a1f' },
+  abbey: { sky: '#0a100e', fog: '#0f1714', ground: '#1f2623', road: '#353d38', slab: '#424b45', stone: '#222a26', ash: '#a8c2b0', fire: '#8dffb0' },
+  mine: { sky: '#100b07', fog: '#17100a', ground: '#2a2018', road: '#40342a', slab: '#4d4034', stone: '#2a2119', ash: '#d9a05a', fire: '#ffa030' },
+  city: { sky: '#0a0b18', fog: '#0f1022', ground: '#20223a', road: '#34365a', slab: '#40426a', stone: '#1f2136', ash: '#9aa4e0', fire: '#7a8cff' },
+  abyss: { sky: '#120606', fog: '#1a0808', ground: '#2a1414', road: '#402020', slab: '#4d2828', stone: '#2a1212', ash: '#ff8a5a', fire: '#ff3a1a' },
+};
 
 interface Spark { mesh: THREE.Mesh; life: number; max: number; grow: number }
 
@@ -10,7 +21,7 @@ export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
-  private rigs = new Map<number, Rig>();
+  private rigs = new Map<number, ActorView>();
   private projMeshes = new Map<number, THREE.Mesh>();
   private sparks: Spark[] = [];
   private embers!: THREE.Points;
@@ -54,29 +65,52 @@ export class GameRenderer {
     let s = seed;
     const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
     const W = room.width, D = room.depth;
+    const pal = PALETTES[room.theme] ?? PALETTES.ashsnow;
+    (this.scene.background as THREE.Color).set(pal.sky);
+    (this.scene.fog as THREE.Fog).color.set(pal.fog);
 
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(W + 40, D + 30), new THREE.MeshStandardMaterial({ color: '#25232c', roughness: 1 }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(W + 40, D + 30), new THREE.MeshStandardMaterial({ color: pal.ground, roughness: 1 }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(W / 2, 0, D / 2);
     this.stage.add(ground);
     // 可行走区域的石板路
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(W + 4, D + 0.8), new THREE.MeshStandardMaterial({ color: '#3b3844', roughness: 0.95 }));
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(W + 4, D + 0.8), new THREE.MeshStandardMaterial({ color: pal.road, roughness: 0.95 }));
     road.rotation.x = -Math.PI / 2; road.position.set(W / 2, 0.01, D / 2);
     this.stage.add(road);
-    const slabMat = new THREE.MeshStandardMaterial({ color: '#474350', roughness: 0.9 });
-    for (let i = 0; i < W * 1.4; i++) {
+    // 美术贴图(可选):地面与远景。有图时覆盖程序生成的底色。
+    const groundUrl = findArt(`bg/${room.theme}/ground`);
+    if (groundUrl) {
+      const gt = new THREE.TextureLoader().load(groundUrl);
+      gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.colorSpace = THREE.SRGBColorSpace;
+      gt.repeat.set((W + 4) / 6, (D + 0.8) / 6);
+      (road.material as THREE.MeshStandardMaterial).map = gt;
+      (road.material as THREE.MeshStandardMaterial).color.set('#ffffff');
+    }
+    const farUrl = findArt(`bg/${room.theme}/far`);
+    if (farUrl) {
+      const ft = new THREE.TextureLoader().load(farUrl);
+      ft.wrapS = THREE.RepeatWrapping; ft.colorSpace = THREE.SRGBColorSpace;
+      const fw = W + 60, fh = 24;
+      ft.repeat.set(fw / (fh * 2), 1); // 远景图宽高比 2:1,横向平铺
+      const far = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), new THREE.MeshBasicMaterial({ map: ft, fog: false }));
+      far.position.set(W / 2, fh / 2 - 1.5, -14);
+      this.stage.add(far);
+    }
+    const hasFar = !!farUrl;
+    const slabMat = new THREE.MeshStandardMaterial({ color: pal.slab, roughness: 0.9 });
+    for (let i = 0; i < (groundUrl ? 0 : W * 1.4); i++) {
       const sl = new THREE.Mesh(new THREE.PlaneGeometry(0.6 + rnd() * 1.2, 0.4 + rnd() * 0.7), slabMat);
       sl.rotation.x = -Math.PI / 2; sl.position.set(rnd() * W, 0.015, rnd() * D);
       this.stage.add(sl);
     }
     // 远景:残墙、石柱、枯树
-    const stone = new THREE.MeshStandardMaterial({ color: '#23222b', roughness: 1, flatShading: true });
+    const stone = new THREE.MeshStandardMaterial({ color: pal.stone, roughness: 1, flatShading: true });
     const dark = new THREE.MeshStandardMaterial({ color: '#131218', roughness: 1, flatShading: true });
     for (let x = -4; x < W + 6; x += 2.4 + rnd() * 2.5) {
       const h = 1.2 + rnd() * 2.6;
       const wall = new THREE.Mesh(new THREE.BoxGeometry(1.6 + rnd() * 1.6, h, 0.8), stone);
       wall.position.set(x, h / 2, -1.6 - rnd() * 1.2); wall.rotation.z = (rnd() - 0.5) * 0.08;
       this.stage.add(wall);
-      if (rnd() < 0.45) {
+      if (!hasFar && rnd() < 0.45) {
         const tower = new THREE.Mesh(new THREE.BoxGeometry(2 + rnd() * 2, 7 + rnd() * 9, 2), dark);
         tower.position.set(x + rnd() * 3, tower.geometry.parameters.height / 2, -8 - rnd() * 10);
         this.stage.add(tower);
@@ -93,10 +127,10 @@ export class GameRenderer {
       }
       if (rnd() < 0.3) {
         // 余烬火盆:暖色点光
-        const fire = new THREE.PointLight('#ff5a1f', 6, 9, 1.8);
+        const fire = new THREE.PointLight(pal.fire, 6, 9, 1.8);
         fire.position.set(x, 1.1, -0.6);
         const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.18, 0.9, 6), stone); bowl.position.set(x, 0.45, -0.6);
-        const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.22), new THREE.MeshBasicMaterial({ color: '#ff7a2a' })); flame.position.set(x, 1.1, -0.6);
+        const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.22), new THREE.MeshBasicMaterial({ color: pal.fire })); flame.position.set(x, 1.1, -0.6);
         this.stage.add(fire, bowl, flame);
       }
     }
@@ -114,7 +148,7 @@ export class GameRenderer {
       this.emberVel[i] = 0.3 + rnd() * 0.7;
     }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    this.embers = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#b9b4ad', size: 0.07, transparent: true, opacity: 0.7 }));
+    this.embers = new THREE.Points(geo, new THREE.PointsMaterial({ color: pal.ash, size: 0.07, transparent: true, opacity: 0.7 }));
     this.stage.add(this.embers);
     this.camX = 5;
   }
@@ -146,7 +180,8 @@ export class GameRenderer {
       seen.add(f.id);
       let rig = this.rigs.get(f.id);
       if (!rig) {
-        rig = new Rig(f.def.look);
+        // 有战斗贴图就用贴图人,否则用程序绘制的方块人
+        rig = hasSprites(f.def.id) ? new SpriteRig(f.def.id, f.def.look) : new Rig(f.def.look);
         this.rigs.set(f.id, rig);
         this.scene.add(rig.root, rig.shadow);
       }

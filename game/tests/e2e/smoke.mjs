@@ -16,8 +16,12 @@ await page.waitForTimeout(500);
 await page.screenshot({ path: `${out}/01b-select.png` });
 const hero = Number(process.argv[4] ?? 0);
 for (let i = 0; i < hero; i++) { await page.keyboard.press('KeyD'); await page.waitForTimeout(60); }
-await page.keyboard.press('Enter');
-await page.waitForTimeout(2500);
+await page.keyboard.press('Enter');          // 确认角色 → 章节剧情
+await page.waitForTimeout(400);
+await page.keyboard.press('Enter');          // 剧情 → 路线图
+await page.waitForTimeout(400);
+await page.keyboard.press('Enter');          // 出发
+await page.waitForTimeout(3000);
 await page.evaluate(() => { const p = window.__game.perf; p.frames = 0; p.long = 0; p.worst = 0; p.simMs = 0; });
 // 走向敌人并打一套:轻轻轻 → 重 → 挑空
 await page.keyboard.down('KeyD'); await page.waitForTimeout(900); await page.keyboard.up('KeyD');

@@ -1,6 +1,7 @@
 // 程序化低模角色:由 Look 参数生成,无需外部美术资源。模型朝 +x 方向搭建。
 import * as THREE from 'three';
-import { Fighter, Look, SIM } from '../sim/types';
+import { Fighter, Look, SIM, Tier } from '../sim/types';
+import { findArt } from './art';
 
 export interface Pose {
   armL: number; armR: number; // 肩部前后摆(绕 z,正值向前)
@@ -58,7 +59,7 @@ function buildWeapon(look: Look): THREE.Object3D | null {
   return g;
 }
 
-export class Rig {
+export class Rig implements ActorView {
   root = new THREE.Group();
   private body = new THREE.Group();
   private torso = new THREE.Group();
@@ -248,5 +249,102 @@ function attackPose(f: Fighter, p: Pose) {
     case 'shoot': p.armL = 1.57; p.foreL = 0; p.armR = wind ? 1.2 : 0.6; p.foreR = wind ? 1.9 : 1.2; p.twist = -0.5; break;
     case 'airKick': p.legR = 1.0; p.kneeR = 0; p.legL = -0.4; p.kneeL = 1.3; p.lean = -0.3; p.armL = 1.4; p.armR = -1.0; break;
     case 'airSlash': p.armR = wind ? 3.0 : 0.4; p.foreR = 0.1; p.lean = wind ? -0.2 : 0.6; p.legL = 0.5; p.kneeL = 1.0; p.legR = -0.3; p.kneeR = 0.6; break;
+  }
+}
+
+/** 渲染器眼里的「角色外观」:方块人与贴图人都实现这个接口 */
+export interface ActorView {
+  root: THREE.Object3D;
+  shadow: THREE.Mesh;
+  update(f: Fighter, time: number, dt: number): void;
+  hitFlash(): void;
+}
+
+/** 该角色是否有战斗贴图(至少要有 idle 这一张) */
+export function hasSprites(id: string): boolean {
+  return findArt(`sprites/${id}/idle`) !== null;
+}
+
+const texLoader = new THREE.TextureLoader();
+
+/**
+ * 贴图角色:一块始终面向镜头的平面,根据状态切换姿势图。
+ * 贴图规范见 docs/ART-GUIDE.md(朝右、透明背景、脚底在画布底部往上约 6%)。
+ */
+export class SpriteRig implements ActorView {
+  root = new THREE.Group();
+  shadow: THREE.Mesh;
+  private plane: THREE.Mesh;
+  private mat: THREE.MeshBasicMaterial;
+  /** 已加载的姿势贴图 */
+  private tex = new Map<string, THREE.Texture>();
+  private current = '';
+  private flash = 0;
+  /** 平面边长(米):画布里角色约占 85% 高度 */
+  private size: number;
+
+  constructor(private id: string, look: Look) {
+    this.size = (SIM.BODY_H * look.scale) / 0.85 * 1.05;
+    this.mat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, color: 0xe6e6e6 });
+    this.plane = new THREE.Mesh(new THREE.PlaneGeometry(this.size, this.size), this.mat);
+    // 脚底在画布底部往上 6%:把平面上移,使脚底落在 y=0
+    this.plane.position.y = this.size * (0.5 - 0.06);
+    this.root.add(this.plane);
+    this.shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5 * look.bulk, 16),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45, depthWrite: false }),
+    );
+    this.shadow.rotation.x = -Math.PI / 2;
+    this.setPose('idle');
+  }
+
+  /** 切换姿势;该姿势没有图时退回 idle */
+  private setPose(pose: string) {
+    if (pose === this.current) return;
+    const url = findArt(`sprites/${this.id}/${pose}`) ?? findArt(`sprites/${this.id}/idle`);
+    if (!url) return;
+    this.current = pose;
+    let t = this.tex.get(url);
+    if (!t) {
+      t = texLoader.load(url);
+      t.colorSpace = THREE.SRGBColorSpace;
+      this.tex.set(url, t);
+    }
+    this.mat.map = t;
+    this.mat.needsUpdate = true;
+  }
+
+  hitFlash() { this.flash = 1; }
+
+  /** 根据模拟状态选择姿势图 */
+  private poseOf(f: Fighter, time: number): string {
+    switch (f.state) {
+      case 'walk': case 'run': return Math.floor(time * (f.state === 'run' ? 9 : 6)) % 2 ? 'walk2' : 'walk1';
+      case 'jump': return 'jump';
+      case 'attack': {
+        const tier = f.move?.tier ?? 0;
+        // 敌人只有一张 attack;主角按招式层级分 轻 / 重 / 特殊
+        if (findArt(`sprites/${this.id}/attack`)) return 'attack';
+        return tier >= Tier.SKILL ? 'special' : tier >= Tier.HEAVY ? 'heavy' : 'light';
+      }
+      case 'hitstun': case 'launched': case 'grabbed': return 'hurt';
+      case 'knockdown': case 'dead': return 'down';
+      default: return 'idle';
+    }
+  }
+
+  update(f: Fighter, time: number, dt: number) {
+    this.setPose(this.poseOf(f, time));
+    const hurt = f.state === 'hitstun' || f.state === 'launched' || f.state === 'grabbed';
+    const jitter = f.hitstop > 0 && hurt ? Math.sin(time * 90) * 0.06 : 0;
+    this.root.position.set(f.x + jitter, f.y, f.z);
+    this.plane.scale.x = f.facing; // 朝左时水平翻转
+    this.plane.rotation.z = f.state === 'launched' ? -f.facing * 0.9 : 0; // 被打飞时身体后仰
+    this.shadow.position.set(f.x, 0.02, f.z);
+    this.shadow.scale.setScalar(Math.max(0.4, 1 - f.y * 0.25));
+    this.flash = Math.max(0, this.flash - dt * 7);
+    this.mat.color.setScalar(0.9 + this.flash * 3); // 受击瞬间提亮
+    const blink = f.invuln > 0 && f.state !== 'dodge' && f.hp > 0 && Math.floor(time * 20) % 2 === 0;
+    this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
   }
 }

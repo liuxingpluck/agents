@@ -9,8 +9,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build:pages": "tsc --noEmit && vite build --outDir ../docs --emptyOutDir && touch ../docs/.nojekyll",
-    "e2e": "node tests/e2e/smoke.mjs"
+    "build:pages": "node scripts/art-manifest.mjs && tsc --noEmit && vite build --outDir ../docs --emptyOutDir && touch ../docs/.nojekyll",
+    "e2e": "node tests/e2e/smoke.mjs",
+    "art:manifest": "node scripts/art-manifest.mjs",
+    "art:prompts": "node scripts/art-prompts.mjs"
   },
   "dependencies": {
     "three": "^0.187.0"
