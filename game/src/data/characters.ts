@@ -1,5 +1,14 @@
 import { CharacterDef, Tier } from '../sim/types';
 import { box, mv, toMap } from './build';
+import { brynn } from './chars/brynn';
+import { sera } from './chars/sera';
+import { ilex } from './chars/ilex';
+import { rook } from './chars/rook';
+import { vesper } from './chars/vesper';
+import { morgan, extras as morganExtras } from './chars/morgan';
+import { odran } from './chars/odran';
+import { li } from './chars/li';
+import { nola } from './chars/nola';
 
 const { LIGHT: L, HEAVY: H, COMMAND: C, SKILL: S, SUPER: U } = Tier;
 
@@ -64,5 +73,12 @@ export const brute: CharacterDef = {
   normals: { LP: 'lp1', HP: 'hp1' }, airNormals: {}, commands: [], skills: [],
 };
 
-export const ROSTER: Record<string, CharacterDef> = { kael, husk, brute };
-export const PLAYABLE = ['kael'];
+/** 可选角色,按选人界面的显示顺序排列 */
+export const HEROES: CharacterDef[] = [kael, brynn, sera, ilex, rook, vesper, morgan, odran, li, nola];
+
+/** 全部角色表(可选角色 + 敌人 + 召唤物),模拟层按 id 查找 */
+export const ROSTER: Record<string, CharacterDef> = {};
+for (const c of [...HEROES, husk, brute, ...morganExtras]) ROSTER[c.id] = c;
+
+/** 可选角色的 id 列表 */
+export const PLAYABLE = HEROES.map(c => c.id);

@@ -12,7 +12,13 @@ await page.goto(url);
 await page.waitForTimeout(800);
 await page.screenshot({ path: `${out}/01-title.png` });
 await page.keyboard.press('Enter');
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/01b-select.png` });
+const hero = Number(process.argv[4] ?? 0);
+for (let i = 0; i < hero; i++) { await page.keyboard.press('KeyD'); await page.waitForTimeout(60); }
+await page.keyboard.press('Enter');
 await page.waitForTimeout(2500);
+await page.evaluate(() => { const p = window.__game.perf; p.frames = 0; p.long = 0; p.worst = 0; p.simMs = 0; });
 // 走向敌人并打一套:轻轻轻 → 重 → 挑空
 await page.keyboard.down('KeyD'); await page.waitForTimeout(900); await page.keyboard.up('KeyD');
 const tap = async (k, wait = 130) => { await page.keyboard.down(k); await page.waitForTimeout(40); await page.keyboard.up(k); await page.waitForTimeout(wait); };
@@ -24,7 +30,7 @@ for (let r = 0; r < 14; r++) {
   if (st !== 0) { const k = st > 0 ? 'KeyD' : 'KeyA'; await page.keyboard.down(k); await page.waitForTimeout(250); await page.keyboard.up(k); }
 }
 await page.screenshot({ path: `${out}/04-later.png` });
-const info = await page.evaluate(() => { const g = window.__game; return { phase: g.phase, frame: g.world.frame, wave: g.world.wave, hp: g.player.hp, fighters: g.world.fighters.length }; });
+const info = await page.evaluate(() => { const g = window.__game; return { hero: g.player.def.id, phase: g.phase, frame: g.world.frame, wave: g.world.wave, hp: g.player.hp, fighters: g.world.fighters.length, perf: { ...g.perf, simMsPerFrame: +(g.perf.simMs / g.perf.frames).toFixed(3) } }; });
 console.log(JSON.stringify({ info, errors }));
 await browser.close();
 if (errors.length) process.exit(1);

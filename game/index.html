@@ -31,6 +31,22 @@
     background: linear-gradient(#f4e9d8 30%, var(--ember)); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
   #banner-sub { margin-top: 18px; font-size: 16px; line-height: 1.9; letter-spacing: .15em; opacity: .9; }
   #banner-sub b { color: var(--ember); } #banner-sub em { letter-spacing: .6em; opacity: .6; font-size: 13px; }
+  #select { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #000b 0%, #000e 75%); pointer-events: auto; }
+  #select.show { display: flex; animation: fadein .4s; }
+  #select h1 { font-size: 22px; letter-spacing: .6em; margin: 0 0 22px; opacity: .8; font-weight: 400; }
+  #cards { display: grid; grid-template-columns: repeat(5, 132px); gap: 12px; }
+  .card { all: unset; cursor: pointer; height: 86px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid #5b5560; background: linear-gradient(160deg, var(--c), #0b0a10 70%); position: relative; transition: transform .12s; }
+  .card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--c2); }
+  .card b { font-size: 20px; letter-spacing: .2em; } .card span { font-size: 12px; opacity: .7; letter-spacing: .2em; }
+  .card.on { border-color: var(--ember); transform: translateY(-6px); box-shadow: 0 0 22px #ff6a2a66; }
+  #detail { width: min(708px, 90vw); min-height: 190px; margin-top: 22px; text-align: left; line-height: 1.8; font-size: 14px; }
+  #detail h2 { margin: 0 0 6px; font-size: 26px; letter-spacing: .15em; } #detail h2 small { font-size: 14px; opacity: .65; margin-left: 10px; }
+  #detail p { margin: 4px 0; } .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; opacity: .75; }
+  #select .tip { margin-top: 10px; font-size: 12px; opacity: .55; letter-spacing: .15em; }
+  #links { position: absolute; right: 20px; bottom: 14px; font-size: 12px; pointer-events: auto; }
+  #links a { color: var(--bone); opacity: .6; margin-left: 14px; } #links a:hover { opacity: 1; color: var(--ember); }
   #help { position: absolute; left: 20px; bottom: 14px; font-size: 12px; opacity: .55; line-height: 1.7; letter-spacing: .05em;
     font-family: ui-monospace, Menlo, Consolas, monospace; }
 </style>
@@ -44,6 +60,9 @@
   <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
   <div id="flash"></div>
   <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
+  <div id="select"><h1>选择持名者</h1><div id="cards"></div><div id="detail"></div>
+    <div class="tip">A / D 切换 · Enter 或 J 确认 · 战斗中按 Esc 返回这里</div></div>
+  <div id="links"><a href="./train.html">AI 训练场</a></div>
   <div id="help">
     WASD 移动 · →→ 冲刺 · 空格 跳 · L 闪避<br>
     J 轻拳 K 重拳 U 轻脚 I 重脚 · 1 2 3 4 技能<br>

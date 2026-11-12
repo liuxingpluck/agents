@@ -42,13 +42,15 @@ export interface World {
   defaultEnemyAI: Controller | null;
   /** 召唤物使用的控制器 */
   summonAI: Controller | null;
+  /** 对战 / 训练模式:双方都享有玩家级的连击保护,保证公平 */
+  protectAll: boolean;
 }
 
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
   return {
     frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], events: [],
     controllers: new Map(), nextId: 1, wave: 0, waveTimer: 30, cleared: false, useWaves: true,
-    defaultEnemyAI: null, summonAI: null,
+    defaultEnemyAI: null, summonAI: null, protectAll: false,
   };
 }
 
@@ -403,9 +405,9 @@ function updateFighter(w: World, f: Fighter) {
 // ---------- 命中 ----------
 
 /** 目标是否受「连击保护」:Boss 与玩家方不能被无限连 */
-function comboLimitOf(v: Fighter): number {
+function comboLimitOf(w: World, v: Fighter): number {
   if (v.def.role === 'boss') return SIM.COMBO_LIMIT_BOSS;
-  if (v.team === 0) return SIM.COMBO_LIMIT_PLAYER;
+  if (v.team === 0 || w.protectAll) return SIM.COMBO_LIMIT_PLAYER;
   return Infinity; // 普通怪没有硬上限,只要不断换招就能一直连到死
 }
 
@@ -506,7 +508,7 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   releaseGrab(w, v); // 被打中的人如果正抓着别人,松手
 
   // 强制挣脱判定
-  const forced = v.comboValue >= comboLimitOf(v) || uses > SIM.MOVE_REUSE_LIMIT;
+  const forced = v.comboValue >= comboLimitOf(w, v) || uses > SIM.MOVE_REUSE_LIMIT;
   if (forced) {
     w.events.push({ type: 'comboBreak', victim: v.id });
     if (isBoss) { bossBurst(w, v); return true; }
