@@ -61,6 +61,12 @@ export class Sfx {
     o.start(); o.stop(c.currentTime + dur);
   }
 
+  /** 调整总音量(0..1) */
+  setVolume(v: number) {
+    this.volume = v;
+    if (this.master) this.master.gain.value = v;
+  }
+
   /** 把模拟层这一帧的事件翻译成声音 */
   handle(events: SimEvent[]) {
     if (!this.ctx) return;

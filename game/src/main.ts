@@ -12,6 +12,8 @@ import { InputManager } from './ui/input';
 import { Hud } from './ui/hud';
 import { Sfx } from './render/audio';
 import { loadPack } from './data/custom';
+import { setupTouch, wantsTouch } from './ui/touch';
+import { isSettingsOpen, setupSettings } from './ui/settings';
 import { isHeroRole, validateChapter, validateCharacter, validateRoom } from './editor/validate';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -316,6 +318,7 @@ function showTitle() {
 
 input.onKey = code => {
   sfx.unlock();
+  if (isSettingsOpen()) return;
   const enter = code === 'Enter' || code === 'NumpadEnter';
   const ok = enter || code === 'KeyJ';
   switch (phase) {
@@ -378,9 +381,11 @@ function frame(now: number) {
   // 慢动作:只放慢模拟推进的速度,渲染照常
   if (slowmo > 0) slowmo -= dt;
   acc += dt * (slowmo > 0 ? 0.3 : 1);
+  if (isSettingsOpen()) acc = 0; // 设置面板打开时暂停
   let steps = 0;
   const t0 = performance.now();
   const active = phase === 'play' || phase === 'clear';
+  document.body.classList.toggle('playing', active); // 触屏按键只在战斗中显示
   while (acc >= STEP && steps < 5) {
     const inputs = new Map<number, number>();
     inputs.set(player.id, active ? input.read() : 0);
@@ -425,6 +430,10 @@ function frame(now: number) {
 async function boot() {
   await loadArtManifest();
   loadCustomContent();
+  setupSettings(input, sfx, $('open-settings'));
+  if (wantsTouch()) setupTouch(input);
+  // 点击 / 轻触剧情幕与「GO」提示,等同于按 Enter(触屏没有键盘)
+  for (const id of ['banner', 'go']) $(id).addEventListener('click', () => input.onKey?.('Enter'));
   resize();
   buildSelect();
   // 标题画面:背后渲染一个只有主角站着的场景

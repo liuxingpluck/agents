@@ -35,6 +35,12 @@ export function saveBindings(b: Bindings) {
   try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* ignore */ }
 }
 
+const SPECIAL_KEY = 'ashen-abyss.special.v1';
+function loadSpecial(): string[] {
+  try { const v = JSON.parse(localStorage.getItem(SPECIAL_KEY) ?? 'null'); if (Array.isArray(v) && v.length) return v; } catch { /* ignore */ }
+  return [...DEFAULT_SPECIAL];
+}
+
 // 标准手柄映射:A 跳 X 轻攻击 Y 重攻击 B 特殊技 RB/RT 闪避 LB/LT/摇杆按下 直接放技能
 const PAD: Array<[number, BtnName]> = [
   [0, 'JUMP'], [2, 'LP'], [3, 'HP'], [5, 'DODGE'], [7, 'DODGE'], [4, 'S1'], [6, 'S2'], [10, 'S3'], [11, 'S4'],
@@ -44,7 +50,15 @@ const PAD: Array<[number, BtnName]> = [
 export class InputManager {
   private down = new Set<string>();
   /** 特殊技键的键位 */
-  specialCodes: string[] = [...DEFAULT_SPECIAL];
+  specialCodes: string[] = loadSpecial();
+  /** 触屏虚拟按键的状态(由 ui/touch.ts 写入,read 时与键盘合并) */
+  virtualMask = 0;
+  virtualSpecial = false;
+  /** 已松开但还没被读到过的虚拟按键:保证再快的轻点也至少生效一帧 */
+  private pendingRelease = 0;
+  private pendingSpecialRelease = false;
+  /** 改键时使用:设置后,下一次按键只交给它,不传给游戏 */
+  captureNext: ((code: string) => void) | null = null;
   /** 上一次 read 时 轻 / 重 / 特殊 三个键是否按着(用来检测「刚按下」) */
   private prevLight = false; private prevHeavy = false; private prevSpecial = false;
   /** 三个键本次按下期间被翻译成的模拟层按钮(按下瞬间锁定,松开清零) */
@@ -61,6 +75,7 @@ export class InputManager {
     this.rebuild();
     window.addEventListener('keydown', e => {
       if (this.codeToBtn.has(e.code) || this.specialCodes.includes(e.code) || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      if (this.captureNext) { const cb = this.captureNext; this.captureNext = null; cb(e.code); return; }
       if (!e.repeat) this.onKey?.(e.code);
       this.down.add(e.code);
     });
@@ -75,9 +90,33 @@ export class InputManager {
     }
   }
 
+  /** 触屏按钮按下 / 松开(bit 为模拟层按钮位;'SPECIAL' 为特殊技键) */
+  pressVirtual(bit: number | 'SPECIAL') {
+    if (bit === 'SPECIAL') { this.virtualSpecial = true; this.pendingSpecialRelease = false; }
+    else { this.virtualMask |= bit; this.pendingRelease &= ~bit; }
+  }
+  releaseVirtual(bit: number | 'SPECIAL') {
+    if (bit === 'SPECIAL') this.pendingSpecialRelease = true; else this.pendingRelease |= bit;
+  }
+
+  /** 修改某个按钮的键位并保存 */
   setBinding(btn: BtnName, codes: string[]) {
     this.bindings[btn] = codes;
     saveBindings(this.bindings);
+    this.rebuild();
+  }
+
+  /** 修改特殊技键并保存 */
+  setSpecial(codes: string[]) {
+    this.specialCodes = codes;
+    try { localStorage.setItem(SPECIAL_KEY, JSON.stringify(codes)); } catch { /* ignore */ }
+  }
+
+  /** 全部键位恢复默认 */
+  resetBindings() {
+    this.bindings = structuredClone(DEFAULT_BINDINGS);
+    saveBindings(this.bindings);
+    this.setSpecial([...DEFAULT_SPECIAL]);
     this.rebuild();
   }
 
@@ -87,7 +126,11 @@ export class InputManager {
   read(): number {
     let m = 0;
     for (const code of this.down) m |= this.codeToBtn.get(code) ?? 0;
-    let special = this.specialCodes.some(c => this.down.has(c));
+    m |= this.virtualMask;
+    let special = this.virtualSpecial || this.specialCodes.some(c => this.down.has(c));
+    // 处理「已松开」的虚拟按键:这一帧仍算按着,读完再真正放开
+    this.virtualMask &= ~this.pendingRelease; this.pendingRelease = 0;
+    if (this.pendingSpecialRelease) { this.virtualSpecial = false; this.pendingSpecialRelease = false; }
     const pad = navigator.getGamepads?.()[0];
     if (pad) {
       for (const [i, b] of PAD) if (pad.buttons[i]?.pressed) m |= Btn[b];

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>烬渊 · Ashen Abyss</title>
 <style>
   :root { --ember: #ff6a2a; --bone: #e8e2d6; --ink: #07060a; }
@@ -66,6 +66,27 @@
   #select-row #detail { margin-top: 0; flex: 1; width: auto; }
   #full { height: 300px; display: none; filter: drop-shadow(0 0 18px #000); }
   #banner.art { background-size: cover; background-position: center; }
+  #settings { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: #000c; pointer-events: auto; }
+  #settings.show { display: flex; }
+  #settings .box { width: min(440px, 92vw); border: 1px solid #5b5560; background: #12101a; padding: 18px 22px; }
+  #settings h1 { margin: 0 0 12px; font-size: 20px; letter-spacing: .4em; font-weight: 400; }
+  #settings label { display: flex; justify-content: space-between; align-items: center; margin: 7px 0; font-size: 14px; }
+  #settings button { background: #1c1926; color: var(--bone); border: 1px solid #5b5560; padding: 6px 12px; font: inherit; cursor: pointer; min-width: 150px; }
+  #settings button:hover { border-color: var(--ember); } #settings button.primary { background: var(--ember); color: #1a0d08; font-weight: 700; }
+  #settings .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; } #settings p { font-size: 12px; opacity: .6; line-height: 1.7; }
+  #banner.show, #go.show { pointer-events: auto; cursor: pointer; }
+  #touch { position: fixed; inset: 0; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #stick { position: absolute; left: 0; bottom: 0; width: 46%; height: 62%; pointer-events: auto; touch-action: none; }
+  #stick i { position: absolute; left: 70px; bottom: 70px; width: 86px; height: 86px; border-radius: 50%; border: 2px solid #e8e2d655; background: #e8e2d618; }
+  #pad { position: absolute; right: 14px; bottom: 18px; width: 236px; height: 196px; pointer-events: none; }
+  #pad button { all: unset; position: absolute; width: 74px; height: 74px; border-radius: 50%; border: 2px solid #e8e2d677; background: #0008; color: var(--bone);
+    font: 700 24px "Noto Serif SC", serif; text-align: center; line-height: 74px; pointer-events: auto; touch-action: none; }
+  #pad button.on { background: #ff6a2a99; border-color: var(--ember); }
+  #pad button[data-b=LP] { right: 82px; bottom: 0; border-color: var(--ember); } #pad button[data-b=HP] { right: 0; bottom: 44px; }
+  #pad button[data-b=JUMP] { right: 164px; bottom: 26px; } #pad button.s { width: 58px; height: 58px; line-height: 58px; font-size: 19px; }
+  #pad button[data-b=SPECIAL] { right: 88px; bottom: 94px; border-color: #ffb347; } #pad button[data-b=DODGE] { right: 8px; bottom: 132px; }
+  body:not(.playing) #touch { display: none; } /* 菜单界面不显示触屏按键,以免挡住点击 */
+  body.touch #help { display: none; } body.touch #links { bottom: auto; top: 76px; }
   .dmg { position: absolute; font: 900 italic 22px Georgia, serif; color: #fff1c9; -webkit-text-stroke: 1px #3a1a08; pointer-events: none;
     animation: dmg .7s ease-out forwards; transform: translate(-50%, -50%); }
   .dmg.big { font-size: 34px; color: var(--ember); } .dmg.hero { color: #ff5a5a; }
@@ -92,7 +113,7 @@
   <div id="map"><h1 id="map-title"></h1><svg id="map-svg" viewBox="0 0 820 400"></svg><div id="map-info"></div>
     <div class="tip">W / S / A / D 选择下一站 · Enter 或 J 出发 · 相邻的路线可以互通</div></div>
   <div id="fade"></div>
-  <div id="links"><a href="./train.html">AI 训练场</a><a href="./editor.html">角色 / 地图编辑器</a></div>
+  <div id="links"><a href="#" id="open-settings">设置</a><a href="./train.html">AI 训练场</a><a href="./editor.html">角色 / 地图编辑器</a></div>
   <div id="help">
     WASD 移动 · →→ 冲刺 · 空格 跳 · Shift 闪避<br>
     J 轻攻击(↓+J 踢技) · K 重攻击(↓+K 挑空) · J+K 抓投<br>
