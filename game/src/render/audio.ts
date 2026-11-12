@@ -2,7 +2,9 @@
 // 打击感的一半来自声音——轻击是短促的「啪」,重击多一层低频「咚」,击杀再加一段下滑音。
 import { SimEvent } from '../sim/types';
 
+/** 音效播放器:把战斗事件(命中、挥空、击杀…)变成合成声音。 */
 export class Sfx {
+  // ctx = 浏览器音频引擎;master = 总音量开关;noise = 共用的噪声素材
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
@@ -81,6 +83,9 @@ export class Sfx {
         case 'comboBreak': this.tone(90, 400, 0.25, 0.6, 'square'); this.burst(0.3, 2500, 0.4, 'highpass'); break;
         case 'land': this.burst(0.08, 180, 0.35, 'lowpass'); break;
         case 'cast': this.tone(500, 1200, 0.2, 0.2, 'triangle'); break;
+        case 'wallBounce': this.burst(0.18, 300, 0.8, 'lowpass'); this.tone(120, 50, 0.2, 0.7); break;
+        case 'pickup': this.tone(660, 990, 0.12, 0.3, 'triangle'); this.tone(990, 1320, 0.14, 0.2, 'triangle'); break;
+        case 'recover': this.burst(0.1, 1500, 0.2, 'bandpass', 2); break;
       }
     }
   }

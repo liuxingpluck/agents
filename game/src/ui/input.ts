@@ -9,8 +9,10 @@
 // 经典的独立按键(U/I 出脚、数字键放技能)依然有效,老玩家可以直接用。
 import { Btn, BtnName } from '../sim/types';
 
+/** 键位表:每个按钮对应一组可用的键(KeyboardEvent.code,如 KeyJ、Space)。 */
 export type Bindings = Record<BtnName, string[]>;
 
+/** 默认键位。一个按钮可绑多个键,方便左右手习惯不同的玩家。 */
 export const DEFAULT_BINDINGS: Bindings = {
   UP: ['KeyW', 'ArrowUp'], DOWN: ['KeyS', 'ArrowDown'], LEFT: ['KeyA', 'ArrowLeft'], RIGHT: ['KeyD', 'ArrowRight'],
   LP: ['KeyJ'], HP: ['KeyK'], LK: ['KeyU'], HK: ['KeyI'],
@@ -22,8 +24,10 @@ export const DEFAULT_BINDINGS: Bindings = {
 /** 特殊技键(四键制专用,不属于模拟层按钮) */
 export const DEFAULT_SPECIAL = ['KeyL'];
 
+// 键位存进浏览器本地时用的名字(改了格式就升版本号)
 const KEY = 'ashen-abyss.bindings.v2';
 
+/** 读取已保存的键位;没有或读取失败就用默认键位。 */
 export function loadBindings(): Bindings {
   try {
     const raw = localStorage.getItem(KEY);
@@ -31,23 +35,28 @@ export function loadBindings(): Bindings {
   } catch { /* 无痕模式等情况下忽略 */ }
   return structuredClone(DEFAULT_BINDINGS);
 }
+/** 保存键位到浏览器本地;失败(如无痕模式)就算了。 */
 export function saveBindings(b: Bindings) {
   try { localStorage.setItem(KEY, JSON.stringify(b)); } catch { /* ignore */ }
 }
 
 const SPECIAL_KEY = 'ashen-abyss.special.v1';
+/** 读取已保存的特殊技键;没有就用默认。 */
 function loadSpecial(): string[] {
   try { const v = JSON.parse(localStorage.getItem(SPECIAL_KEY) ?? 'null'); if (Array.isArray(v) && v.length) return v; } catch { /* ignore */ }
   return [...DEFAULT_SPECIAL];
 }
 
 // 标准手柄映射:A 跳 X 轻攻击 Y 重攻击 B 特殊技 RB/RT 闪避 LB/LT/摇杆按下 直接放技能
+// 手柄按键编号 → 模拟层按钮(编号按标准手柄排列)
 const PAD: Array<[number, BtnName]> = [
   [0, 'JUMP'], [2, 'LP'], [3, 'HP'], [5, 'DODGE'], [7, 'DODGE'], [4, 'S1'], [6, 'S2'], [10, 'S3'], [11, 'S4'],
   [12, 'UP'], [13, 'DOWN'], [14, 'LEFT'], [15, 'RIGHT'],
 ];
 
+/** 输入管理器:汇总键盘、手柄、触屏,每帧输出「当前按着哪些按钮」。 */
 export class InputManager {
+  // 当前正按着的键
   private down = new Set<string>();
   /** 特殊技键的键位 */
   specialCodes: string[] = loadSpecial();
@@ -65,6 +74,7 @@ export class InputManager {
   private latchLight = 0; private latchHeavy = 0; private latchSpecial = 0;
   /** 轻 / 重键已经按住了多少帧(没按时为 99) */
   private lightAge = 99; private heavyAge = 99;
+  // 键 → 模拟层按钮位 的查找表,由 bindings 生成
   private codeToBtn = new Map<string, number>();
   bindings: Bindings;
   /** 任意键按下的回调(菜单用) */
@@ -83,6 +93,7 @@ export class InputManager {
     window.addEventListener('blur', () => this.down.clear());
   }
 
+  /** 按当前键位重新生成查找表(改键后必须调用)。 */
   rebuild() {
     this.codeToBtn.clear();
     for (const k of Object.keys(this.bindings) as BtnName[]) {
@@ -95,6 +106,7 @@ export class InputManager {
     if (bit === 'SPECIAL') { this.virtualSpecial = true; this.pendingSpecialRelease = false; }
     else { this.virtualMask |= bit; this.pendingRelease &= ~bit; }
   }
+  /** 触屏按钮松开:先记下,等下一次 read 之后再真正放开(见 pendingRelease)。 */
   releaseVirtual(bit: number | 'SPECIAL') {
     if (bit === 'SPECIAL') this.pendingSpecialRelease = true; else this.pendingRelease |= bit;
   }
@@ -150,6 +162,7 @@ export class InputManager {
   private translate(m: number, special: boolean): number {
     const light = (m & Btn.LP) !== 0, heavy = (m & Btn.HP) !== 0;
     const down = (m & Btn.DOWN) !== 0;
+    // 记录轻/重键按住的帧数,用于判断「是否几乎同时按下」
     this.lightAge = light ? (this.prevLight ? this.lightAge + 1 : 0) : 99;
     this.heavyAge = heavy ? (this.prevHeavy ? this.heavyAge + 1 : 0) : 99;
     if (light && !this.prevLight) this.latchLight = down ? Btn.LK : Btn.LP;

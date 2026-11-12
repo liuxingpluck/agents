@@ -13,6 +13,7 @@ export function wantsTouch(): boolean {
  * @param input 输入管理器(虚拟按键的状态写进它的 virtualMask / virtualSpecial)
  */
 export function setupTouch(input: InputManager) {
+  // 在页面上动态生成摇杆和按钮的 HTML
   const root = document.createElement('div');
   root.id = 'touch';
   root.innerHTML =
@@ -27,6 +28,7 @@ export function setupTouch(input: InputManager) {
   const stick = root.querySelector<HTMLElement>('#stick')!, knob = stick.querySelector<HTMLElement>('i')!;
   const DIRS = Btn.UP | Btn.DOWN | Btn.LEFT | Btn.RIGHT;
   let sx = 0, sy = 0, active = -1;
+  // 把手指相对摇杆中心的偏移,换算成上下左右按键状态,并移动摇杆小圆点
   const setDir = (dx: number, dy: number) => {
     let m = 0;
     if (dx < -18) m |= Btn.LEFT; else if (dx > 18) m |= Btn.RIGHT;
@@ -44,6 +46,7 @@ export function setupTouch(input: InputManager) {
   // ----- 按钮 -----
   root.querySelectorAll<HTMLButtonElement>('#pad button').forEach(btn => {
     const name = btn.dataset.b!;
+    // SPECIAL 是单独的「技」键,其余按钮对应普通按键位
     const bit = name === 'SPECIAL' ? 'SPECIAL' as const : Btn[name as 'LP' | 'HP' | 'JUMP' | 'DODGE'];
     const set = (on: boolean) => {
       btn.classList.toggle('on', on);

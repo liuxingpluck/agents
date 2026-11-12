@@ -1,8 +1,11 @@
-// 程序化低模角色:由 Look 参数生成,无需外部美术资源。模型朝 +x 方向搭建。
+// 角色外观:用方块拼出的低模小人(Rig)和贴图小人(SpriteRig)。
+// 它们只负责「画」:根据模拟层给出的角色状态(站、走、攻击、倒地等)摆姿势,
+// 不参与任何战斗判定。模型朝 +x 方向搭建。
 import * as THREE from 'three';
 import { Fighter, Look, SIM, Tier } from '../sim/types';
 import { findArt } from './art';
 
+/** 一个姿势 = 一组关节角度。每帧算出「目标姿势」,再平滑过渡过去,动作才不会生硬。 */
 export interface Pose {
   armL: number; armR: number; // 肩部前后摆(绕 z,正值向前)
   foreL: number; foreR: number; // 肘部弯曲
@@ -16,14 +19,17 @@ export interface Pose {
   crouch: number; // 下蹲量
 }
 
+/** 默认站姿(各关节的基准值,其他姿势在它上面改)。 */
 export const REST: Pose = {
   armL: 0.1, armR: 0.25, foreL: 0.3, foreR: 0.5, legL: 0.05, legR: -0.05, kneeL: 0, kneeR: 0,
   lean: 0.05, twist: 0, tilt: 0, spin: 0, lift: 0, crouch: 0,
 };
 
+/** 造一块材质(颜色);传入 emissive 时会自发光,用于眼睛、法杖宝石等。 */
 const mat = (c: string, emissive?: string) =>
   new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, metalness: 0.15, emissive: emissive ?? '#000000', emissiveIntensity: emissive ? 1.6 : 0, flatShading: true });
 
+/** 造一条四肢:上段 + 下段(肘/膝弯曲处),返回 pivot=肩/髋的转轴,lower=下半段的转轴。 */
 function limb(len: number, w: number, m: THREE.Material): { pivot: THREE.Group; lower: THREE.Group } {
   const pivot = new THREE.Group();
   const up = new THREE.Mesh(new THREE.BoxGeometry(w, len, w), m);
@@ -38,6 +44,7 @@ function limb(len: number, w: number, m: THREE.Material): { pivot: THREE.Group; 
   return { pivot, lower };
 }
 
+/** 按武器类型拼一把简易武器模型(都是方块拼的);没有武器或类型未知返回 null。 */
 function buildWeapon(look: Look): THREE.Object3D | null {
   const g = new THREE.Group();
   const steel = mat(look.accent), wood = mat('#3a2a1e');
@@ -59,15 +66,19 @@ function buildWeapon(look: Look): THREE.Object3D | null {
   return g;
 }
 
+/** 方块小人:身体、四肢、武器全部由程序生成,不需要任何美术图片。 */
 export class Rig implements ActorView {
   root = new THREE.Group();
   private body = new THREE.Group();
   private torso = new THREE.Group();
+  // 左臂、右臂、左腿、右腿
   private aL; private aR; private lL; private lR;
   private pose: Pose = { ...REST };
+  // 受击闪白的强度,1 表示刚被打中,随时间衰减到 0
   private flash = 0;
   private mats: THREE.MeshStandardMaterial[] = [];
   shadow: THREE.Mesh;
+  // 髋部离地高度,身体整体高度的基准
   private hipY: number;
 
   constructor(public look: Look) {
@@ -134,6 +145,7 @@ export class Rig implements ActorView {
     this.shadow.rotation.x = -Math.PI / 2;
   }
 
+  /** 被打中时调用:触发一次闪白。 */
   hitFlash() { this.flash = 1; }
 
   /** 根据模拟状态计算目标姿势并平滑过渡 */
@@ -144,6 +156,7 @@ export class Rig implements ActorView {
     for (const key of Object.keys(p) as (keyof Pose)[]) p[key] += (tgt[key] - p[key]) * k;
 
     // 顿帧期间受击者左右抖动,强化「打中了」的感觉
+    // 受击三态:被打硬直 / 被打飞 / 被抓住
     const hurt = f.state === 'hitstun' || f.state === 'launched' || f.state === 'grabbed';
     const jitter = f.hitstop > 0 && hurt ? Math.sin(time * 90) * 0.06 : 0;
     this.root.position.set(f.x + jitter, f.y + p.lift, f.z);
@@ -165,10 +178,13 @@ export class Rig implements ActorView {
     this.flash = Math.max(0, this.flash - dt * 7);
     const blink = f.invuln > 0 && f.state !== 'dodge' && f.hp > 0 && Math.floor(time * 20) % 2 === 0;
     this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
-    for (const m of this.mats) { m.emissive.setScalar(this.flash * 0.9); m.emissiveIntensity = 1; }
+    // 霸体大招预警:前摇期间全身泛橙光并闪烁,提示玩家「这招打不断,该躲了」
+    const warn = armorWarning(f, time);
+    for (const m of this.mats) { m.emissive.setRGB(this.flash * 0.9 + warn, this.flash * 0.9 + warn * 0.35, this.flash * 0.9); m.emissiveIntensity = 1; }
   }
 }
 
+/** 根据角色当前状态(站/走/跳/受击/倒地…)给出这一刻「想摆成的」姿势。 */
 function targetPose(f: Fighter, t: number): Pose {
   const p: Pose = { ...REST };
   switch (f.state) {
@@ -225,10 +241,12 @@ function targetPose(f: Fighter, t: number): Pose {
   return p;
 }
 
+/** 攻击时的姿势:先「蓄力」(前摇)再「击出」,不同招式 anim 对应不同动作。 */
 function attackPose(f: Fighter, p: Pose) {
   const m = f.move!;
   // 抓住对手时:单手前伸揪住
   if (f.grabTarget) { p.armL = 1.5; p.foreL = 0.1; p.armR = -0.6; p.foreR = 1.6; p.lean = 0.15; p.legL = 0.35; p.legR = -0.3; return; }
+  // wind = 前摇(蓄势中);strike = 出招判定期及收招前几帧
   const wind = f.moveFrame < m.startup;
   const strike = !wind && f.moveFrame < m.startup + m.active + 3;
   const a = wind ? 0 : strike ? 1 : 0.4; // 0 蓄势 1 击出
@@ -250,6 +268,15 @@ function attackPose(f: Fighter, p: Pose) {
     case 'airKick': p.legR = 1.0; p.kneeR = 0; p.legL = -0.4; p.kneeL = 1.3; p.lean = -0.3; p.armL = 1.4; p.armR = -1.0; break;
     case 'airSlash': p.armR = wind ? 3.0 : 0.4; p.foreR = 0.1; p.lean = wind ? -0.2 : 0.6; p.legL = 0.5; p.kneeL = 1.0; p.legR = -0.3; p.kneeR = 0.6; break;
   }
+}
+
+/**
+ * 霸体大招的预警强度(0..约 0.7)。只在带霸体的招式前摇期间非零,并随时间闪烁。
+ */
+export function armorWarning(f: Fighter, time: number): number {
+  const m = f.move;
+  if (f.state !== 'attack' || !m?.armor || f.moveFrame >= m.startup) return 0;
+  return 0.35 + 0.35 * Math.sin(time * 28);
 }
 
 /** 渲染器眼里的「角色外观」:方块人与贴图人都实现这个接口 */
@@ -314,9 +341,11 @@ export class SpriteRig implements ActorView {
     this.mat.needsUpdate = true;
   }
 
+  /** 被打中时调用:触发一次闪白。 */
   hitFlash() { this.flash = 1; }
 
   /** 根据模拟状态选择姿势图 */
+  /** 根据角色状态挑一张姿势图的名字(走路在两张图间交替)。 */
   private poseOf(f: Fighter, time: number): string {
     switch (f.state) {
       case 'walk': case 'run': return Math.floor(time * (f.state === 'run' ? 9 : 6)) % 2 ? 'walk2' : 'walk1';
@@ -343,7 +372,9 @@ export class SpriteRig implements ActorView {
     this.shadow.position.set(f.x, 0.02, f.z);
     this.shadow.scale.setScalar(Math.max(0.4, 1 - f.y * 0.25));
     this.flash = Math.max(0, this.flash - dt * 7);
-    this.mat.color.setScalar(0.9 + this.flash * 3); // 受击瞬间提亮
+    const warn = armorWarning(f, time);
+    // 受击瞬间提亮;霸体大招前摇时偏橙色闪烁
+    this.mat.color.setRGB(0.9 + this.flash * 3 + warn, 0.9 + this.flash * 3 - warn * 0.3, 0.9 + this.flash * 3 - warn * 0.8);
     const blink = f.invuln > 0 && f.state !== 'dodge' && f.hp > 0 && Math.floor(time * 20) % 2 === 0;
     this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
   }

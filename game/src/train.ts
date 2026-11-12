@@ -1,4 +1,5 @@
 // AI 训练场页面:左边控制训练并显示进步曲线,右边实时观看「当前模型 vs 脚本 AI」。
+// 训练本身在 ml/ 目录里(用多个后台线程让模型反复对战、慢慢变强),这里只做界面和观战。
 import { HEROES, ROSTER } from './data/characters';
 import { Fighter } from './sim/types';
 import { makeScriptAI } from './sim/ai/script';
@@ -8,17 +9,22 @@ import { ARENA, EPISODE_FRAMES } from './ml/env';
 import { makePolicyController } from './ml/policy';
 import { ExamPoint, Progress, SavedModel, Trainer } from './ml/trainer';
 
+/** 按 id 取页面元素的简写。 */
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+// 页面上的控件:选角色、选对手、线程数、是否自我对战、开始/暂停按钮、状态文字
 const heroSel = $<HTMLSelectElement>('hero'), foeSel = $<HTMLSelectElement>('foe');
 const workersIn = $<HTMLInputElement>('workers'), selfPlayIn = $<HTMLInputElement>('selfplay');
 const toggleBtn = $<HTMLButtonElement>('toggle'), statusEl = $('status');
 
+// 把所有角色填进两个下拉框
 for (const h of HEROES) {
   heroSel.add(new Option(`${h.name} · ${h.title}`, h.id));
   foeSel.add(new Option(`${h.name} · ${h.title}`, h.id));
 }
+// 默认线程数 = CPU 核数 - 1(留一个给页面),限制在 1~16
 workersIn.value = String(Math.max(1, Math.min(16, (navigator.hardwareConcurrency || 4) - 1)));
 
+/** 训练器(负责训练与存档);换角色/线程数时会重建。 */
 let trainer: Trainer | null = null;
 
 /** 按当前设置(重新)创建训练器。切换角色或线程数时调用。 */
@@ -42,6 +48,7 @@ function showHistory(hist: ExamPoint[]) {
   drawChart(hist);
 }
 
+/** 每训练完一代就刷新一次数字和曲线。 */
 function showProgress(p: Progress) {
   $('s-gen').textContent = String(p.generation);
   $('s-fit').textContent = `${p.meanFitness.toFixed(2)} / ${p.bestFitness.toFixed(2)}`;
@@ -64,6 +71,7 @@ function drawChart(hist: ExamPoint[]) {
   for (const y of [0, 0.5, 1]) { g.beginPath(); g.moveTo(0, 8 + (H - 16) * y); g.lineTo(W, 8 + (H - 16) * y); g.stroke(); }
   if (hist.length < 2) return;
   const maxGen = hist[hist.length - 1].generation || 1;
+  // 画一条曲线:横轴是训练代数,纵轴 0~1
   const line = (color: string, val: (p: ExamPoint) => number) => {
     g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
     hist.forEach((p, i) => {
@@ -72,6 +80,7 @@ function drawChart(hist: ExamPoint[]) {
     });
     g.stroke();
   };
+  // 白线 = 伤害差(打出的减去受到的);橙线 = 胜率
   line('#e8e2d6', p => Math.min(1, Math.max(0, (p.dealt - p.taken + 1) / 2)));
   line('#ff6a2a', p => p.winRate);
 }
@@ -79,7 +88,9 @@ function drawChart(hist: ExamPoint[]) {
 // ---------- 实时观战 ----------
 
 const gfx = new GameRenderer($<HTMLCanvasElement>('arena'));
+// 当前观战比赛的世界、AI 角色和脚本对手
 let world: World, hero: Fighter, foe: Fighter;
+// 本局已进行帧数、观战总局数、AI 获胜局数
 let matchFrames = 0, matches = 0, wins = 0;
 
 /** 用训练器当前的参数开一局新的观战比赛 */
@@ -95,6 +106,7 @@ function restartMatch() {
   matchFrames = 0;
 }
 
+/** 让观战画面跟随容器大小。 */
 function resizeArena() {
   const c = $<HTMLCanvasElement>('arena');
   gfx.resize(c.clientWidth, c.clientHeight);
@@ -102,6 +114,7 @@ function resizeArena() {
 window.addEventListener('resize', () => { resizeArena(); if (trainer) drawChart(trainer.history); });
 
 let last = performance.now(), acc = 0;
+/** 观战主循环:固定每秒 60 步推进比赛,一局结束就换上最新模型重开。 */
 function loop(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now; acc += dt;
@@ -110,6 +123,7 @@ function loop(now: number) {
     step(world);
     gfx.handleEvents(world.events, world);
     matchFrames++;
+    // 本局结束:任一方倒下,或超时
     const over = hero.state === 'dead' || foe.state === 'dead' || matchFrames > EPISODE_FRAMES + 120;
     if (over) {
       matches++;

@@ -1,6 +1,7 @@
 // 美术资源清单:游戏启动时读取 public/art/manifest.json,得知有哪些图片可用。
 // 没有图片的地方一律回退到程序绘制,所以清单为空时游戏照常运行。
 
+/** 当前可用的图片清单(相对路径集合),启动时由 loadArtManifest 填充。 */
 let files = new Set<string>();
 
 /**

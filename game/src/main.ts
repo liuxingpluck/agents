@@ -1,5 +1,6 @@
 // 游戏入口:把模拟层、渲染、输入、界面、音效串起来,并管理整场战役的流程:
 //   标题 → 选人 → 章节剧情 → 路线图(选下一站)→ 战斗 → 清场后向右走出房间 → 路线图 … → Boss → 下一章
+// 另外这里还有主循环(每秒 60 次推进模拟,再画一帧)和启动流程。
 import { createWorld, spawnFighter, step, World } from './sim/world';
 import { ChapterDef, Fighter, MapNode, RoomDef } from './sim/types';
 import { makeScriptAI } from './sim/ai/script';
@@ -16,7 +17,9 @@ import { setupTouch, wantsTouch } from './ui/touch';
 import { isSettingsOpen, setupSettings } from './ui/settings';
 import { isHeroRole, validateChapter, validateCharacter, validateRoom } from './editor/validate';
 
+/** 按 id 取页面元素的简写。 */
 const $ = (id: string) => document.getElementById(id)!;
+// 下面四个是全局单例:画面、输入、界面、音效
 const canvas = $('game') as HTMLCanvasElement;
 const gfx = new GameRenderer(canvas);
 const input = new InputManager();
@@ -25,6 +28,7 @@ const sfx = new Sfx();
 
 /** 游戏阶段 */
 type Phase = 'title' | 'select' | 'story' | 'map' | 'play' | 'clear' | 'dead' | 'ending';
+// phase = 当前处于哪个阶段,各处按它决定按键含义;world / player = 当前战斗世界与玩家角色
 let phase: Phase = 'title';
 let world: World;
 let player: Fighter;
@@ -50,7 +54,9 @@ interface Run {
 let run: Run | null = null;
 const SAVE_KEY = 'ashen-abyss.save.v1';
 
+/** 把旅程进度存进浏览器,下次可「继续上次的旅程」。 */
 function saveRun() { try { if (run) localStorage.setItem(SAVE_KEY, JSON.stringify(run)); } catch { /* 存储不可用时忽略 */ } }
+/** 读取存档;存档里的角色或章节已不存在(比如自制内容被删)时当作没有存档。 */
 function loadRun(): Run | null {
   try {
     const r = JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null') as Run | null;
@@ -58,10 +64,12 @@ function loadRun(): Run | null {
   } catch { return null; }
 }
 
+/** 职业的中文名,用在选人卡片上。 */
 const ROLE_NAME: Record<string, string> = {
   warrior: '战士', tank: '坦克', mage: '法师', archer: '弓箭手', brawler: '格斗家',
   assassin: '刺客', summoner: '死灵法师', berserker: '狂战士', lancer: '枪兵', support: '圣职',
 };
+/** 路线图节点类型的中文名。 */
 const KIND_NAME: Record<MapNode['kind'], string> = { battle: '战斗', elite: '精英', rest: '篝火', boss: '首领' };
 
 /** 所有房间(示例房间 + 战役自动生成的房间 + 自制房间) */
@@ -106,6 +114,7 @@ function story(title: string, lines: string[], then: () => void) {
   $('banner-title').style.fontSize = 'clamp(28px, 4.5vw, 54px)';
 }
 
+/** 关闭所有覆盖层(横幅、选人、路线图),切换阶段前先清场。 */
 function closeOverlays() {
   hud.hideBanner(); hud.go(false);
   $('select').classList.remove('show');
@@ -159,6 +168,7 @@ function refreshSelect() {
   if (url) full.src = url;
 }
 
+/** 打开选人界面。 */
 function openSelect() {
   phase = 'select';
   closeOverlays();
@@ -168,6 +178,7 @@ function openSelect() {
 
 // ---------- 战役流程 ----------
 
+/** 当前章节;nodeOf = 按 id 找本章的节点。 */
 const chapter = (): ChapterDef => CHAPTERS[run!.chapter];
 const nodeOf = (id: string): MapNode => chapter().nodes.find(n => n.id === id)!;
 
@@ -233,6 +244,7 @@ function enterNode(id: string) {
   fadeThen(() => startNode(id));
 }
 
+/** 真正开始一场战斗:建世界、放玩家(继承上个房间剩下的血量)、搭场景。 */
 function startNode(id: string) {
   const r = run!, node = nodeOf(id), room = ALL_ROOMS[node.room];
   r.node = id;
@@ -294,6 +306,7 @@ function leaveRoom() {
   });
 }
 
+/** 通关结局:清除存档,显示结语。 */
 function ending() {
   phase = 'ending';
   try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
@@ -301,6 +314,7 @@ function ending() {
   $('banner-title').style.fontSize = '';
 }
 
+/** 显示标题画面(有存档时多一个「继续」选项)。 */
 function showTitle() {
   phase = 'title';
   closeOverlays();
@@ -358,6 +372,7 @@ input.onKey = code => {
   }
 };
 
+/** 窗口变化时让画面跟着调整。 */
 function resize() { gfx.resize(window.innerWidth, window.innerHeight); }
 window.addEventListener('resize', resize);
 
@@ -371,6 +386,7 @@ const perf = { frames: 0, long: 0, worst: 0, simMs: 0 };
 /** 慢动作剩余时间(秒) */
 let slowmo = 0;
 
+/** 每个显示帧调用一次:按真实流逝时间推进若干个固定步长的模拟,再绘制画面。 */
 function frame(now: number) {
   const rawDt = (now - last) / 1000;
   const dt = Math.min(0.1, rawDt);
@@ -387,6 +403,7 @@ function frame(now: number) {
   const active = phase === 'play' || phase === 'clear';
   document.body.classList.toggle('playing', active); // 触屏按键只在战斗中显示
   while (acc >= STEP && steps < 5) {
+    // 本步的输入:玩家用键盘/手柄,其他角色由 AI 自己决定
     const inputs = new Map<number, number>();
     inputs.set(player.id, active ? input.read() : 0);
     const hpBefore = player.hp;

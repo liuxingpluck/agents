@@ -1,6 +1,6 @@
 // 确定性战斗模拟:固定 60Hz 步进,无渲染依赖,不使用 Math.random。
 import {
-  ATTACK_BTNS, Btn, BtnName, CharacterDef, DIR_MASK, Fighter, Motion, MoveDef, Projectile,
+  ATTACK_BTNS, Btn, BtnName, CharacterDef, DIR_MASK, Fighter, Motion, MoveDef, Pickup, Projectile,
   RoomDef, SIM, SimEvent, SKILL_BTNS, Tier,
 } from './types';
 
@@ -30,6 +30,10 @@ export interface World {
   roster: Record<string, CharacterDef>;
   fighters: Fighter[];
   projectiles: Projectile[];
+  /** 地上的道具 */
+  pickups: Pickup[];
+  /** 是否允许敌人掉落道具(训练 / 对战模式关闭) */
+  drops: boolean;
   events: SimEvent[];
   controllers: Map<number, Controller>;
   nextId: number;
@@ -48,7 +52,7 @@ export interface World {
 
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
   return {
-    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], events: [],
+    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], drops: true, events: [],
     controllers: new Map(), nextId: 1, wave: 0, waveTimer: 30, cleared: false, useWaves: true,
     defaultEnemyAI: null, summonAI: null, protectAll: false,
   };
@@ -61,7 +65,7 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
     hp: def.stats.hp, energy: 0,
     move: null, moveFrame: 0, moveHit: false, hitIds: [], lastRehitFrame: 0,
     stun: 0, hitstop: 0, comboCount: 0, comboValue: 0, comboDamage: 0, comboMoveUses: {}, juggle: 0, invuln: 0,
-    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
+    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
   };
   w.fighters.push(f);
   if (ctrl) w.controllers.set(f.id, ctrl);
@@ -80,6 +84,7 @@ function setState(f: Fighter, s: Fighter['state']) {
 
 function resetCombo(f: Fighter) {
   f.comboCount = 0; f.comboValue = 0; f.comboDamage = 0; f.comboMoveUses = {}; f.juggle = 0;
+  f.wallBounced = false; f.thrownBy = 0;
 }
 
 // ---------- 输入 ----------
@@ -230,12 +235,36 @@ function startJump(f: Fighter) {
   f.vz = (f.input & Btn.DOWN ? sp : f.input & Btn.UP ? -sp : 0) * SIM.Z_SPEED_MULT;
 }
 
+/** 每个角色的冲刺攻击招式缓存(没有合适的招则为 null) */
+const dashCache = new Map<CharacterDef, MoveDef | null>();
+
+/** 找出角色用作「冲刺攻击」的招:指令技中自身前冲速度最大的地面招 */
+function dashMoveOf(def: CharacterDef): MoveDef | null {
+  let m = dashCache.get(def);
+  if (m === undefined) {
+    m = null;
+    for (const c of def.commands) {
+      const cand = def.moves[c.move];
+      if (cand && !cand.air && !cand.cost && (cand.moveX ?? 0) > (m?.moveX ?? 0)) m = cand;
+    }
+    dashCache.set(def, m);
+  }
+  return m;
+}
+
 function tryGroundAction(w: World, f: Fighter): boolean {
   // 脚本 AI 的直接出招请求
   if (f.aiMove) {
     const am = f.def.moves[f.aiMove];
     f.aiMove = undefined;
     if (canUse(f, am, false)) { startMove(w, f, am); return true; }
+  }
+  // 冲刺攻击:跑动中按攻击键,自动使出角色的突进技(指令技里前冲最快的那一招)
+  if (f.state === 'run') {
+    const dash = dashMoveOf(f.def);
+    for (const b of ATTACK_BTNS) {
+      if (dash && buffered(w, f, b) && canUse(f, dash, false)) { consume(f, b); startMove(w, f, dash); return true; }
+    }
   }
   const m = pickMove(w, f, -1);
   if (m) { startMove(w, f, m); return true; }
@@ -383,6 +412,16 @@ function updateFighter(w: World, f: Fighter) {
     }
     case 'launched': {
       f.vy -= SIM.GRAVITY;
+      // 空中受身:被打飞一小段时间后按跳跃键,在空中恢复平衡并短暂无敌,脱离对方的追打。
+      // 被强制击飞(已处于无敌)和被击杀时不能受身。
+      if (f.hp > 0 && f.invuln <= 0 && f.stateFrame >= SIM.RECOVER_MIN_FRAMES && f.y > 0.4 && buffered(w, f, 'JUMP')) {
+        consume(f, 'JUMP');
+        setState(f, 'jump');
+        resetCombo(f);
+        f.vy = 0.16; f.vx = -f.facing * 0.05; f.airActions = 2;
+        f.invuln = 24;
+        w.events.push({ type: 'recover', id: f.id });
+      }
       break;
     }
     case 'knockdown': {
@@ -420,6 +459,15 @@ function updateFighter(w: World, f: Fighter) {
     }
   }
   const r = w.room;
+  // 撞墙反弹:被打飞的角色高速撞到版边会弹回来,给进攻方一次追打机会(每套连击只弹一次)
+  if (f.state === 'launched' && f.hp > 0 && !f.wallBounced && Math.abs(f.vx) >= SIM.WALL_BOUNCE_MIN_VX
+    && (f.x <= 0.5 || f.x >= r.width - 0.5)) {
+    f.wallBounced = true;
+    f.vx = -f.vx * SIM.WALL_BOUNCE_KEEP;
+    f.vy = Math.max(f.vy, 0.16);
+    f.hitstop = 5;
+    w.events.push({ type: 'wallBounce', id: f.id, x: f.x, y: f.y + 0.9, z: f.z });
+  }
   f.x = Math.min(r.width - 0.5, Math.max(0.5, f.x));
   f.z = Math.min(r.depth, Math.max(0, f.z));
 }
@@ -524,6 +572,10 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
     v.invuln = 9999;
     v.hitstop += 6; if (atk) atk.hitstop += 6; // 击杀顿帧
     w.events.push({ type: 'ko', id: v.id, team: v.team });
+    // 敌人(非召唤物)被击倒时有概率掉落道具:多数是食物,少数是余烬
+    if (w.drops && v.team !== 0 && v.brain.owner === undefined && w.rng.next() < SIM.DROP_CHANCE) {
+      w.pickups.push({ id: w.nextId++, kind: w.rng.next() < 0.7 ? 'food' : 'ember', x: v.x, z: v.z, life: SIM.PICKUP_LIFE });
+    }
     return true;
   }
   if (armored) return true;
@@ -580,6 +632,31 @@ function doThrow(w: World, f: Fighter) {
   setState(t, 'hitstun');
   const throwMove: MoveDef = { ...m, id: m.id + ':throw', grab: undefined, damage: m.grab.throwDamage, launch: m.grab.throwVy, pushX: m.grab.throwVx * 2, tier: Tier.HEAVY, hitstop: 8 };
   applyHit(w, f, f.team, dir, t, throwMove, t.x, t.y + 1);
+  // applyHit 会改写状态,TypeScript 推断不到,这里按字符串比较
+  if ((t.state as string) === 'launched') { t.thrownBy = f.team + 1; t.hitIds = []; }
+}
+
+/** 被投出的角色砸到同伴时使用的「招式」(只用来结算伤害与击倒) */
+const THROW_COLLIDE: MoveDef = {
+  id: ':collide', name: '砸中', tier: Tier.HEAVY, anim: 'slam', startup: 0, active: 1, recovery: 0,
+  damage: SIM.THROW_COLLIDE_DAMAGE, comboValue: 2, hitbox: { x0: 0, x1: 0, y0: 0, y1: 0, z: 0 },
+  hitstun: 20, hitstop: 5, pushX: 0.12, knockdown: true,
+};
+
+/**
+ * 投掷砸人:被投出、还在空中飞的角色,碰到同队的其他角色时把对方一起砸倒(每个目标只砸一次)。
+ * 这是清版游戏里「抓一个扔向一群」的经典打法。
+ */
+function resolveThrownBodies(w: World) {
+  for (const t of w.fighters) {
+    if (!t.thrownBy || t.state !== 'launched') continue;
+    const dir = (t.vx >= 0 ? 1 : -1) as 1 | -1;
+    for (const o of w.fighters) {
+      if (o === t || o.team !== t.team || t.hitIds.includes(o.id)) continue;
+      if (Math.abs(o.x - t.x) > 0.75 || Math.abs(o.z - t.z) > 0.6 || Math.abs(o.y - t.y) > 1.4) continue;
+      if (applyHit(w, null, t.thrownBy - 1, dir, o, THROW_COLLIDE, o.x, o.y + 1)) t.hitIds.push(o.id);
+    }
+  }
 }
 
 function resolveHits(w: World) {
@@ -623,6 +700,26 @@ function updateProjectiles(w: World) {
     }
   }
   w.projectiles = w.projectiles.filter(p => p.life > 0);
+}
+
+// ---------- 道具 ----------
+
+/** 道具计时,以及玩家方角色走到道具上时自动拾取 */
+function updatePickups(w: World) {
+  if (!w.pickups.length) return;
+  for (const p of w.pickups) {
+    p.life--;
+    for (const f of w.fighters) {
+      if (p.life <= 0) break;
+      if (f.team !== 0 || !isAlive(f) || f.brain.owner !== undefined || f.y > 0.6) continue;
+      if (Math.abs(f.x - p.x) > 0.6 || Math.abs(f.z - p.z) > 0.5) continue;
+      if (p.kind === 'food') f.hp = Math.min(f.def.stats.hp, f.hp + f.def.stats.hp * SIM.FOOD_HEAL);
+      else f.energy = Math.min(f.def.stats.energyMax, f.energy + SIM.EMBER_ENERGY);
+      w.events.push({ type: 'pickup', id: f.id, kind: p.kind });
+      p.life = 0;
+    }
+  }
+  w.pickups = w.pickups.filter(p => p.life > 0);
 }
 
 // ---------- 波次 ----------
@@ -678,7 +775,9 @@ export function step(w: World, inputs?: Map<number, number>) {
     updateFighter(w, f);
   }
   resolveHits(w);
+  resolveThrownBodies(w);
   updateProjectiles(w);
+  updatePickups(w);
   // 清理尸体
   if (w.frame % 30 === 0) w.fighters = w.fighters.filter(f => !(f.state === 'dead' && (f.team !== 0 || f.brain.owner !== undefined) && w.frame - f.deadFrame > 90));
   updateWaves(w);

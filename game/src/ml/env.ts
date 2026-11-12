@@ -37,6 +37,7 @@ export function runEpisode(
   const w = createWorld(ARENA, roster, seed);
   w.useWaves = false;
   w.protectAll = true;
+  w.drops = false;
   const gap = 2.5 + w.rng.next() * 3;
   const cx = ARENA.width / 2;
   const hx = swap ? cx + gap / 2 : cx - gap / 2, fx = swap ? cx - gap / 2 : cx + gap / 2;

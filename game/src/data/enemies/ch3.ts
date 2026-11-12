@@ -46,7 +46,7 @@ export const crawler: CharacterDef = {
 export const colossus: CharacterDef = {
   id: 'colossus', name: '掘墓巨像', title: '无字碑', role: 'boss',
   lore: '贤者们用整座矿山的岩石与三百具矿工的遗骸拼成的守墓者。它的额头刻着一行被磨平的字,没人记得那是谁的墓。',
-  stats: { hp: 900, speed: 0.03, jump: 0.2, weight: 2.1, energyMax: 100 },
+  stats: { hp: 860, speed: 0.03, jump: 0.2, weight: 2.1, energyMax: 100 },
   look: { scale: 1.7, bulk: 1.8, skin: '#6a6a66', primary: '#4a4a48', secondary: '#2c2a28', accent: '#ffb23a', weapon: 'hammer', horns: true, glow: '#ffb23a' },
   moves: toMap([
     // ---------- 普通攻击 ----------
@@ -56,7 +56,7 @@ export const colossus: CharacterDef = {
     // 碾压前冲:霸体慢速突进(突进手段)
     mv('crush', '碾压', C, 'thrust', [20, 14, 34], 15, box(0.2, 2.4, 0.2, 2.6, 1.1), [24, 9, 0.2], { moveX: 0.1, armor: true, knockdown: true }),
     // 回扫:大范围横扫
-    mv('backsweep', '岩臂回扫', C, 'sweep', [18, 6, 28], 13, box(-1.4, 2.6, 0, 1.6, 1.3), [22, 8, 0.16], { armor: true, knockdown: true }),
+    mv('backsweep', '岩臂回扫', C, 'sweep', [24, 6, 32], 11, box(-1.4, 2.6, 0, 1.6, 1.3), [22, 8, 0.16], { armor: true, knockdown: true }),
     // ---------- 技能 ----------
     // 地震冲击:地面冲击波,远程,穿透,把人挑起
     mv('shock', '地震冲击', S, 'slam', [24, 2, 32], 14, box(0, 0, 0, 0, 0.8), [24, 8, 0.1],

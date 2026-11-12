@@ -95,7 +95,8 @@ function makeWaves(pool: Pool, lane: number, level: number, elite: boolean): str
   ];
   if (level >= 1) waves.push([main(1), main(0), L(0)]);
   // 精英房用一波重装压轴;普通房到后期才加第四波
-  if (elite) waves.push([H(0), H(1), main(0)]);
+  // 前两章的精英房只放一个重装(level 为 章节序号 + 列号,精英房在第 3 列),之后才是双重装
+  if (elite) waves.push(level >= 4 ? [H(0), H(1), main(0)] : [H(0), main(0), L(0)]);
   else if (level >= 3) waves.push([H(0), side(0), L(1), main(0)]);
   if (level >= 5) waves[waves.length - 1].push(L(0));
   return waves;

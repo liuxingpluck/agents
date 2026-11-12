@@ -197,6 +197,12 @@ export interface Fighter {
   /** 按键缓冲:按钮名 -> 按下的帧 */
   buffer: Partial<Record<BtnName, number>>;
   airActions: number;
+  /** 本次连击中是否已经撞墙反弹过(每套连击只弹一次) */
+  wallBounced: boolean;
+  /**
+   * 被投出后在空中飞行时,会砸到同队的其他角色。这里记录投掷者的队伍 + 1(0 表示不是被投出的)。
+   */
+  thrownBy: number;
   /** 正在抓着的对手 id(0 表示没有) */
   grabTarget: number;
   /** 抓取保持的剩余帧数,归零时投出 */
@@ -223,12 +229,28 @@ export interface Projectile {
   hitIds: number[];
 }
 
+/** 掉落在地上的道具:走过去自动拾取 */
+export interface Pickup {
+  id: number;
+  /** food 回复生命 / ember 回复能量 */
+  kind: 'food' | 'ember';
+  x: number; z: number;
+  /** 剩余存在帧数,归零消失 */
+  life: number;
+}
+
 export type SimEvent =
   | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; attacker: number; victim: number; damage: number; combo: number }
   | { type: 'ko'; id: number; team: number }
   | { type: 'whiff'; id: number; heavy: boolean }
   | { type: 'land'; id: number }
   | { type: 'comboBreak'; victim: number }
+  /** 被打飞的角色撞到版边反弹 */
+  | { type: 'wallBounce'; id: number; x: number; y: number; z: number }
+  /** 拾取道具 */
+  | { type: 'pickup'; id: number; kind: Pickup['kind'] }
+  /** 被打飞的角色在空中受身(恢复平衡) */
+  | { type: 'recover'; id: number }
   | { type: 'spawn'; id: number }
   | { type: 'cast'; id: number };
 
@@ -308,8 +330,20 @@ export const SIM = {
   DODGE_SPEED: 0.16,
   RUN_MULT: 1.8,
   Z_SPEED_MULT: 0.7,
+  /** 撞墙反弹:水平速度超过这个值才会弹,弹回时保留的速度比例 */
+  WALL_BOUNCE_MIN_VX: 0.09,
+  WALL_BOUNCE_KEEP: 0.55,
+  /** 被投出的角色砸到同伴时造成的伤害 */
+  THROW_COLLIDE_DAMAGE: 9,
+  /** 空中受身:被打飞至少多少帧后才能按跳跃键恢复 */
+  RECOVER_MIN_FRAMES: 16,
+  /** 敌人被击倒时掉落道具的概率;食物回复的生命比例;余烬回复的能量 */
+  DROP_CHANCE: 0.16,
+  FOOD_HEAL: 0.18,
+  EMBER_ENERGY: 35,
+  PICKUP_LIFE: 60 * 12,
   /** 每清完一波,玩家方回复的生命比例(相当于街机里掉落的食物) */
-  WAVE_HEAL: 0.1,
+  WAVE_HEAL: 0.07,
   BODY_HALF_W: 0.38,
   BODY_H: 1.8,
 } as const;

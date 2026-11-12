@@ -18,6 +18,7 @@ export function keyName(code: string): string {
   return fixed[code] ?? code.replace(/^Key|^Digit/, '').replace(/^Numpad/, '小键盘 ');
 }
 
+// 面板当前是否打开
 let open = false;
 /** 设置面板是否打开(打开时游戏暂停、菜单不响应按键) */
 export const isSettingsOpen = () => open;
@@ -31,6 +32,7 @@ export function setupSettings(input: InputManager, sfx: Sfx, link: HTMLElement) 
   el.id = 'settings';
   document.getElementById('hud')!.appendChild(el);
 
+  // 取某个动作当前绑定的按键列表
   const codesOf = (a: BtnName | 'SPECIAL') => (a === 'SPECIAL' ? input.specialCodes : input.bindings[a]);
 
   /** 重画面板内容 */
@@ -54,6 +56,7 @@ export function setupSettings(input: InputManager, sfx: Sfx, link: HTMLElement) 
     el.querySelector('#set-close')!.addEventListener('click', close);
   };
 
+  // 关闭面板,并取消「等待新按键」状态
   const close = () => { open = false; input.captureNext = null; el.classList.remove('show'); };
   link.addEventListener('click', e => { e.preventDefault(); open = true; el.classList.add('show'); draw(); });
   window.addEventListener('keydown', e => { if (open && e.code === 'Escape' && !input.captureNext) close(); });

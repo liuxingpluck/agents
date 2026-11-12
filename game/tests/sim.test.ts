@@ -92,6 +92,52 @@ describe('combat sim', () => {
     expect(p.grabTarget).toBe(0);
   });
 
+  it('撞墙反弹:被打飞撞到版边会弹回,每套连击只弹一次', () => {
+    const { w, p, e } = duel();
+    e.hp = 99999;
+    e.x = w.room.width - 1; p.x = e.x - 1;
+    e.state = 'launched'; e.y = 1; e.vx = 0.2; e.vy = 0.1; e.comboCount = 1;
+    let bounced = 0;
+    for (let i = 0; i < 40; i++) { step(w, new Map([[p.id, 0]])); bounced += w.events.filter(ev => ev.type === 'wallBounce').length; }
+    expect(bounced).toBe(1);
+    expect(e.wallBounced).toBe(true);
+  });
+
+  it('投掷砸人:被投出的敌人会砸倒路径上的同伴', () => {
+    const { w, p, e } = duel();
+    const e2 = spawnFighter(w, ROSTER.husk, 1, e.x + 1.6, 2);
+    run(w, p.id, [[Btn.LP | Btn.LK, 2], [0, 60]]);
+    expect(e.thrownBy === 1 || e.state === 'knockdown' || e.state === 'getup').toBe(true);
+    expect(e2.hp).toBeLessThan(e2.def.stats.hp);
+  });
+
+  it('空中受身:被打飞后按跳跃键恢复并获得短暂无敌', () => {
+    const { w, p } = duel();
+    p.state = 'launched'; p.y = 1.2; p.vy = 0.1; p.stateFrame = 30; p.comboCount = 3;
+    run(w, p.id, [[Btn.JUMP, 2]]);
+    expect(p.state).toBe('jump');
+    expect(p.invuln).toBeGreaterThan(10);
+    expect(p.comboCount).toBe(0);
+  });
+
+  it('冲刺攻击:跑动中按轻攻击使出突进技', () => {
+    const { w, p, e } = duel();
+    e.x = 14;
+    run(w, p.id, [[Btn.RIGHT, 3], [0, 3], [Btn.RIGHT, 6]]);
+    expect(p.state).toBe('run');
+    run(w, p.id, [[Btn.RIGHT | Btn.LP, 2], [Btn.RIGHT, 1]]);
+    expect(p.move?.id).toBe('rush');
+  });
+
+  it('道具:走到食物上回复生命', () => {
+    const { w, p } = duel();
+    p.hp = 50;
+    w.pickups.push({ id: 999, kind: 'food', x: p.x, z: p.z, life: 100 });
+    step(w, new Map([[p.id, 0]]));
+    expect(p.hp).toBeGreaterThan(50);
+    expect(w.pickups.length).toBe(0);
+  });
+
   it('同样的种子与输入得到完全相同的结果', () => {
     const sim = () => {
       const w = createWorld(ROOMS.outpost, ROSTER, 42);

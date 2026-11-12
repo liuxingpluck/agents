@@ -22,6 +22,9 @@ const node = page.locator('#map-svg g[data-node="ch1-a1"]');
 await node.tap(); await page.waitForTimeout(200);
 if (await phase() === 'map') { await node.tap(); }
 await page.waitForTimeout(1800); log.push(await phase());                                         // play
+// 清掉敌人,避免角色被打中而影响操作验证
+await page.evaluate(() => { const w = window.__game.world; w.useWaves = false; w.fighters = w.fighters.filter(f => f.team === 0); w.projectiles = []; });
+await page.waitForTimeout(600);
 // 摇杆向右拖,并按「轻」
 const x0 = await page.evaluate(() => window.__game.player.x);
 const cdp = await ctx.newCDPSession(page);
