@@ -315,6 +315,7 @@ function land(w: World, f: Fighter) {
 }
 
 function updateFighter(w: World, f: Fighter) {
+  if (f.def.role === 'prop') { f.stateFrame++; return; } // 物件不会动
   if (f.invuln > 0) f.invuln--;
   f.stateFrame++;
   const sp = f.def.stats.speed;
@@ -497,7 +498,7 @@ function bossBurst(w: World, v: Fighter) {
   v.brain.rage = 240; // 挣脱后一段时间内出招更快(脚本 AI 读取)
   resetCombo(v);
   for (const o of w.fighters) {
-    if (o.team === v.team || !isAlive(o)) continue;
+    if (o.team === v.team || !isAlive(o) || o.def.role === 'prop') continue;
     if (Math.abs(o.x - v.x) > 3 || Math.abs(o.z - v.z) > 2) continue;
     if (o.state === 'knockdown' || o.state === 'getup' || o.invuln > 0) continue;
     releaseGrab(w, o);
@@ -532,7 +533,7 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   if (v.team === team || v.invuln > 0) return false;
   if (v.state === 'knockdown' || v.state === 'getup' || v.state === 'dead' || v.state === 'grabbed') return false;
   const airborne = v.y > 0 || v.state === 'launched';
-  if (m.grab && (airborne || !atk)) return false; // 抓不到空中的对手
+  if (m.grab && (airborne || !atk || v.def.role === 'prop')) return false; // 抓不到空中的对手,也抓不了物件
 
   const inCombo = v.state === 'hitstun' || v.state === 'launched';
   if (!inCombo) resetCombo(v);
@@ -563,6 +564,20 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
 
   const wgt = 1 / v.def.stats.weight;
 
+  // 场景物件:不会被击退或击飞,血量归零直接碎掉并可能掉道具
+  if (v.def.role === 'prop') {
+    if (v.hp <= 0) {
+      v.hp = 0;
+      setState(v, 'dead');
+      v.deadFrame = w.frame - 91; // 下次清理时立刻从场上移除
+      w.events.push({ type: 'break', id: v.id, x: v.x, z: v.z });
+      if (w.drops && w.rng.next() < SIM.PROP_DROP_CHANCE) {
+        w.pickups.push({ id: w.nextId++, kind: w.rng.next() < 0.7 ? 'food' : 'ember', x: v.x, z: v.z, life: SIM.PICKUP_LIFE });
+      }
+    }
+    return true;
+  }
+
   // 击杀:无论什么招都打飞
   if (v.hp <= 0) {
     v.hp = 0;
@@ -576,6 +591,13 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
     if (w.drops && v.team !== 0 && v.brain.owner === undefined && w.rng.next() < SIM.DROP_CHANCE) {
       w.pickups.push({ id: w.nextId++, kind: w.rng.next() < 0.7 ? 'food' : 'ember', x: v.x, z: v.z, life: SIM.PICKUP_LIFE });
     }
+    return true;
+  }
+  // Boss 第二阶段:血量降到一半时挣脱一次,此后出手间隔缩短(由脚本 AI 读取 brain.phase2)
+  if (isBoss && !v.brain.phase2 && v.hp <= v.def.stats.hp * 0.5) {
+    v.brain.phase2 = 1;
+    bossBurst(w, v);
+    w.events.push({ type: 'bossPhase', id: v.id });
     return true;
   }
   if (armored) return true;
@@ -740,16 +762,28 @@ function updateWaves(w: World) {
   w.waveTimer = 70;
   const hero = w.fighters.find(f => f.team === 0 && isAlive(f));
   const hx = hero?.x ?? w.room.width / 2;
+  // 第一波出现时,在房间里摆几个木桶(打碎可能掉道具)
+  if (w.wave === 1 && w.roster.barrel) {
+    const n = 2 + w.rng.int(3);
+    for (let i = 0; i < n; i++) {
+      const x = w.rng.range(5, w.room.width - 3);
+      if (Math.abs(x - hx) < 2) continue; // 不压在玩家身上
+      spawnFighter(w, w.roster.barrel, SIM.PROP_TEAM, x, w.rng.range(0.4, w.room.depth - 0.4));
+    }
+  }
   ids.forEach((id, i) => {
     const def = w.roster[id];
     if (!def) return;
-    // 大多数从右侧来,少数从左侧包抄
+    // 入场方式:大多数从右侧走来,少数从左侧包抄;从第二波起,偶尔有敌人从空中跳入
     const fromLeft = i % 3 === 2 && hx > 6;
-    const x = fromLeft ? Math.max(0.6, hx - 7 - i * 0.5) : Math.min(w.room.width - 0.6, hx + 7 + i * 0.9);
+    const dropIn = w.wave >= 2 && i % 4 === 1 && def.role !== 'boss' && def.stats.weight < 1.4;
+    let x = fromLeft ? Math.max(0.6, hx - 7 - i * 0.5) : Math.min(w.room.width - 0.6, hx + 7 + i * 0.9);
+    if (dropIn) x = Math.min(w.room.width - 0.6, Math.max(0.6, hx + (fromLeft ? -3.5 : 3.5)));
     const z = w.rng.range(0.3, w.room.depth - 0.3);
     const f = spawnFighter(w, def, 1, x, z, w.defaultEnemyAI ?? undefined);
     f.facing = fromLeft ? 1 : -1;
     f.brain.cd = 30 + w.rng.int(60);
+    if (dropIn) { f.state = 'jump'; f.y = 6; f.vy = -0.05; f.brain.cd += 30; }
   });
 }
 

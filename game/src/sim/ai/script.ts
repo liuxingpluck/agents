@@ -12,7 +12,7 @@ import { Controller, isAlive, World } from '../world';
 export function nearestFoe(w: World, self: Fighter): Fighter | null {
   let best: Fighter | null = null, bd = Infinity;
   for (const f of w.fighters) {
-    if (f.team === self.team || !isAlive(f)) continue;
+    if (f.team === self.team || !isAlive(f) || f.def.role === 'prop') continue; // 物件不算敌人
     const d = Math.abs(f.x - self.x) + Math.abs(f.z - self.z) * 2;
     if (d < bd) { bd = d; best = f; }
   }
@@ -106,7 +106,8 @@ export function makeScriptAI(aggression = 0.5): Controller {
         self.aiMove = pick.id;
         out = (out & (Btn.UP | Btn.DOWN)) | toward; // 出招瞬间面向目标
         const base = (90 - 60 * aggression) + w.rng.int(50);
-        b.cd = Math.round(base * (isBoss ? 0.55 : 1) * ((b.rage ?? 0) > 0 ? 0.5 : 1));
+        // Boss 出手更勤;刚挣脱后的短暂暴怒再减半;进入第二阶段后长期缩短 25%
+        b.cd = Math.round(base * (isBoss ? 0.55 : 1) * ((b.rage ?? 0) > 0 ? 0.5 : 1) * (b.phase2 ? 0.75 : 1));
         b.engage = 1;
       }
     }

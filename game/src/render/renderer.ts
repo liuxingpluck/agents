@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { World } from '../sim/world';
 import { RoomDef, SimEvent } from '../sim/types';
-import { ActorView, hasSprites, Rig, SpriteRig } from './rig';
+import { ActorView, hasSprites, PropRig, Rig, SpriteRig } from './rig';
 import { findArt } from './art';
 
 /** 场景主题配色:天空、雾、地面、石墙、飘落粒子、火光 */
@@ -148,12 +148,7 @@ export class GameRenderer {
         this.stage.add(fire, bowl, flame);
       }
     }
-    // 近景剪影
-    for (let x = -2; x < W + 4; x += 5 + rnd() * 6) {
-      const fg = new THREE.Mesh(new THREE.BoxGeometry(0.8 + rnd(), 0.25 + rnd() * 0.35, 0.8), dark);
-      fg.position.set(x, fg.geometry.parameters.height / 2, D + 2.6 + rnd());
-      this.stage.add(fg);
-    }
+    // (曾经有近景剪影方块,离镜头太近会挡住角色,已去掉)
     // 灰雪 / 余烬粒子
     const N = 500;
     const pos = new Float32Array(N * 3); this.emberVel = new Float32Array(N);
@@ -189,6 +184,11 @@ export class GameRenderer {
         this.rigs.get(e.victim)?.hitFlash();
       } else if (e.type === 'ko') { this.shake = Math.max(this.shake, 0.28); this.punch = 1; }
       else if (e.type === 'comboBreak') this.shake = Math.max(this.shake, 0.2);
+      else if (e.type === 'break') {
+        // 木桶碎裂:几片木屑色的碎块
+        for (let i = 0; i < 4; i++) this.spark(e.x + (Math.random() - 0.5) * 0.6, 0.3 + Math.random() * 0.6, e.z, '#8a6a4a', 0.14, 0.4, 3);
+        this.shake = Math.max(this.shake, 0.1);
+      } else if (e.type === 'bossPhase') { this.shake = Math.max(this.shake, 0.4); this.punch = 1; }
       else if (e.type === 'wallBounce') {
         // 撞墙:一大一小两团火花 + 震屏
         this.spark(e.x, e.y, e.z, '#ffe9c0', 0.3, 0.22, 6);
@@ -226,7 +226,8 @@ export class GameRenderer {
       let rig = this.rigs.get(f.id);
       if (!rig) {
         // 有战斗贴图就用贴图人,否则用程序绘制的方块人
-        rig = hasSprites(f.def.id) ? new SpriteRig(f.def.id, f.def.look) : new Rig(f.def.look);
+        rig = f.def.role === 'prop' ? new PropRig(f.def.look)
+          : hasSprites(f.def.id) ? new SpriteRig(f.def.id, f.def.look) : new Rig(f.def.look);
         this.rigs.set(f.id, rig);
         this.scene.add(rig.root, rig.shadow);
       }

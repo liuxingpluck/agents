@@ -379,3 +379,38 @@ export class SpriteRig implements ActorView {
     this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
   }
 }
+
+/** 场景物件(木桶)的外观:一个带铁箍的圆桶,被打时晃一下。 */
+export class PropRig implements ActorView {
+  root = new THREE.Group();
+  shadow: THREE.Mesh;
+  private wobble = 0;
+
+  constructor(look: Look) {
+    const h = SIM.BODY_H * look.scale, r = SIM.BODY_HALF_W * look.bulk;
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.85, h, 10), mat(look.primary));
+    body.position.y = h / 2;
+    this.root.add(body);
+    for (const y of [0.25, 0.75]) {
+      const hoop = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.03, r * 1.03, h * 0.07, 10), mat(look.accent));
+      hoop.position.y = h * y;
+      this.root.add(hoop);
+    }
+    this.shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(r * 1.2, 12),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false }),
+    );
+    this.shadow.rotation.x = -Math.PI / 2;
+  }
+
+  hitFlash() { this.wobble = 1; }
+
+  update(f: Fighter, time: number, dt: number) {
+    this.wobble = Math.max(0, this.wobble - dt * 5);
+    this.root.position.set(f.x, 0, f.z);
+    this.root.rotation.z = Math.sin(time * 40) * 0.12 * this.wobble;
+    this.shadow.position.set(f.x, 0.02, f.z);
+    this.root.visible = f.state !== 'dead';
+    this.shadow.visible = this.root.visible;
+  }
+}

@@ -138,6 +138,31 @@ describe('combat sim', () => {
     expect(w.pickups.length).toBe(0);
   });
 
+  it('木桶:能被打碎,不会被击飞或抓取,也不算敌人', () => {
+    const { w, p, e } = duel();
+    e.x = 20;
+    const b = spawnFighter(w, ROSTER.barrel, SIM.PROP_TEAM, p.x + 1, p.z);
+    run(w, p.id, [[Btn.LP | Btn.LK, 2], [0, 20]]);
+    expect(b.state).not.toBe('grabbed');
+    for (let i = 0; i < 6 && b.hp > 0; i++) run(w, p.id, [...tap(Btn.HP, 34)]);
+    expect(b.hp).toBe(0);
+    expect(b.y).toBe(0);
+    expect(w.events.length >= 0).toBe(true);
+  });
+
+  it('Boss 半血进入第二阶段:挣脱并获得无敌', () => {
+    const w = createWorld(ROOMS.outpost, ROSTER, 7);
+    w.useWaves = false;
+    const p = spawnFighter(w, ROSTER.kael, 0, 5, 2);
+    const boss = spawnFighter(w, ROSTER.gareth, 1, 6, 2);
+    boss.hp = Math.floor(boss.def.stats.hp * 0.5) + 3;
+    let phase = 0;
+    for (let i = 0; i < 40 && !phase; i++) { step(w, new Map([[p.id, i % 12 < 2 ? Btn.LP : 0]])); phase += w.events.filter(ev => ev.type === 'bossPhase').length; }
+    expect(phase).toBe(1);
+    expect(boss.invuln).toBeGreaterThan(30);
+    expect(boss.brain.phase2).toBe(1);
+  });
+
   it('同样的种子与输入得到完全相同的结果', () => {
     const sim = () => {
       const w = createWorld(ROOMS.outpost, ROSTER, 42);

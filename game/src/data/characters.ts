@@ -82,10 +82,18 @@ export const brute: CharacterDef = {
 export const HEROES: CharacterDef[] = [kael, brynn, sera, ilex, rook, vesper, morgan, odran, li, nola];
 
 /** 全部角色表(可选角色 + 敌人 + 召唤物),模拟层按 id 查找 */
+/** 场景物件:木桶。站着不动,几下就碎,有较大概率掉道具。 */
+export const barrel: CharacterDef = {
+  id: 'barrel', name: '木桶', title: '', role: 'prop', lore: '',
+  stats: { hp: 18, speed: 0, jump: 0, weight: 50, energyMax: 1 },
+  look: { scale: 0.55, bulk: 1.1, skin: '#5a4030', primary: '#6b4a32', secondary: '#3a2a1e', accent: '#8a8490', weapon: 'none' },
+  moves: {}, normals: {}, airNormals: {}, commands: [], skills: [],
+};
+
 export const ROSTER: Record<string, CharacterDef> = {};
 /** 全部敌人与 Boss(不含召唤物) */
 export const ENEMIES: CharacterDef[] = [husk, brute, ...ch1, ...ch2, ...ch3, ...ch4, ...ch5];
-for (const c of [...HEROES, ...ENEMIES, ...morganExtras]) ROSTER[c.id] = c;
+for (const c of [...HEROES, ...ENEMIES, ...morganExtras, barrel]) ROSTER[c.id] = c;
 
 /** 可选角色的 id 列表 */
 export const PLAYABLE = HEROES.map(c => c.id);

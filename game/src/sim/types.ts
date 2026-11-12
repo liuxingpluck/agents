@@ -115,7 +115,9 @@ export interface CommandDef {
   move: string;
 }
 
-export type Role = 'warrior' | 'tank' | 'mage' | 'archer' | 'brawler' | 'assassin' | 'summoner' | 'berserker' | 'lancer' | 'support' | 'enemy' | 'boss';
+export type Role = 'warrior' | 'tank' | 'mage' | 'archer' | 'brawler' | 'assassin' | 'summoner' | 'berserker' | 'lancer' | 'support' | 'enemy' | 'boss'
+  /** 场景物件(木桶等):不会动,谁都能打,打碎掉道具 */
+  | 'prop';
 
 export interface Look {
   /** 身高倍率 */
@@ -247,6 +249,10 @@ export type SimEvent =
   | { type: 'comboBreak'; victim: number }
   /** 被打飞的角色撞到版边反弹 */
   | { type: 'wallBounce'; id: number; x: number; y: number; z: number }
+  /** 场景物件被打碎 */
+  | { type: 'break'; id: number; x: number; z: number }
+  /** Boss 血量过半,进入狂暴阶段 */
+  | { type: 'bossPhase'; id: number }
   /** 拾取道具 */
   | { type: 'pickup'; id: number; kind: Pickup['kind'] }
   /** 被打飞的角色在空中受身(恢复平衡) */
@@ -337,6 +343,10 @@ export const SIM = {
   THROW_COLLIDE_DAMAGE: 9,
   /** 空中受身:被打飞至少多少帧后才能按跳跃键恢复 */
   RECOVER_MIN_FRAMES: 16,
+  /** 场景物件所在的队伍编号(既不是玩家方 0 也不是敌方 1,所以双方都能打) */
+  PROP_TEAM: 2,
+  /** 打碎物件后掉落道具的概率 */
+  PROP_DROP_CHANCE: 0.6,
   /** 敌人被击倒时掉落道具的概率;食物回复的生命比例;余烬回复的能量 */
   DROP_CHANCE: 0.16,
   FOOD_HEAL: 0.18,

@@ -27,12 +27,13 @@ export class Hud {
     for (const e of w.events) {
       if (e.type === 'hit' && e.attacker === player.id) {
         this.lastCombo = e.combo; this.comboTimer = 1.6;
-        this.targetId = e.victim; this.targetTimer = 3;
+        if (w.fighters.find(f => f.id === e.victim)?.def.role !== 'prop') { this.targetId = e.victim; this.targetTimer = 3; }
         const el = $('combo');
         // 先移除再重新添加 pop,强制重播连击数的弹跳动画
         el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       }
       if (e.type === 'comboBreak') this.flash('连击上限!');
+      if (e.type === 'bossPhase') this.flash('狂暴');
       if (e.type === 'pickup' && e.id === player.id) this.toast(e.kind === 'food' ? '生命恢复' : '能量恢复');
     }
     this.comboTimer -= dt; this.targetTimer -= dt;
