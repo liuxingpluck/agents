@@ -87,6 +87,13 @@
   #pad button[data-b=SPECIAL] { right: 88px; bottom: 94px; border-color: #ffb347; } #pad button[data-b=DODGE] { right: 8px; bottom: 132px; }
   body:not(.playing) #touch { display: none; } /* 菜单界面不显示触屏按键,以免挡住点击 */
   body.touch #help { display: none; } body.touch #links { bottom: auto; top: 76px; }
+  #moves { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: #000c; }
+  #moves.show { display: flex; }
+  #moves .box { width: min(560px, 94vw); border: 1px solid #5b5560; background: #12101af2; padding: 16px 22px; }
+  #moves h1 { margin: 0 0 10px; font-size: 20px; letter-spacing: .3em; font-weight: 400; }
+  #moves table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  #moves td { padding: 4px 6px; border-bottom: 1px solid #ffffff14; } #moves td:first-child { color: var(--ember); white-space: nowrap; font-family: ui-monospace, Menlo, monospace; width: 38%; }
+  #moves small { opacity: .6; } #moves p { font-size: 12px; opacity: .7; line-height: 1.7; margin: 10px 0 0; } #moves b { color: var(--ember); }
   #toast { position: absolute; left: 0; right: 0; bottom: 22vh; text-align: center; font-size: 18px; letter-spacing: .3em; color: #ffd27a; opacity: 0; }
   #toast.show { animation: toast 1.2s; } @keyframes toast { 0% { opacity: 0; transform: translateY(10px); } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
   .dmg { position: absolute; font: 900 italic 22px Georgia, serif; color: #fff1c9; -webkit-text-stroke: 1px #3a1a08; pointer-events: none;
@@ -115,12 +122,13 @@
   <div id="go">GO →</div>
   <div id="map"><h1 id="map-title"></h1><svg id="map-svg" viewBox="0 0 820 400"></svg><div id="map-info"></div>
     <div class="tip">W / S / A / D 选择下一站 · Enter 或 J 出发 · 相邻的路线可以互通</div></div>
+  <div id="moves"></div>
   <div id="fade"></div>
   <div id="links"><a href="#" id="open-settings">设置</a><a href="./train.html">AI 训练场</a><a href="./editor.html">角色 / 地图编辑器</a></div>
   <div id="help">
     WASD 移动 · →→ 冲刺(冲刺中攻击 = 突进技) · 空格 跳(被打飞时按 = 受身) · Shift 闪避<br>
     J 轻攻击(↓+J 踢技) · K 重攻击(↓+K 挑空) · J+K 抓投<br>
-    L 特殊技:L / →+L / ↓+L / ↑+L(奥义) · 连段:轻 → 重 → 指令技 → 特殊技
+    L 特殊技:L / →+L / ↓+L / ↑+L(奥义) · <b>Tab 招式表</b> · Esc 返回标题
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

@@ -805,7 +805,12 @@ export function step(w: World, inputs?: Map<number, number>) {
       f.hp = 0; f.state = 'dead'; f.move = null; f.deadFrame = w.frame - 60;
       continue;
     }
-    if (f.hitstop > 0) { f.hitstop--; continue; }
+    if (f.hitstop > 0) {
+      f.hitstop--;
+      // 顿帧期间不消耗输入缓冲:命中定格时按下的键,等定格结束后仍然有效(否则连按太快会吞招)
+      for (const k in f.buffer) f.buffer[k as BtnName]!++;
+      continue;
+    }
     updateFighter(w, f);
   }
   resolveHits(w);

@@ -2,7 +2,7 @@
 //   标题 → 选人 → 章节剧情 → 路线图(选下一站)→ 战斗 → 清场后向右走出房间 → 路线图 … → Boss → 下一章
 // 另外这里还有主循环(每秒 60 次推进模拟,再画一帧)和启动流程。
 import { createWorld, spawnFighter, step, World } from './sim/world';
-import { ChapterDef, Fighter, MapNode, RoomDef } from './sim/types';
+import { ChapterDef, CharacterDef, Fighter, MapNode, RoomDef } from './sim/types';
 import { makeScriptAI } from './sim/ai/script';
 import { HEROES, ROSTER } from './data/characters';
 import { ROOMS } from './data/rooms';
@@ -169,6 +169,38 @@ function refreshSelect() {
 }
 
 /** 打开选人界面。 */
+/** 招式表是否打开(打开时游戏暂停) */
+let movesOpen = false;
+
+/** 生成某个角色的招式表(战斗中按 Tab 查看) */
+function movesHtml(h: CharacterDef): string {
+  /** 从入口招沿着连携一路走下去,拼出「刺拳 → 盾拳 → 横斩」这样的文字 */
+  const chainText = (start: string | undefined, btn: 'LP' | 'LK' | 'HP' | 'HK') => {
+    const names: string[] = [];
+    for (let id = start, n = 0; id && h.moves[id] && n < 6; id = h.moves[id].chain?.[btn], n++) names.push(h.moves[id].name);
+    return names.join(' → ') || '—';
+  };
+  const dirs = ['L', '→ + L', '↓ + L', '↑ + L'];
+  const cmds = [...new Map(h.commands.map(c => [`${c.motion}${btnText(c.button)}`, c])).values()];
+  const row = (k: string, v: string) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+  return `<h1>${h.name} · 招式表</h1><table>` +
+    row('J 连按', chainText(h.normals.LP, 'LP')) +
+    row('↓ + J 连按', chainText(h.normals.LK, 'LK')) +
+    row('K', chainText(h.normals.HP, 'HP')) +
+    row('↓ + K', `${h.moves[h.normals.HK ?? '']?.name ?? '—'}${h.moves[h.normals.HK ?? '']?.launch ? '(挑空)' : ''}`) +
+    row('J + K', `${h.moves.grab?.name ?? '抓投'}(抓投,无视霸体;按住 ← 向身后投)`) +
+    cmds.map(c => row(`${motionText(c.motion)} + ${btnText(c.button) === '轻' ? 'J' : 'K'}`, h.moves[c.move]?.name ?? '')).join('') +
+    h.skills.slice(0, 4).map((id, i) => row(dirs[i], `${h.moves[id]?.name ?? ''} <small>能量 ${h.moves[id]?.cost ?? 0}</small>`)).join('') +
+    row('→→ 后按 J', '冲刺攻击') + row('被打飞时按 空格', '空中受身') + row('Shift', '闪避(短暂无敌)') +
+    `</table><p>连段规则:轻 → 重 → 指令技 → 特殊技,只能往后接。同一招反复用,对手会越来越快恢复。<br>按 <b>Tab</b> 关闭</p>`;
+}
+
+function toggleMoves(show: boolean) {
+  movesOpen = show;
+  $('moves').classList.toggle('show', show);
+  if (show) $('moves').innerHTML = `<div class="box">${movesHtml(player.def)}</div>`;
+}
+
 function openSelect() {
   phase = 'select';
   closeOverlays();
@@ -333,6 +365,8 @@ function showTitle() {
 input.onKey = code => {
   sfx.unlock();
   if (isSettingsOpen()) return;
+  if (code === 'Tab' && (phase === 'play' || phase === 'clear' || movesOpen)) { toggleMoves(!movesOpen); return; }
+  if (movesOpen) { if (code === 'Escape') toggleMoves(false); return; }
   const enter = code === 'Enter' || code === 'NumpadEnter';
   const ok = enter || code === 'KeyJ';
   switch (phase) {
@@ -397,7 +431,7 @@ function frame(now: number) {
   // 慢动作:只放慢模拟推进的速度,渲染照常
   if (slowmo > 0) slowmo -= dt;
   acc += dt * (slowmo > 0 ? 0.3 : 1);
-  if (isSettingsOpen()) acc = 0; // 设置面板打开时暂停
+  if (isSettingsOpen() || movesOpen) acc = 0; // 设置面板或招式表打开时暂停
   let steps = 0;
   const t0 = performance.now();
   const active = phase === 'play' || phase === 'clear';

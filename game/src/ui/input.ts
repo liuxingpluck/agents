@@ -84,7 +84,7 @@ export class InputManager {
     this.bindings = loadBindings();
     this.rebuild();
     window.addEventListener('keydown', e => {
-      if (this.codeToBtn.has(e.code) || this.specialCodes.includes(e.code) || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      if (this.codeToBtn.has(e.code) || this.specialCodes.includes(e.code) || e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
       if (this.captureNext) { const cb = this.captureNext; this.captureNext = null; cb(e.code); return; }
       if (!e.repeat) this.onKey?.(e.code);
       this.down.add(e.code);

@@ -312,7 +312,8 @@ export interface ContentPack {
 export const SIM = {
   HZ: 60,
   GRAVITY: 0.022,
-  INPUT_BUFFER: 8,
+  /** 输入缓冲(帧):提前按下的键在这段时间内仍然有效。顿帧期间不计时。 */
+  INPUT_BUFFER: 10,
   MOTION_WINDOW: 20,
   /** 受保护目标(Boss)的连击值上限:达到后强制挣脱并震开周围敌人 */
   COMBO_LIMIT_BOSS: 14,
