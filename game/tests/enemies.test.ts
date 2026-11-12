@@ -8,7 +8,8 @@ import { enemies as ch5 } from '../src/data/enemies/ch5';
 
 const chapters = [ch1, ch2, ch3, ch4, ch5];
 const all = chapters.flat();
-const bossHp = [[700, 800], [800, 950], [950, 1100], [1100, 1250], [1300, 1450]];
+// 各章 Boss 的血量区间。第三章与终章在平衡性试玩后下调过(见 tests/balance.test.ts)
+const bossHp = [[700, 800], [800, 950], [850, 1000], [1100, 1250], [1150, 1300]];
 
 describe('enemies', () => {
   it('id 全局唯一且不与可选角色及基础敌人冲突', () => {

@@ -46,7 +46,7 @@ export const crawler: CharacterDef = {
 export const colossus: CharacterDef = {
   id: 'colossus', name: '掘墓巨像', title: '无字碑', role: 'boss',
   lore: '贤者们用整座矿山的岩石与三百具矿工的遗骸拼成的守墓者。它的额头刻着一行被磨平的字,没人记得那是谁的墓。',
-  stats: { hp: 1050, speed: 0.03, jump: 0.2, weight: 2.1, energyMax: 100 },
+  stats: { hp: 900, speed: 0.03, jump: 0.2, weight: 2.1, energyMax: 100 },
   look: { scale: 1.7, bulk: 1.8, skin: '#6a6a66', primary: '#4a4a48', secondary: '#2c2a28', accent: '#ffb23a', weapon: 'hammer', horns: true, glow: '#ffb23a' },
   moves: toMap([
     // ---------- 普通攻击 ----------

@@ -7,6 +7,9 @@ import { ChapterDef, MapNode, RoomDef } from '../sim/types';
 
 export const LANE_NAMES = ['上路 · 誓约之路', '中路 · 灰雪之路', '下路 · 深根之路'] as const;
 
+/** 第 chapterIndex 章(0 起)敌人的攻击欲望:越往后出手越频繁 */
+export const enemyAggression = (chapterIndex: number) => 0.4 + chapterIndex * 0.05;
+
 /** 一章的敌人池 */
 interface Pool { light: string[]; ranged: string[]; heavy: string[]; boss: string }
 
@@ -91,9 +94,10 @@ function makeWaves(pool: Pool, lane: number, level: number, elite: boolean): str
     [main(0), L(1), side(1)],
   ];
   if (level >= 1) waves.push([main(1), main(0), L(0)]);
-  if (level >= 2) waves.push([H(0), side(0), L(1), main(0)]);
-  if (elite) waves.push([H(0), H(1), main(0), R(0)]);
-  if (level >= 4) waves[waves.length - 1].push(L(0));
+  // 精英房用一波重装压轴;普通房到后期才加第四波
+  if (elite) waves.push([H(0), H(1), main(0)]);
+  else if (level >= 3) waves.push([H(0), side(0), L(1), main(0)]);
+  if (level >= 5) waves[waves.length - 1].push(L(0));
   return waves;
 }
 

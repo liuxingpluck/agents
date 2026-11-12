@@ -50,6 +50,21 @@ export class Hud {
     $('wave').textContent = w.cleared ? '' : `第 ${Math.min(w.wave, w.room.waves.length)} / ${w.room.waves.length} 波`;
   }
 
+  /**
+   * 在屏幕坐标 (x, y) 处飘出一个伤害数字。
+   * @param big    重击 / 高伤害:字更大
+   * @param toHero 是否打在玩家身上(用红色)
+   */
+  damageNumber(x: number, y: number, value: number, big: boolean, toHero: boolean) {
+    const el = document.createElement('div');
+    el.className = `dmg${big ? ' big' : ''}${toHero ? ' hero' : ''}`;
+    el.textContent = String(value);
+    el.style.left = `${x + (Math.random() - 0.5) * 30}px`;
+    el.style.top = `${y}px`;
+    $('hud').appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+
   flash(text: string) {
     const el = $('flash');
     el.textContent = text;

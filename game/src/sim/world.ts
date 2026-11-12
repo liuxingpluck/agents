@@ -633,6 +633,12 @@ function updateWaves(w: World) {
   if (enemies.length > 0) return;
   if (w.wave >= w.room.waves.length) { w.cleared = true; return; }
   if (--w.waveTimer > 0) return;
+  // 清完一波的奖励:玩家方(不含召唤物)回一点血
+  if (w.wave > 0) {
+    for (const f of w.fighters) {
+      if (f.team === 0 && isAlive(f) && f.brain.owner === undefined) f.hp = Math.min(f.def.stats.hp, f.hp + f.def.stats.hp * SIM.WAVE_HEAL);
+    }
+  }
   const ids = w.room.waves[w.wave++];
   w.waveTimer = 70;
   const hero = w.fighters.find(f => f.team === 0 && isAlive(f));

@@ -111,7 +111,7 @@ export class Preview {
       const p = this.player!;
       if (this.infiniteEnergy && p.state !== 'dead') p.energy = Math.max(p.energy, p.def.stats.energyMax);
       step(this.world, new Map([[p.id, this.input.read()]]));
-      this.gfx.handleEvents(this.world.events);
+      this.gfx.handleEvents(this.world.events, this.world);
       // 房间模式下主角倒下 1.5 秒后自动重来
       if (this.mode === 'room' && p.state === 'dead' && ++this.deadTimer > 90) this.build();
       this.acc -= 1 / 60; n++;

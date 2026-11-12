@@ -32,7 +32,7 @@ export const ashling: CharacterDef = {
 export const nameless: CharacterDef = {
   id: 'nameless', name: '无名者', title: '烬渊本体', role: 'boss',
   lore: '烬渊吞下的每一个名字汇成的一个没有名字的东西。它没有恶意,只是在寻找一个能让它被叫出名字的人。',
-  stats: { hp: 1400, speed: 0.055, jump: 0.32, weight: 1.8, energyMax: 100 },
+  stats: { hp: 1200, speed: 0.055, jump: 0.32, weight: 1.8, energyMax: 100 },
   look: { scale: 1.6, bulk: 1.6, skin: '#2a1f22', primary: '#1c1418', secondary: '#3a1c1c', accent: '#ff3a1a', weapon: 'none', horns: true, cape: true, glow: '#ff3a1a' },
   moves: toMap([
     // ---------- 普通攻击 ----------

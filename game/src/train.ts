@@ -108,7 +108,7 @@ function loop(now: number) {
   let n = 0;
   while (acc >= 1 / 60 && n < 4) {
     step(world);
-    gfx.handleEvents(world.events);
+    gfx.handleEvents(world.events, world);
     matchFrames++;
     const over = hero.state === 'dead' || foe.state === 'dead' || matchFrames > EPISODE_FRAMES + 120;
     if (over) {

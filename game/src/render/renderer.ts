@@ -27,6 +27,8 @@ export class GameRenderer {
   private embers!: THREE.Points;
   private emberVel!: Float32Array;
   private shake = 0;
+  /** 重击时的镜头推近量(逐渐回弹) */
+  private punch = 0;
   private camX = 0;
   private time = 0;
   private room!: RoomDef;
@@ -136,7 +138,7 @@ export class GameRenderer {
     }
     // 近景剪影
     for (let x = -2; x < W + 4; x += 5 + rnd() * 6) {
-      const fg = new THREE.Mesh(new THREE.BoxGeometry(0.8 + rnd(), 0.6 + rnd() * 1.4, 0.8), dark);
+      const fg = new THREE.Mesh(new THREE.BoxGeometry(0.8 + rnd(), 0.25 + rnd() * 0.35, 0.8), dark);
       fg.position.set(x, fg.geometry.parameters.height / 2, D + 2.6 + rnd());
       this.stage.add(fg);
     }
@@ -160,16 +162,36 @@ export class GameRenderer {
     this.sparks.push({ mesh, life, max: life, grow });
   }
 
-  handleEvents(events: SimEvent[]) {
+  /**
+   * 把模拟层这一帧的事件变成画面反馈:火花、震屏、镜头冲击、尘土。
+   * @param w 传入世界以便查到角色位置(落地尘土用);不传则跳过需要位置的效果
+   */
+  handleEvents(events: SimEvent[], w?: World) {
     for (const e of events) {
       if (e.type === 'hit') {
         this.spark(e.x, e.y, e.z, e.heavy ? '#ffb347' : '#fff1c9', e.heavy ? 0.32 : 0.2, 0.18, e.heavy ? 7 : 5);
         this.spark(e.x, e.y, e.z, '#ff5a1f', 0.12, 0.3, 9);
         this.shake = Math.max(this.shake, e.heavy ? 0.16 : 0.06);
+        if (e.heavy) this.punch = Math.max(this.punch, 0.5);
         this.rigs.get(e.victim)?.hitFlash();
-      } else if (e.type === 'ko') this.shake = Math.max(this.shake, 0.28);
+      } else if (e.type === 'ko') { this.shake = Math.max(this.shake, 0.28); this.punch = 1; }
       else if (e.type === 'comboBreak') this.shake = Math.max(this.shake, 0.2);
+      else if (e.type === 'land' && w) {
+        const f = w.fighters.find(x => x.id === e.id);
+        // 被打飞后摔在地上才扬尘,普通跳跃落地不扬
+        if (f && (f.state === 'knockdown' || f.state === 'dead')) {
+          for (let i = -1; i <= 1; i++) this.spark(f.x + i * 0.35, 0.12, f.z, '#8a8490', 0.16, 0.45, 4);
+          this.shake = Math.max(this.shake, 0.08);
+        }
+      }
     }
+  }
+
+  /** 世界坐标 → 屏幕像素坐标(伤害数字等界面元素定位用) */
+  project(x: number, y: number, z: number): { x: number; y: number } {
+    const v = new THREE.Vector3(x, y, z).project(this.camera);
+    const c = this.renderer.domElement;
+    return { x: (v.x * 0.5 + 0.5) * c.clientWidth, y: (-v.y * 0.5 + 0.5) * c.clientHeight };
   }
 
   render(w: World, focusId: number, dt: number) {
@@ -227,7 +249,8 @@ export class GameRenderer {
     this.shake = Math.max(0, this.shake - dt * 0.9);
     const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
     const D = this.room.depth;
-    this.camera.position.set(this.camX + sx, 3.9 + sy, D + 9.2);
+    this.punch = Math.max(0, this.punch - dt * 4);
+    this.camera.position.set(this.camX + sx, 3.9 + sy, D + 9.2 - this.punch * 0.6);
     this.camera.lookAt(this.camX + sx, 1.3, D / 2 - 0.6);
     this.renderer.render(this.scene, this.camera);
   }

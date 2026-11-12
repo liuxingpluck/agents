@@ -5,12 +5,14 @@ import { ChapterDef, Fighter, MapNode, RoomDef } from './sim/types';
 import { makeScriptAI } from './sim/ai/script';
 import { HEROES, ROSTER } from './data/characters';
 import { ROOMS } from './data/rooms';
-import { CAMPAIGN_ROOMS, CHAPTERS, LANE_NAMES } from './data/chapters';
+import { CAMPAIGN_ROOMS, CHAPTERS, enemyAggression, LANE_NAMES } from './data/chapters';
 import { GameRenderer } from './render/renderer';
 import { findArt, loadArtManifest } from './render/art';
 import { InputManager } from './ui/input';
 import { Hud } from './ui/hud';
 import { Sfx } from './render/audio';
+import { loadPack } from './data/custom';
+import { isHeroRole, validateChapter, validateCharacter, validateRoom } from './editor/validate';
 
 const $ = (id: string) => document.getElementById(id)!;
 const canvas = $('game') as HTMLCanvasElement;
@@ -60,8 +62,27 @@ const ROLE_NAME: Record<string, string> = {
 };
 const KIND_NAME: Record<MapNode['kind'], string> = { battle: '战斗', elite: '精英', rest: '篝火', boss: '首领' };
 
-/** 所有房间(示例房间 + 战役自动生成的房间) */
+/** 所有房间(示例房间 + 战役自动生成的房间 + 自制房间) */
 const ALL_ROOMS: Record<string, RoomDef> = { ...ROOMS, ...CAMPAIGN_ROOMS };
+/** 内置章节的数量;下标 ≥ 它的是玩家自制章节 */
+const BUILTIN_CHAPTERS = CHAPTERS.length;
+/** 新旅程从第几章开始(标题画面按 M 可切到自制章节) */
+let startChapter = 0;
+
+/**
+ * 读取编辑器保存的自制内容包,把通过校验的角色 / 房间 / 章节并入游戏。
+ * 没通过校验的条目直接跳过,不影响其余内容。
+ */
+function loadCustomContent() {
+  const pack = loadPack();
+  for (const c of pack.characters) {
+    if (validateCharacter(c, Object.keys(ROSTER)).length) continue;
+    ROSTER[c.id] = c;
+    if (isHeroRole(c.role)) HEROES.push(c);
+  }
+  for (const r of pack.rooms) if (!ALL_ROOMS[r.id] && !validateRoom(r, Object.keys(ROSTER)).length) ALL_ROOMS[r.id] = r;
+  for (const ch of pack.chapters) if (!validateChapter(ch, Object.keys(ALL_ROOMS)).length) CHAPTERS.push(ch);
+}
 
 // ---------- 通用小工具 ----------
 
@@ -150,8 +171,8 @@ const nodeOf = (id: string): MapNode => chapter().nodes.find(n => n.id === id)!;
 
 /** 用选中的角色开始一段新旅程 */
 function newRun() {
-  const ch = CHAPTERS[0];
-  run = { hero: HEROES[heroIndex].id, chapter: 0, node: null, avail: [...ch.start], cleared: [], hp: 1 };
+  const ch = CHAPTERS[startChapter];
+  run = { hero: HEROES[heroIndex].id, chapter: startChapter, node: null, avail: [...ch.start], cleared: [], hp: 1 };
   saveRun();
   story(ch.name, ch.intro, openMap);
 }
@@ -215,7 +236,7 @@ function startNode(id: string) {
   r.node = id;
   const hero = ROSTER[r.hero];
   world = createWorld(room, ROSTER, (Date.now() & 0xffff) | 1);
-  world.defaultEnemyAI = makeScriptAI(0.5 + r.chapter * 0.07);
+  world.defaultEnemyAI = makeScriptAI(enemyAggression(r.chapter));
   world.summonAI = makeScriptAI(0.8);
   player = spawnFighter(world, hero, 0, 3, room.depth / 2);
   if (node.kind === 'rest') r.hp = Math.min(1, r.hp + 0.6); // 篝火:回复 60% 生命
@@ -260,7 +281,8 @@ function leaveRoom() {
     hud.go(false);
     if (node.kind !== 'boss') { openMap(); return; }
     // 击败 Boss:章节结语 → 下一章,或通关
-    const last = r.chapter >= CHAPTERS.length - 1;
+    // 内置最后一章,或任何自制章节,打完就结束
+    const last = r.chapter >= BUILTIN_CHAPTERS - 1;
     story(ch.name, ch.outro, () => {
       if (last) { ending(); return; }
       r.chapter++; r.node = null; r.cleared = []; r.avail = [...CHAPTERS[r.chapter].start]; r.hp = 1;
@@ -282,7 +304,8 @@ function showTitle() {
   closeOverlays();
   const saved = loadRun();
   hud.banner('烬渊', `<em>ASHEN ABYSS</em><br><br>十位持名者,向无王之都进发。<br><br>按 <b>Enter</b> 开始新的旅程` +
-    (saved ? `<br>按 <b>C</b> 继续上次的旅程(${ROSTER[saved.hero].name} · ${CHAPTERS[saved.chapter].name})` : ''));
+    (saved ? `<br>按 <b>C</b> 继续上次的旅程(${ROSTER[saved.hero].name} · ${CHAPTERS[saved.chapter].name})` : '') +
+    (CHAPTERS.length > BUILTIN_CHAPTERS ? `<br>按 <b>M</b> 切换章节:<b>${CHAPTERS[startChapter].name}</b>` : ''));
   $('banner-title').style.fontSize = '';
   const title = findArt('ui/title');
   $('banner').classList.toggle('art', !!title);
@@ -298,6 +321,11 @@ input.onKey = code => {
   switch (phase) {
     case 'title':
       if (ok) openSelect();
+      else if (code === 'KeyM' && CHAPTERS.length > BUILTIN_CHAPTERS) {
+        // 在「第一章」和各个自制章节之间循环
+        startChapter = startChapter === 0 ? BUILTIN_CHAPTERS : startChapter + 1 >= CHAPTERS.length ? 0 : startChapter + 1;
+        showTitle();
+      }
       else if (code === 'KeyC') { const s = loadRun(); if (s) { run = s; heroIndex = Math.max(0, HEROES.findIndex(h => h.id === s.hero)); openMap(); } }
       break;
     case 'select': {
@@ -337,6 +365,8 @@ const STEP = 1 / 60;
 let acc = 0, last = performance.now();
 /** 帧时间统计(供自动化测试检查是否卡顿) */
 const perf = { frames: 0, long: 0, worst: 0, simMs: 0 };
+/** 慢动作剩余时间(秒) */
+let slowmo = 0;
 
 function frame(now: number) {
   const rawDt = (now - last) / 1000;
@@ -345,7 +375,9 @@ function frame(now: number) {
   perf.frames++;
   if (rawDt > 0.034) perf.long++;
   if (rawDt > perf.worst) perf.worst = rawDt;
-  acc += dt;
+  // 慢动作:只放慢模拟推进的速度,渲染照常
+  if (slowmo > 0) slowmo -= dt;
+  acc += dt * (slowmo > 0 ? 0.3 : 1);
   let steps = 0;
   const t0 = performance.now();
   const active = phase === 'play' || phase === 'clear';
@@ -354,8 +386,19 @@ function frame(now: number) {
     inputs.set(player.id, active ? input.read() : 0);
     const hpBefore = player.hp;
     step(world, inputs);
-    gfx.handleEvents(world.events);
+    gfx.handleEvents(world.events, world);
     sfx.handle(world.events);
+    for (const e of world.events) {
+      if (e.type === 'hit') {
+        const at = gfx.project(e.x, e.y + 0.4, e.z);
+        hud.damageNumber(at.x, at.y, e.damage, e.heavy || e.damage >= 14, e.victim === player.id);
+      } else if (e.type === 'ko' && e.team !== player.team) {
+        // 打倒 Boss,或打倒场上最后一个敌人:慢动作收尾
+        const left = world.fighters.filter(f => f.team !== player.team && f.hp > 0).length;
+        const boss = world.fighters.find(f => f.id === e.id)?.def.role === 'boss';
+        if (boss) slowmo = 1.2; else if (left === 0) slowmo = 0.45;
+      }
+    }
     hud.update(world, player, STEP);
     if (phase === 'play') {
       stats.frames++;
@@ -381,6 +424,7 @@ function frame(now: number) {
 /** 读取美术清单后再搭界面(清单为空也没关系) */
 async function boot() {
   await loadArtManifest();
+  loadCustomContent();
   resize();
   buildSelect();
   // 标题画面:背后渲染一个只有主角站着的场景

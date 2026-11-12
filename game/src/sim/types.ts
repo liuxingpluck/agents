@@ -308,6 +308,8 @@ export const SIM = {
   DODGE_SPEED: 0.16,
   RUN_MULT: 1.8,
   Z_SPEED_MULT: 0.7,
+  /** 每清完一波,玩家方回复的生命比例(相当于街机里掉落的食物) */
+  WAVE_HEAL: 0.1,
   BODY_HALF_W: 0.38,
   BODY_H: 1.8,
 } as const;

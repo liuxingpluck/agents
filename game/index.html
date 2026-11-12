@@ -45,7 +45,7 @@
   #detail h2 { margin: 0 0 6px; font-size: 26px; letter-spacing: .15em; } #detail h2 small { font-size: 14px; opacity: .65; margin-left: 10px; }
   #detail p { margin: 4px 0; } .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; opacity: .75; }
   #select .tip { margin-top: 10px; font-size: 12px; opacity: .55; letter-spacing: .15em; }
-  #boss { position: absolute; left: 50%; bottom: 64px; width: min(60vw, 720px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .4s; }
+  #boss { position: absolute; left: 50%; bottom: 84px; width: min(60vw, 720px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .4s; }
   #boss.show { opacity: 1; } #boss .name { color: var(--ember); letter-spacing: .3em; }
   #boss .bar { height: 12px; } #boss .bar > i { background: linear-gradient(#ff8a4a, #8a1f10); }
   #go { position: absolute; right: 5vw; top: 44vh; font-size: 54px; font-weight: 900; font-style: italic; color: var(--ember); opacity: 0; letter-spacing: .1em; }
@@ -66,6 +66,10 @@
   #select-row #detail { margin-top: 0; flex: 1; width: auto; }
   #full { height: 300px; display: none; filter: drop-shadow(0 0 18px #000); }
   #banner.art { background-size: cover; background-position: center; }
+  .dmg { position: absolute; font: 900 italic 22px Georgia, serif; color: #fff1c9; -webkit-text-stroke: 1px #3a1a08; pointer-events: none;
+    animation: dmg .7s ease-out forwards; transform: translate(-50%, -50%); }
+  .dmg.big { font-size: 34px; color: var(--ember); } .dmg.hero { color: #ff5a5a; }
+  @keyframes dmg { 0% { opacity: 1; margin-top: 0; scale: 1.5; } 20% { scale: 1; } 100% { opacity: 0; margin-top: -70px; } }
   #links { position: absolute; right: 20px; bottom: 14px; font-size: 12px; pointer-events: auto; }
   #links a { color: var(--bone); opacity: .6; margin-left: 14px; } #links a:hover { opacity: 1; color: var(--ember); }
   #help { position: absolute; left: 20px; bottom: 14px; font-size: 12px; opacity: .55; line-height: 1.7; letter-spacing: .05em;
