@@ -132,7 +132,8 @@ export class GameRenderer {
         tower.position.set(x + rnd() * 3, tower.geometry.parameters.height / 2, -8 - rnd() * 10);
         this.stage.add(tower);
       }
-      if (rnd() < 0.4) {
+      // 枯树只长在地面上的两个主题里(矿道、王都、烬渊没有)
+      if ((room.theme === 'ashsnow' || room.theme === 'abbey' || !PALETTES[room.theme]) && rnd() < 0.4) {
         const tree = new THREE.Group();
         const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.16, 2.6, 5), dark); trunk.position.y = 1.3; tree.add(trunk);
         for (let b = 0; b < 4; b++) {
@@ -151,6 +152,7 @@ export class GameRenderer {
         this.stage.add(fire, bowl, flame);
       }
     }
+    this.decorate(room.theme, W, rnd, stone, dark, pal);
     // (曾经有近景剪影方块,离镜头太近会挡住角色,已去掉)
     // 灰雪 / 余烬粒子
     const N = 500;
@@ -163,6 +165,87 @@ export class GameRenderer {
     this.embers = new THREE.Points(geo, new THREE.PointsMaterial({ color: pal.ash, size: 0.07, transparent: true, opacity: 0.7 }));
     this.stage.add(this.embers);
     this.camX = 5;
+  }
+
+  /**
+   * 各主题专属的布景,让五个章节一眼就能分清:
+   *  灰雪边境 —— 木栅尖桩与瞭望塔    泣骨修道院 —— 尖拱回廊、墓碑、烛光
+   *  深根矿道 —— 木支架、铁轨、发光根须  无王之都 —— 亮着窗的高塔、石像
+   *  烬渊之心 —— 倒悬的尖塔、地面的余烬裂缝、远处的余烬之日
+   * 全部摆在可行走区域之外(z < 0 的后方或高空),不影响战斗。
+   */
+  private decorate(theme: string, W: number, rnd: () => number, stone: THREE.Material, dark: THREE.Material, pal: Palette) {
+    const add = (geo: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number) => {
+      const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); this.stage.add(mesh); return mesh;
+    };
+    const glow = new THREE.MeshBasicMaterial({ color: pal.fire });
+    const wood = new THREE.MeshStandardMaterial({ color: '#3d2c1e', roughness: 1, flatShading: true });
+    switch (theme) {
+      case 'ashsnow':
+        for (let x = 0; x < W; x += 0.7 + rnd() * 0.5) {
+          if (Math.floor(x / 6) % 2) continue; // 每隔一段留个缺口
+          const h = 1.6 + rnd() * 0.9;
+          add(new THREE.ConeGeometry(0.16, h, 5), wood, x, h / 2, -0.9 - rnd() * 0.2).rotation.z = (rnd() - 0.5) * 0.15;
+        }
+        for (let x = 6; x < W; x += 14) {
+          for (const dx of [-0.8, 0.8]) add(new THREE.BoxGeometry(0.18, 5, 0.18), wood, x + dx, 2.5, -3);
+          add(new THREE.BoxGeometry(2.4, 0.2, 2), wood, x, 5, -3);
+          add(new THREE.ConeGeometry(1.7, 1.2, 4), wood, x, 5.9, -3).rotation.y = Math.PI / 4;
+        }
+        break;
+      case 'abbey':
+        for (let x = 1; x < W; x += 4) {
+          for (const dx of [-1.3, 1.3]) add(new THREE.BoxGeometry(0.5, 4.2, 0.5), stone, x + dx, 2.1, -1.5);
+          add(new THREE.BoxGeometry(3.2, 0.4, 0.6), stone, x, 4.3, -1.5);
+          add(new THREE.ConeGeometry(1.5, 1.6, 4), stone, x, 5.3, -1.5).rotation.y = Math.PI / 4; // 尖拱
+          if (rnd() < 0.7) {
+            const tx = x + (rnd() - 0.5) * 2;
+            add(new THREE.BoxGeometry(0.5, 0.8, 0.14), stone, tx, 0.4, -0.5 - rnd() * 0.4).rotation.z = (rnd() - 0.5) * 0.3; // 墓碑
+            add(new THREE.BoxGeometry(0.06, 0.2, 0.06), glow, tx + 0.4, 0.1, -0.4);                                        // 蜡烛
+          }
+        }
+        break;
+      case 'mine':
+        for (let x = 2; x < W; x += 5) {
+          for (const dx of [-1.6, 1.6]) add(new THREE.BoxGeometry(0.25, 4.6, 0.25), wood, x + dx, 2.3, -1.2);
+          add(new THREE.BoxGeometry(3.8, 0.28, 0.3), wood, x, 4.6, -1.2);
+          add(new THREE.BoxGeometry(0.2, 2.2, 0.2), wood, x - 0.9, 3.7, -1.2).rotation.z = 0.8; // 斜撑
+          // 从顶上垂下来的发光根须
+          const root = add(new THREE.CylinderGeometry(0.05, 0.14, 3 + rnd() * 2.5, 5), glow, x + 2.4, 5.5, -2 - rnd() * 2);
+          root.rotation.z = (rnd() - 0.5) * 0.6;
+          if (rnd() < 0.5) { const l = new THREE.PointLight(pal.fire, 4, 8, 1.8); l.position.set(x + 2.4, 3, -1.5); this.stage.add(l); }
+        }
+        for (const z of [-0.35, -0.75]) add(new THREE.BoxGeometry(W + 8, 0.06, 0.07), stone, W / 2, 0.06, z); // 铁轨
+        for (let x = 0; x < W; x += 0.9) add(new THREE.BoxGeometry(0.16, 0.04, 0.7), wood, x, 0.03, -0.55);    // 枕木
+        break;
+      case 'city':
+        for (let x = -2; x < W + 4; x += 4 + rnd() * 3) {
+          const h = 9 + rnd() * 10, w = 2 + rnd() * 2, z = -6 - rnd() * 9;
+          add(new THREE.BoxGeometry(w, h, 2), dark, x, h / 2, z);
+          add(new THREE.ConeGeometry(w * 0.75, 2.5, 4), dark, x, h + 1.2, z).rotation.y = Math.PI / 4;
+          // 零星亮着的窗
+          for (let k = 0; k < 5; k++) add(new THREE.PlaneGeometry(0.22, 0.4), glow, x + (rnd() - 0.5) * w * 0.7, 2 + rnd() * (h - 3), z + 1.01);
+        }
+        for (let x = 5; x < W; x += 9) {
+          add(new THREE.BoxGeometry(1, 1.2, 1), stone, x, 0.6, -1.5);     // 石像底座
+          add(new THREE.BoxGeometry(0.5, 1.5, 0.35), stone, x, 1.95, -1.5); // 身体
+          add(new THREE.BoxGeometry(0.3, 0.3, 0.3), stone, x, 2.9, -1.5);   // 头
+        }
+        break;
+      case 'abyss': {
+        for (let x = -4; x < W + 6; x += 2.5 + rnd() * 3) {
+          const h = 3 + rnd() * 7;
+          add(new THREE.ConeGeometry(0.8 + rnd() * 1.2, h, 5), dark, x, 13 - h / 2, -4 - rnd() * 9).rotation.z = Math.PI; // 倒悬的尖塔
+        }
+        // 地面上的余烬裂缝(贴在路面后沿与远处)
+        for (let i = 0; i < W * 0.8; i++) {
+          const c = add(new THREE.PlaneGeometry(0.5 + rnd() * 1.4, 0.05), glow, rnd() * W, 0.02, -0.3 - rnd() * 5);
+          c.rotation.x = -Math.PI / 2; c.rotation.z = rnd() * Math.PI;
+        }
+        add(new THREE.SphereGeometry(5, 16, 12), new THREE.MeshBasicMaterial({ color: '#ff5a1f', fog: false }), W / 2, 9, -40); // 余烬之日
+        break;
+      }
+    }
   }
 
   /** 生成一个火花:在指定位置放个发光小方块,逐渐放大并淡出。 */
