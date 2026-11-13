@@ -25,6 +25,16 @@ const info = await page.evaluate(() => {
   const h = t.history;
   return { generation: t.state.generation, first: h[0], last: h[h.length - 1], points: h.length, sps: document.getElementById('s-sps').textContent, ms: document.getElementById('s-ms').textContent, saved: !!localStorage.getItem('ashen-abyss.ai.v1.kael') };
 });
+// 联赛:换成训练塞拉,此时本机已有凯尔的模型,应当被找到并作为对手参与训练
+await page.click('#toggle');                       // 暂停并保存凯尔
+await page.selectOption('#hero', 'sera');
+await page.waitForTimeout(500);
+const leagueText = await page.textContent('#league-n');
+await page.click('#toggle');
+let g2 = 0;
+for (let i = 0; i < 40 && g2 < 3; i++) { await page.waitForTimeout(500); g2 = await page.evaluate(() => window.__train.trainer.state.generation); }
+await page.click('#toggle');
+info.league = { text: leagueText, found: await page.evaluate(() => window.__train.trainer.league.length), generations: g2 };
 console.log(JSON.stringify({ info, errors }));
 await browser.close();
-if (errors.length || info.generation < 1) process.exit(1);
+if (errors.length || info.generation < 1 || info.league.found !== 1 || info.league.generations < 3) process.exit(1);

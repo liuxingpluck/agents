@@ -13,7 +13,7 @@ import { ExamPoint, Progress, SavedModel, Trainer } from './ml/trainer';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 // 页面上的控件:选角色、选对手、线程数、是否自我对战、开始/暂停按钮、状态文字
 const heroSel = $<HTMLSelectElement>('hero'), foeSel = $<HTMLSelectElement>('foe');
-const workersIn = $<HTMLInputElement>('workers'), selfPlayIn = $<HTMLInputElement>('selfplay');
+const workersIn = $<HTMLInputElement>('workers'), selfPlayIn = $<HTMLInputElement>('selfplay'), leagueIn = $<HTMLInputElement>('league');
 const toggleBtn = $<HTMLButtonElement>('toggle'), statusEl = $('status');
 
 // 把所有角色填进两个下拉框
@@ -30,7 +30,9 @@ let trainer: Trainer | null = null;
 /** 按当前设置(重新)创建训练器。切换角色或线程数时调用。 */
 function makeTrainer() {
   trainer?.dispose();
-  trainer = new Trainer({ hero: heroSel.value, foe: foeSel.value, workers: Number(workersIn.value) || 1, selfPlay: selfPlayIn.checked });
+  trainer = new Trainer({ hero: heroSel.value, foe: foeSel.value, workers: Number(workersIn.value) || 1, selfPlay: selfPlayIn.checked,
+    leagueHeroes: leagueIn.checked ? HEROES.map(h => h.id) : [] });
+  $('league-n').textContent = leagueIn.checked ? `(找到 ${trainer.league.length} 个)` : '';
   trainer.onProgress = showProgress;
   toggleBtn.textContent = '开始训练';
   $('s-gen').textContent = String(trainer.state.generation);
@@ -180,7 +182,7 @@ $<HTMLInputElement>('file').addEventListener('change', async ev => {
     statusEl.textContent = `已导入第 ${m.generation} 代模型`;
   } catch (e) { statusEl.textContent = `导入失败:${(e as Error).message}`; }
 });
-for (const el of [heroSel, foeSel, workersIn, selfPlayIn]) el.addEventListener('change', () => { matches = 0; wins = 0; makeTrainer(); });
+for (const el of [heroSel, foeSel, workersIn, selfPlayIn, leagueIn]) el.addEventListener('change', () => { matches = 0; wins = 0; makeTrainer(); });
 
 foeSel.value = HEROES[0].id;
 makeTrainer();

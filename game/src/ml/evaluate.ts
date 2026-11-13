@@ -19,6 +19,8 @@ export interface EvalSpec {
   scriptAggression: number;
   /** 自博弈对手池:历史快照的参数;为空则只打脚本 AI */
   pool: Float32Array[];
+  /** 联赛对手:其他角色已经练好的模型(角色 id + 参数);可为空 */
+  league?: Array<{ hero: string; theta: Float32Array }>;
 }
 
 /**
@@ -26,6 +28,7 @@ export interface EvalSpec {
  *  1. 脚本 AI(按冷却出招)
  *  2. 「连打新手」机器人(贴身连打、放技能、会躲霸体大招)——比脚本 AI 凶得多
  *  3. 对手池里的历史版本(自博弈),池子非空时才打
+ *  4. 联赛:其他角色已练好的模型,用它们各自的角色上场——逼着学会应付不同的打法
  * 只练第一档的话,十几代就能赢,但学到的只是针对呆板对手的套路。
  */
 export function evaluate(roster: Record<string, CharacterDef>, theta: Float32Array, spec: EvalSpec): number {
@@ -42,6 +45,16 @@ export function evaluate(roster: Record<string, CharacterDef>, theta: Float32Arr
     for (let k = 0; k < 2; k++) {
       const opp = spec.pool[(spec.seed + k) % spec.pool.length];
       sum += runEpisode(roster, hero, foe, me(), makePolicyController(opp, spec.layout), spec.seed + 10 + k, k === 1).fitness;
+      n++;
+    }
+  }
+  const league = spec.league ?? [];
+  if (league.length) {
+    for (let k = 0; k < 2; k++) {
+      const opp = league[(spec.seed + k) % league.length];
+      const oppDef = roster[opp.hero];
+      if (!oppDef) continue;
+      sum += runEpisode(roster, hero, oppDef, me(), makePolicyController(opp.theta, spec.layout), spec.seed + 30 + k, k === 1).fitness;
       n++;
     }
   }

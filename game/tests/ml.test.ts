@@ -8,6 +8,17 @@ import { Rng } from '../src/sim/world';
 import { EPISODE_FRAMES } from '../src/ml/env';
 
 describe('浏览器端 AI 训练', () => {
+  it('联赛:能对战用另一个角色的模型,评估结果有效且可复现', () => {
+    const rng = new Rng(9);
+    const theta = initParams(DEFAULT_LAYOUT, () => rng.next());
+    const rival = initParams(DEFAULT_LAYOUT, () => rng.next());
+    const spec: EvalSpec = { hero: 'kael', foe: 'kael', layout: DEFAULT_LAYOUT, seed: 3, scriptAggression: 0.6, pool: [], league: [{ hero: 'sera', theta: rival }, { hero: 'rook', theta: rival }] };
+    const a = evaluate(ROSTER, theta, spec), b = evaluate(ROSTER, theta, spec);
+    expect(Number.isFinite(a)).toBe(true);
+    expect(a).toBe(b);
+    expect(a).not.toBe(evaluate(ROSTER, theta, { ...spec, league: [] }));
+  });
+
   it('进化若干代后,对脚本 AI 的表现明显提升', () => {
     const rng = new Rng(5);
     const st = newEsState(initParams(DEFAULT_LAYOUT, () => rng.next()));

@@ -34,6 +34,8 @@ export interface TrainerOptions {
   workers: number;
   /** 是否启用自博弈(把历史快照放进对手池) */
   selfPlay: boolean;
+  /** 联赛:这些角色若在本机存有模型,就作为额外的对手(不含正在训练的角色自己) */
+  leagueHeroes?: string[];
   /** 覆盖默认的进化策略超参数 */
   es?: Partial<EsConfig>;
   /** 自定义网络结构,不填用默认 */
@@ -85,6 +87,8 @@ export class Trainer {
   history: ExamPoint[] = [];
   /** 自博弈对手池:过去若干代的参数快照 */
   pool: Float32Array[] = [];
+  /** 联赛对手:其他角色存在本机的模型 */
+  league: Array<{ hero: string; theta: Float32Array }> = [];
   /** 为 false 时训练循环在当前这一代结束后停下 */
   running = false;
   /** 每代结束后的回调,界面通过它刷新 */
@@ -106,6 +110,11 @@ export class Trainer {
     } else {
       this.state = newEsState(initParams(this.layout, () => this.rng.next()));
     }
+    for (const id of opts.leagueHeroes ?? []) {
+      if (id === opts.hero) continue;
+      const m = loadModel(id);
+      if (m && m.layout.join() === this.layout.join()) this.league.push({ hero: id, theta: b64ToF32(m.theta) });
+    }
     for (let i = 0; i < Math.max(1, opts.workers); i++) {
       const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
       w.onmessage = (ev: MessageEvent<WorkerResponse>) => {
@@ -126,7 +135,7 @@ export class Trainer {
 
   /** 组装本次评估任务的说明(自博弈关闭时对手池为空) */
   private spec(seed: number): EvalSpec {
-    return { hero: this.opts.hero, foe: this.opts.foe, layout: this.layout, seed, scriptAggression: 0.6, pool: this.opts.selfPlay ? this.pool : [] };
+    return { hero: this.opts.hero, foe: this.opts.foe, layout: this.layout, seed, scriptAggression: 0.6, pool: this.opts.selfPlay ? this.pool : [], league: this.league };
   }
 
   /** 开始(或继续)训练,直到调用 stop() */
@@ -170,7 +179,7 @@ export class Trainer {
 
     const genMs = performance.now() - t0;
     const all = [...pos, ...neg];
-    const episodes = all.length * (spec.pool.length ? 6 : 4);
+    const episodes = all.length * (4 + (spec.pool.length ? 2 : 0) + (this.league.length ? 2 : 0));
     this.onProgress?.({
       generation: g,
       meanFitness: all.reduce((a, b) => a + b, 0) / all.length,
