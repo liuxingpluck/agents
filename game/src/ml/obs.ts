@@ -1,20 +1,22 @@
 // 观测:把模拟层的内部状态编码成神经网络的输入向量。
 // AI 直接读游戏数据(位置、帧数据、血量……),不看画面。
 // 所有量都以「自己 → 对手」的方向为正,所以站在左边还是右边对网络来说是一回事。
+// 数值大多除以一个常数,让它们落在 -1..1 附近,网络学起来更容易。
 import { Fighter, FState } from '../sim/types';
 import { World } from '../sim/world';
 import { nearestFoe } from '../sim/ai/script';
 
-/** 把 11 种状态归并成 8 组做 one-hot */
+/** 把角色的 12 种状态归并成 8 组(one-hot = 只有所属那一组填 1,其余填 0) */
 const STATE_GROUP: Record<FState, number> = {
   idle: 0, walk: 0, run: 0, jump: 1, attack: 2, hitstun: 3, launched: 4,
   knockdown: 5, getup: 5, dodge: 6, grabbed: 7, dead: 5,
 };
+/** 状态分组的数量 */
 const N_STATE = 8;
 
-/** 观测向量的长度。改动 encode 的内容时必须同步修改,并提升 OBS_VERSION。 */
+/** 观测向量的长度(即网络输入的个数)。改动 encodeObs 的内容时必须同步修改,并提升 OBS_VERSION。 */
 export const OBS_DIM = 46;
-/** 观测格式版本:存档的权重与此不符时不能加载 */
+/** 观测格式版本:存档的权重与此不符时不能加载(输入含义变了,旧权重就没用了) */
 export const OBS_VERSION = 1;
 
 /**
@@ -24,9 +26,10 @@ export const OBS_VERSION = 1;
  */
 export function encodeObs(w: World, self: Fighter, out: Float32Array): Fighter | null {
   out.fill(0);
+  // 只针对最近的一个敌人观察
   const opp = nearestFoe(w, self);
   if (!opp) return null;
-  /** 对手在右边为 +1,在左边为 -1 */
+  /** 对手在右边为 +1,在左边为 -1;后面的左右方向量都乘它,实现「镜像无关」 */
   const dir = opp.x >= self.x ? 1 : -1;
   let i = 0;
   // --- 相对位置与速度 ---
@@ -67,18 +70,18 @@ export function encodeObs(w: World, self: Fighter, out: Float32Array): Fighter |
     out[i + 4] = (m.hitbox.x1) / 3; // 对手这招够得着多远
   }
   i += 5;
-  // --- 无敌与连击 ---
+  // --- 无敌状态与连击(opp.comboCount 是「我连了对手几下」) ---
   out[i++] = self.invuln > 0 ? 1 : 0;
   out[i++] = opp.invuln > 0 ? 1 : 0;
   out[i++] = Math.min(1, opp.comboCount / 10); // 我已经连了对手多少下
   out[i++] = Math.min(1, opp.comboValue / 10);
   out[i++] = Math.min(1, self.comboCount / 10); // 我正被连多少下
   out[i++] = Math.min(1, opp.stun / 30);
-  // --- 版边距离(身后 / 身前) ---
+  // --- 离场地边缘的距离(自己身后 / 对手身后),判断有没有被逼到角落 ---
   const W = w.room.width;
   out[i++] = (dir === 1 ? self.x : W - self.x) / W;
   out[i++] = (dir === 1 ? W - opp.x : opp.x) / W;
-  // --- 最近的敌方飞行道具 ---
+  // --- 最近的、正朝自己飞来的敌方飞行道具(有没有 + 多远) ---
   let best = Infinity;
   for (const p of w.projectiles) {
     if (p.team === self.team) continue;

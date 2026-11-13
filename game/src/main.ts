@@ -509,4 +509,9 @@ void boot();
     startNode(CHAPTERS[0].start[1]);
   },
   startNode,
+  /** 直接跳到第 ci 章(0 起)的某个节点(测试用) */
+  goto(ci: number, id: string) {
+    run = { hero: HEROES[heroIndex].id, chapter: ci, node: null, avail: [...CHAPTERS[ci].start], cleared: [], hp: 1 };
+    startNode(id);
+  },
 };

@@ -1,7 +1,7 @@
 // 画面层:用 Three.js 搭场景(地面、墙、火盆、粒子)、摆放角色、控制镜头与特效。
 // 只「读」模拟层的状态来画画,不会反过来改游戏逻辑。
 import * as THREE from 'three';
-import { World } from '../sim/world';
+import { hazardState, World } from '../sim/world';
 import { RoomDef, SimEvent } from '../sim/types';
 import { ActorView, hasSprites, PropRig, Rig, SpriteRig } from './rig';
 import { findArt } from './art';
@@ -27,6 +27,8 @@ export class GameRenderer {
   // 角色 id → 外观;projMeshes:飞行道具 id → 模型
   private rigs = new Map<number, ActorView>();
   private projMeshes = new Map<number, THREE.Mesh>();
+  /** 喷火口 id → 地面光圈 */
+  private hazardMeshes = new Map<number, THREE.Mesh>();
   /** 地上的道具 id → 模型 */
   private pickupMeshes = new Map<number, THREE.Mesh>();
   private sparks: Spark[] = [];
@@ -73,6 +75,7 @@ export class GameRenderer {
   buildRoom(room: RoomDef, seed = 1) {
     this.room = room;
     this.stage.clear();
+    this.hazardMeshes.clear();
     for (const r of this.rigs.values()) { this.scene.remove(r.root, r.shadow); }
     this.rigs.clear();
     // 简易伪随机:同一个 seed 总是搭出同样的布景,避免每次进房间都不一样
@@ -272,6 +275,24 @@ export class GameRenderer {
       if (Math.random() < 0.5) this.spark(p.x, p.y, p.z - 0.3, p.def.color, 0.08, 0.25, 2);
     }
     for (const [id, m] of this.projMeshes) if (!pSeen.has(id)) { this.scene.remove(m); this.projMeshes.delete(id); }
+
+    // 喷火口:平时是暗红色光圈;快喷发时越闪越亮;喷发时冒出火柱
+    for (const h of w.hazards) {
+      let m = this.hazardMeshes.get(h.id);
+      if (!m) {
+        m = new THREE.Mesh(new THREE.RingGeometry(h.radius * 0.55, h.radius, 24), new THREE.MeshBasicMaterial({ color: '#ff4a1a', transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+        m.rotation.x = -Math.PI / 2; m.scale.y = 1 / 1.4; // 纵深方向压扁,与判定范围一致
+        m.position.set(h.x, 0.03, h.z);
+        this.hazardMeshes.set(h.id, m); this.stage.add(m);
+      }
+      const st = hazardState(w, h);
+      const warn = st.untilBurst <= 70 ? 1 - st.untilBurst / 70 : 0;
+      (m.material as THREE.MeshBasicMaterial).opacity = st.active ? 1 : 0.18 + warn * (0.4 + 0.4 * Math.sin(this.time * (10 + warn * 30)));
+      if (st.active && Math.random() < 0.9) {
+        const a = Math.random() * 6.28, r = Math.random() * h.radius * 0.8;
+        this.spark(h.x + Math.cos(a) * r, 0.3 + Math.random() * 1.6, h.z + Math.sin(a) * r / 1.4 - 0.3, Math.random() < 0.5 ? '#ff6a2a' : '#ffd27a', 0.14, 0.3, 2.2);
+      }
+    }
 
     // 道具:食物是暖黄色小球,余烬是橙色晶体;原地上下浮动,快消失时闪烁
     const kSeen = new Set<number>();

@@ -1,5 +1,6 @@
 // 训练调度器(主线程):管理一组 Worker,循环执行「分发评估 → 汇总分数 → 更新参数」,
-// 并负责考试、对手池(自博弈)和存档。
+// 并负责考试、对手池(自博弈:让 AI 和自己过去的版本对打)和存档。
+// 它只在主线程做调度和汇总,真正耗时的对战模拟都在 worker.ts 里跑。
 import { Rng } from '../sim/world';
 import { DEFAULT_ES, EsConfig, EsState, esUpdate, newEsState } from './es';
 import { EvalSpec } from './evaluate';
@@ -25,12 +26,17 @@ export interface Progress {
   poolSize: number;
 }
 
+/** 创建训练器时的设置 */
 export interface TrainerOptions {
+  /** 被训练的角色 id / 对手角色 id */
   hero: string; foe: string;
+  /** 同时开几个后台 Worker(一般按 CPU 核数) */
   workers: number;
   /** 是否启用自博弈(把历史快照放进对手池) */
   selfPlay: boolean;
+  /** 覆盖默认的进化策略超参数 */
   es?: Partial<EsConfig>;
+  /** 自定义网络结构,不填用默认 */
   layout?: Layout;
 }
 
@@ -41,6 +47,7 @@ export function f32ToB64(a: Float32Array): string {
   for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
   return btoa(s);
 }
+/** base64 还原成 Float32Array(f32ToB64 的反操作) */
 export function b64ToF32(b: string): Float32Array {
   const s = atob(b), u8 = new Uint8Array(s.length);
   for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i);
@@ -49,10 +56,13 @@ export function b64ToF32(b: string): Float32Array {
 
 /** 存档格式 */
 export interface SavedModel {
+  // format / obsVersion 用来识别文件、避免加载不兼容的旧存档
   format: 'ashen-abyss-ai'; obsVersion: number; hero: string; foe: string; layout: Layout;
+  // theta = 网络参数;m、v = Adam 优化器的动量(续训时要一起恢复);都转成 base64 文本
   generation: number; theta: string; m: string; v: string; history: ExamPoint[];
 }
 
+/** 浏览器本地存储里,每个角色各存一份模型的键名 */
 export const storageKey = (hero: string) => `ashen-abyss.ai.v${OBS_VERSION}.${hero}`;
 
 /** 读取某个角色已保存的模型;没有或版本不符时返回 null */
@@ -65,16 +75,22 @@ export function loadModel(hero: string): SavedModel | null {
   } catch { return null; }
 }
 
+/** 训练调度器:开 Worker、循环训练、考试、存档 */
 export class Trainer {
   readonly cfg: EsConfig;
   readonly layout: Layout;
+  /** 当前的网络参数与优化器状态 */
   state: EsState;
+  /** 每次考试的成绩,界面用来画进步曲线 */
   history: ExamPoint[] = [];
   /** 自博弈对手池:过去若干代的参数快照 */
   pool: Float32Array[] = [];
+  /** 为 false 时训练循环在当前这一代结束后停下 */
   running = false;
+  /** 每代结束后的回调,界面通过它刷新 */
   onProgress: ((p: Progress) => void) | null = null;
   private workers: Worker[] = [];
+  /** 已发出、还在等回复的请求,按 id 对应各自的回调 */
   private pending = new Map<number, (r: WorkerResponse) => void>();
   private nextId = 1;
   private rng = new Rng((Date.now() & 0x7fffffff) | 1);
@@ -82,6 +98,7 @@ export class Trainer {
   constructor(public opts: TrainerOptions) {
     this.cfg = { ...DEFAULT_ES, ...opts.es };
     this.layout = opts.layout ?? DEFAULT_LAYOUT;
+    // 有存档且网络结构一致就接着练,否则随机初始化重新开始
     const saved = loadModel(opts.hero);
     if (saved && saved.layout.join() === this.layout.join()) {
       this.state = { theta: b64ToF32(saved.theta), m: b64ToF32(saved.m), v: b64ToF32(saved.v), generation: saved.generation };
@@ -107,6 +124,7 @@ export class Trainer {
     });
   }
 
+  /** 组装本次评估任务的说明(自博弈关闭时对手池为空) */
   private spec(seed: number): EvalSpec {
     return { hero: this.opts.hero, foe: this.opts.foe, layout: this.layout, seed, scriptAggression: 0.6, pool: this.opts.selfPlay ? this.pool : [] };
   }
@@ -119,6 +137,7 @@ export class Trainer {
     while (this.running) await this.generation();
   }
 
+  /** 请求停止(当前这一代跑完后生效) */
   stop() { this.running = false; }
 
   /** 跑一代 */
@@ -141,6 +160,7 @@ export class Trainer {
     esUpdate(this.state, this.cfg, allSeeds, pos, neg);
     const g = this.state.generation;
 
+    // 每 5 代考一次试并存档;自博弈时每 10 代把当前版本存进对手池,池最多保留 6 个
     if (g % 5 === 0) await this.runExam();
     if (this.opts.selfPlay && g % 10 === 0) {
       this.pool.push(this.state.theta.slice());
@@ -197,5 +217,6 @@ export class Trainer {
     this.save();
   }
 
+  /** 关闭训练器:停止并销毁所有 Worker */
   dispose() { this.stop(); for (const w of this.workers) w.terminate(); this.workers = []; }
 }

@@ -6,10 +6,12 @@ import { Btn } from '../types';
 import { Controller } from '../world';
 import { nearestFoe } from './script';
 
+/** 创建一个「连打新手」控制器(每个角色用独立一份) */
 export function makeMasher(): Controller {
   return (w, self) => {
     const t = nearestFoe(w, self);
     if (!t) return 0;
+    // dx/dz = 与对手的横向/纵深距离(带方向),adx = 横向距离绝对值
     const dx = t.x - self.x, dz = t.z - self.z, adx = Math.abs(dx);
     let out = 0;
     // 霸体大招即将出手(8 帧内)且够得着自己:向后闪避
@@ -21,13 +23,16 @@ export function makeMasher(): Controller {
       }
     }
     // 贴近到 1 米左右,并对齐纵深
+    // 太远就走过去;够近了但背对对手就转身(按向对手的方向键)
     if (adx > 1.15) out |= dx > 0 ? Btn.RIGHT : Btn.LEFT;
     else if ((dx > 0) !== (self.facing === 1)) out |= dx > 0 ? Btn.RIGHT : Btn.LEFT;
     if (Math.abs(dz) > 0.3) out |= dz > 0 ? Btn.DOWN : Btn.UP;
+    // 还没贴近就只走位,不出招
     if (adx > 1.6 || Math.abs(dz) > 0.5) return out;
     // 每 8 帧一个节拍,节拍前半段按下(形成「按下」边沿):轻 轻 轻 重,循环
     const beat = Math.floor(w.frame / 8), press = w.frame % 8 < 3;
     if (!press) return out;
+    // d 是自己的角色定义,下面用它查技能和耗能
     const d = self.def;
     // 能量够就放技能(从贵的往便宜的试),每 4 拍最多一次
     if (beat % 4 === 3) {

@@ -16,6 +16,7 @@ export function paramCount(layout: Layout): number {
  * 以保证训练时每秒能跑几十万次。
  */
 export class Mlp {
+  /** 每层神经元的当前取值(复用,避免反复分配内存) */
   private bufs: Float32Array[];
   constructor(public layout: Layout) {
     this.bufs = layout.map(n => new Float32Array(n));
@@ -34,12 +35,15 @@ export class Mlp {
     for (let l = 0; l < L.length - 1; l++) {
       const a = this.bufs[l], b = this.bufs[l + 1];
       const nIn = L[l], nOut = L[l + 1];
+      // 最后一层不做 tanh,输出原始分数
       const last = l === L.length - 2;
+      // 先算加权和
       for (let j = 0; j < nOut; j++) {
         let sum = 0;
         for (let i = 0; i < nIn; i++) sum += params[p++] * a[i];
         b[j] = sum;
       }
+      // 再加偏置并过激活函数 tanh(把值压到 -1..1)
       for (let j = 0; j < nOut; j++) {
         const v = b[j] + params[p++];
         b[j] = last ? v : Math.tanh(v);

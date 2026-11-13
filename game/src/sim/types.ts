@@ -249,6 +249,8 @@ export type SimEvent =
   | { type: 'comboBreak'; victim: number }
   /** 被打飞的角色撞到版边反弹 */
   | { type: 'wallBounce'; id: number; x: number; y: number; z: number }
+  /** 机关喷发 */
+  | { type: 'hazard'; x: number; z: number }
   /** 场景物件被打碎 */
   | { type: 'break'; id: number; x: number; z: number }
   /** Boss 血量过半,进入狂暴阶段 */
@@ -270,6 +272,28 @@ export interface RoomDef {
   waves: string[][];
   /** 进入房间时显示的一句剧情(可选) */
   story?: string;
+  /** 场景机关(可选)。不写时按主题自动生成:矿道 / 王都 / 烬渊会有地面喷火口 */
+  hazards?: HazardDef[];
+}
+
+/** 地面喷火口:每隔一段时间喷发一次,站在上面的角色(不分敌我)都会被烧伤并击飞 */
+export interface HazardDef {
+  x: number; z: number;
+  /** 作用半径(米) */
+  radius: number;
+  /** 喷发周期(帧) */
+  period: number;
+  /** 伤害 */
+  damage: number;
+}
+
+/** 运行中的机关 */
+export interface Hazard extends HazardDef {
+  id: number;
+  /** 周期偏移,让各个喷火口错开喷发 */
+  offset: number;
+  /** 本次喷发已经烧到的角色(每次喷发每人只中一次) */
+  hitIds: number[];
 }
 
 /** 路线图上的一个节点(对应一个房间) */
@@ -344,6 +368,9 @@ export const SIM = {
   THROW_COLLIDE_DAMAGE: 9,
   /** 空中受身:被打飞至少多少帧后才能按跳跃键恢复 */
   RECOVER_MIN_FRAMES: 16,
+  /** 机关:喷发前的预警帧数、喷发持续帧数 */
+  HAZARD_WARN: 70,
+  HAZARD_ACTIVE: 14,
   /** 场景物件所在的队伍编号(既不是玩家方 0 也不是敌方 1,所以双方都能打) */
   PROP_TEAM: 2,
   /** 打碎物件后掉落道具的概率 */

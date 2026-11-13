@@ -27,6 +27,7 @@ export interface EvalSpec {
 export function evaluate(roster: Record<string, CharacterDef>, theta: Float32Array, spec: EvalSpec): number {
   const hero = roster[spec.hero], foe = roster[spec.foe];
   let sum = 0, n = 0;
+  // k === 1 时左右站位互换,抵消站位带来的偏差
   for (let k = 0; k < 2; k++) {
     sum += runEpisode(roster, hero, foe, makePolicyController(theta, spec.layout), makeScriptAI(spec.scriptAggression), spec.seed + k, k === 1).fitness;
     n++;
@@ -34,7 +35,7 @@ export function evaluate(roster: Record<string, CharacterDef>, theta: Float32Arr
   if (spec.pool.length) {
     for (let k = 0; k < 2; k++) {
       const opp = spec.pool[(spec.seed + k) % spec.pool.length];
-      // 自博弈时对手也用同一个角色的网络,但要让它操纵 foe 角色
+      // 自博弈:对手用池里某个历史版本的网络,操纵 foe 角色
       sum += runEpisode(roster, hero, foe, makePolicyController(theta, spec.layout), makePolicyController(opp, spec.layout), spec.seed + 10 + k, k === 1).fitness;
       n++;
     }
@@ -48,6 +49,7 @@ export function evaluate(roster: Record<string, CharacterDef>, theta: Float32Arr
  */
 export function exam(roster: Record<string, CharacterDef>, theta: Float32Array, spec: EvalSpec, games = 10) {
   const hero = roster[spec.hero], foe = roster[spec.foe];
+  // 种子固定为 9000+,与训练时的种子错开,保证是「没见过的题」
   let wins = 0, losses = 0, dealt = 0, taken = 0, combo = 0;
   for (let k = 0; k < games; k++) {
     const r = runEpisode(roster, hero, foe, makePolicyController(theta, spec.layout), makeScriptAI(spec.scriptAggression), 9000 + k, k % 2 === 1);

@@ -7,7 +7,10 @@
 //   4. 用 Adam 沿这个方向更新 θ
 // 噪声由种子重新生成,所以 Worker 之间只需要传种子和分数,不用传整份噪声。
 
-/** 确定性高斯噪声发生器(mulberry32 + Box-Muller) */
+/**
+ * 带种子的高斯(正态分布)随机数发生器:同一个种子永远生成同一串数。
+ * 内部先用 mulberry32 造均匀随机数,再用 Box-Muller 变成正态分布。
+ */
 export function makeGauss(seed: number): () => number {
   let s = seed >>> 0 || 1;
   const u = () => {
@@ -16,6 +19,7 @@ export function makeGauss(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  // Box-Muller 一次算出两个数,多出来的存这里下次用
   let spare: number | null = null;
   return () => {
     if (spare !== null) { const v = spare; spare = null; return v; }
@@ -27,7 +31,10 @@ export function makeGauss(seed: number): () => number {
   };
 }
 
-/** 生成 out = θ + sign·σ·ε(seed) */
+/**
+ * 生成加了噪声的参数副本:out = θ + sign·σ·ε(seed)。
+ * sign 为 1 / -1,对应一对「镜像」噪声的两个方向。
+ */
 export function perturb(theta: Float32Array, seed: number, sigma: number, sign: 1 | -1, out: Float32Array) {
   const g = makeGauss(seed);
   for (let i = 0; i < theta.length; i++) out[i] = theta[i] + sign * sigma * g();
@@ -56,6 +63,7 @@ export interface EsConfig {
   weightDecay: number;
 }
 
+/** 默认超参数(训练界面没改时用这组) */
 export const DEFAULT_ES: EsConfig = { pairs: 24, sigma: 0.08, lr: 0.03, weightDecay: 0.002 };
 
 /** 训练器的可持久化状态 */
@@ -67,6 +75,7 @@ export interface EsState {
   generation: number;
 }
 
+/** 用初始参数建立一个全新的训练状态(动量清零、第 0 代) */
 export function newEsState(theta: Float32Array): EsState {
   return { theta, m: new Float32Array(theta.length), v: new Float32Array(theta.length), generation: 0 };
 }
@@ -79,6 +88,7 @@ export function newEsState(theta: Float32Array): EsState {
  */
 export function esUpdate(st: EsState, cfg: EsConfig, seeds: number[], fitPos: number[], fitNeg: number[]) {
   const n = seeds.length, dim = st.theta.length;
+  // 正、负方向的分数放一起排名,前 n 个是正方向,后 n 个是负方向
   const ranks = centeredRanks([...fitPos, ...fitNeg]);
   const grad = new Float32Array(dim);
   for (let k = 0; k < n; k++) {
@@ -87,8 +97,10 @@ export function esUpdate(st: EsState, cfg: EsConfig, seeds: number[], fitPos: nu
     const g = makeGauss(seeds[k]);
     for (let i = 0; i < dim; i++) grad[i] += wgt * g();
   }
+  // 把累加结果换算成梯度估计的比例系数
   const scale = 1 / (2 * n * cfg.sigma);
   st.generation++;
+  // Adam:给每个参数各自调节步长的更新法;c1/c2 是开局阶段的偏差修正
   const b1 = 0.9, b2 = 0.999, t = st.generation;
   const c1 = 1 - Math.pow(b1, t), c2 = 1 - Math.pow(b2, t);
   for (let i = 0; i < dim; i++) {

@@ -5,23 +5,28 @@
 //   下路 · 深根之路 —— 重装敌人多,考验破霸体与抓投
 import { ChapterDef, MapNode, RoomDef } from '../sim/types';
 
+/** 三条路线的名字,下标 0/1/2 = 上/中/下 */
 export const LANE_NAMES = ['上路 · 誓约之路', '中路 · 灰雪之路', '下路 · 深根之路'] as const;
 
 /** 第 chapterIndex 章(0 起)敌人的攻击欲望:越往后出手越频繁 */
 export const enemyAggression = (chapterIndex: number) => 0.4 + chapterIndex * 0.05;
 
 /** 一章的敌人池 */
+/** 一章的敌人池(各类敌人的角色 id)。light 近战杂兵,ranged 远程,heavy 重装,boss 本章首领 */
 interface Pool { light: string[]; ranged: string[]; heavy: string[]; boss: string }
 
 /** 章节的基础信息(房间与节点由 build 生成) */
 interface ChapterSeed {
+  /** theme = 场景主题(决定背景外观);intro / outro = 章节开场与结束的剧情文字,一句一行 */
   id: string; name: string; theme: string; pool: Pool;
   intro: string[]; outro: string[];
   /** 三条路各自的地名 */
   places: [string, string, string];
+  /** Boss 房间的名字与进场时的一句剧情 */
   bossRoom: string; bossStory: string;
 }
 
+/** 5 章的原始设定;改剧情、敌人搭配、地名都在这里改 */
 const SEEDS: ChapterSeed[] = [
   {
     id: 'ch1', name: '第一章 · 灰雪边境', theme: 'ashsnow',
@@ -80,11 +85,13 @@ const at = (arr: string[], i: number) => arr[i % arr.length];
 
 /**
  * 生成一个战斗房间的敌人波次。
+ * 每波是一组敌人 id,打完一波才刷下一波。
  * @param lane  路线(决定敌人类型的偏向)
  * @param level 难度等级:章节序号 + 列号,越大敌人越多
  * @param elite 精英房:波次更多、重装更多
  */
 function makeWaves(pool: Pool, lane: number, level: number, elite: boolean): string[][] {
+  // L/R/H 分别从近战 / 远程 / 重装名单里循环取第 i 个敌人
   const L = (i: number) => at(pool.light, i), R = (i: number) => at(pool.ranged, i), H = (i: number) => at(pool.heavy, i);
   // 每条路的「主力」与「副手」不同
   const main = lane === 0 ? R : lane === 2 ? H : L;
@@ -93,11 +100,13 @@ function makeWaves(pool: Pool, lane: number, level: number, elite: boolean): str
     [L(0), side(0)],
     [main(0), L(1), side(1)],
   ];
+  // 难度越高波数越多、每波人越多
   if (level >= 1) waves.push([main(1), main(0), L(0)]);
   // 精英房用一波重装压轴;普通房到后期才加第四波
   // 前两章的精英房只放一个重装(level 为 章节序号 + 列号,精英房在第 3 列),之后才是双重装
   if (elite) waves.push(level >= 4 ? [H(0), H(1), main(0)] : [H(0), main(0), L(0)]);
   else if (level >= 3) waves.push([H(0), side(0), L(1), main(0)]);
+  // 后期最后一波再多加一个杂兵
   if (level >= 5) waves[waves.length - 1].push(L(0));
   return waves;
 }
@@ -105,13 +114,18 @@ function makeWaves(pool: Pool, lane: number, level: number, elite: boolean): str
 /** 全部自动生成的房间(按 id 索引),供世界创建时查找 */
 export const CAMPAIGN_ROOMS: Record<string, RoomDef> = {};
 
-/** 根据种子生成一章的路线图与房间 */
+/**
+ * 根据种子生成一章:3 列 × 3 路 = 9 个房间,再加一个 Boss 房。
+ * @param index 章节序号(0 起),影响难度
+ */
 function build(seed: ChapterSeed, index: number): ChapterDef {
+  // nodes = 路线图上的各个节点;room() 登记一个房间并返回它的 id
   const nodes: MapNode[] = [];
   const room = (id: string, name: string, waves: string[][], width: number, story?: string) => {
     CAMPAIGN_ROOMS[id] = { id, name: `${seed.name.split(' · ')[1]} · ${name}`, width, depth: 4.5, theme: seed.theme, waves, story };
     return id;
   };
+  // 节点 id 形如 ch1-a0:章节-列(a/b/c)-路线
   const nid = (col: number, lane: number) => `${seed.id}-${'abc'[col]}${lane}`;
   // 相邻路线可以互通:这就是「野区」换路
   const neighbors = (lane: number) => [lane - 1, lane, lane + 1].filter(l => l >= 0 && l <= 2);
@@ -125,10 +139,12 @@ function build(seed: ChapterSeed, index: number): ChapterDef {
       const waves = kind === 'rest' ? [] : makeWaves(seed.pool, lane, index + col, kind === 'elite');
       room(id, kind === 'rest' ? '余烬篝火' : place, waves, kind === 'rest' ? 16 : 26 + col * 2,
         kind === 'rest' ? '篝火还没有熄。你坐下来,把还记得的事默念了一遍。' : undefined);
+      // 前两列可以走到下一列相邻的路线;第三列全部通向 Boss
       const next = col < 2 ? neighbors(lane).map(l => nid(col + 1, l)) : [`${seed.id}-boss`];
       nodes.push({ id, lane: lane as 0 | 1 | 2, col, room: id, kind, next });
     }
   }
+  // Boss 房:先打两个杂兵,再打首领
   const bossId = `${seed.id}-boss`;
   room(bossId, seed.bossRoom, [[at(seed.pool.light, 0), at(seed.pool.light, 1)], [seed.pool.boss]], 24, seed.bossStory);
   nodes.push({ id: bossId, lane: 1, col: 3, room: bossId, kind: 'boss', next: [] });

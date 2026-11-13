@@ -12,21 +12,22 @@ export const DECISION_INTERVAL = 6;
 
 /** 移动头的选项数:不动 / 靠近 / 远离 / 上 / 下 / 靠近+上 / 靠近+下 */
 export const N_MOVE = 7;
-/** 按键头的选项:无、四个攻击键、跳、闪避、抓取、4 个技能、3 个指令技 */
+/** 按键头的选项:无、四个攻击键(轻/重拳、轻/重腿)、跳、闪避、抓取、4 个技能、3 个指令技 */
 export const BUTTON_ACTIONS = ['NONE', 'LP', 'HP', 'LK', 'HK', 'JUMP', 'DODGE', 'GRAB', 'S1', 'S2', 'S3', 'S4', 'C1', 'C2', 'C3'] as const;
+/** 按键头的选项数 */
 export const N_BUTTON = BUTTON_ACTIONS.length;
 /** 网络输出总长度 */
 export const ACT_DIM = N_MOVE + N_BUTTON;
 /** 默认网络结构 */
 export const DEFAULT_LAYOUT: Layout = [OBS_DIM, 48, 48, ACT_DIM];
 
-/** 指令动作拆成 3 个阶段的方向:F 前 B 后 D 下 U 上 N 松开 */
+/** 指令技的搓招方向拆成 3 段(F 前 B 后 D 下 U 上 N 松开),例如 DF = 下 → 斜下前 → 前 */
 const MOTION_STEPS: Record<Motion, [string, string, string]> = {
   DF: ['D', 'DF', 'F'], DB: ['D', 'DB', 'B'], DU: ['D', 'U', 'U'],
   BF: ['B', 'F', 'F'], FF: ['F', 'N', 'F'], DD: ['D', 'N', 'D'],
 };
 
-/** 把相对方向字符串(如 'DF')换算成实际按键,dir 为对手所在方向 */
+/** 把「相对朝向」的方向字符串(如 'DF')换算成真实的左右上下键掩码;facing 为出招时的朝向 */
 function dirMask(rel: string, facing: 1 | -1): number {
   let m = 0;
   if (rel.includes('F')) m |= facing === 1 ? Btn.RIGHT : Btn.LEFT;
@@ -51,6 +52,7 @@ function argmax(arr: Float32Array, from: number, n: number): number {
 export function makePolicyController(params: Float32Array, layout: Layout = DEFAULT_LAYOUT): Controller {
   const net = new Mlp(layout);
   const obs = new Float32Array(OBS_DIM);
+  // 上一次决策的结果;phase 是当前处于这 6 帧里的第几帧(0 = 该重新决策了)
   let move = 0, button = 0, phase = 0, toward: 1 | -1 = 1, lockedFacing: 1 | -1 = 1;
 
   return (w: World, self: Fighter): number => {
@@ -63,6 +65,7 @@ export function makePolicyController(params: Float32Array, layout: Layout = DEFA
       toward = opp.x >= self.x ? 1 : -1;
       lockedFacing = self.facing; // 指令技按出招瞬间的朝向来搓
     }
+    // t 记下本帧在周期内的序号,供下面展开按键用
     const t = phase;
     phase = (phase + 1) % DECISION_INTERVAL;
 
@@ -82,6 +85,7 @@ export function makePolicyController(params: Float32Array, layout: Layout = DEFA
     const act = BUTTON_ACTIONS[button];
     const press = t < 2; // 只在决策周期的前 2 帧按下,之后松开,形成「按下」边沿
     if (act === 'NONE') return mask;
+    // 抓取 = 同时按轻拳 + 轻腿
     if (act === 'GRAB') return press ? mask | Btn.LP | Btn.LK : mask;
     if (act[0] === 'C') {
       // 指令技:6 帧拆成 3 段方向,最后一段同时按键;这期间覆盖移动头

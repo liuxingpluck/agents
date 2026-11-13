@@ -1,3 +1,7 @@
+// 角色数据入口:定义主角凯尔和最基础的敌人(空烬者、重卒)、场景木桶,
+// 并把其他角色(chars/)和各章敌人(enemies/)汇总成名单,供选人界面和模拟层按 id 查找。
+// 每个招式用 mv(...) 描述:[前摇, 判定, 收招] 帧数、伤害、判定框、[受击硬直, 顿帧, 击退]、附加效果。
+// 帧 = 游戏的最小时间单位,1 秒 60 帧。
 import { CharacterDef, Tier } from '../sim/types';
 import { box, mv, toMap } from './build';
 import { brynn } from './chars/brynn';
@@ -15,8 +19,10 @@ import { enemies as ch3 } from './enemies/ch3';
 import { enemies as ch4 } from './enemies/ch4';
 import { enemies as ch5 } from './enemies/ch5';
 
+// 招式等级缩写:轻 / 重 / 指令技 / 技能 / 必杀
 const { LIGHT: L, HEAVY: H, COMMAND: C, SKILL: S, SUPER: U } = Tier;
 
+/** 主角之一:凯尔,均衡型剑盾战士 */
 export const kael: CharacterDef = {
   id: 'kael', name: '凯尔', title: '持誓之刃', role: 'warrior',
   lore: '边境哨站最后的守卫。他的遗物是女王名字的第一个音节——他记得誓言,却已想不起是向谁立下的。',
@@ -54,6 +60,7 @@ export const kael: CharacterDef = {
   skills: ['wave', 'whirl', 'quake', 'oath'],
 };
 
+/** 最普通的杂兵:空烬者,血少、出招慢 */
 export const husk: CharacterDef = {
   id: 'husk', name: '空烬者', title: '', role: 'enemy',
   lore: '被烬渊夺去名字的人。',
@@ -66,6 +73,7 @@ export const husk: CharacterDef = {
   normals: { LP: 'lp1', HP: 'hp1' }, airNormals: {}, commands: [], skills: [],
 };
 
+/** 重型杂兵:烬骸重卒,血厚、重锤带霸体(出招时不会被打断) */
 export const brute: CharacterDef = {
   id: 'brute', name: '烬骸重卒', title: '', role: 'enemy',
   lore: '披着旧王国重甲的空烬者,甲胄里只剩余烬。',
@@ -81,7 +89,6 @@ export const brute: CharacterDef = {
 /** 可选角色,按选人界面的显示顺序排列 */
 export const HEROES: CharacterDef[] = [kael, brynn, sera, ilex, rook, vesper, morgan, odran, li, nola];
 
-/** 全部角色表(可选角色 + 敌人 + 召唤物),模拟层按 id 查找 */
 /** 场景物件:木桶。站着不动,几下就碎,有较大概率掉道具。 */
 export const barrel: CharacterDef = {
   id: 'barrel', name: '木桶', title: '', role: 'prop', lore: '',
@@ -90,6 +97,7 @@ export const barrel: CharacterDef = {
   moves: {}, normals: {}, airNormals: {}, commands: [], skills: [],
 };
 
+/** 全部角色表(可选角色 + 敌人 + 召唤物 + 场景物件),模拟层按 id 查找 */
 export const ROSTER: Record<string, CharacterDef> = {};
 /** 全部敌人与 Boss(不含召唤物) */
 export const ENEMIES: CharacterDef[] = [husk, brute, ...ch1, ...ch2, ...ch3, ...ch4, ...ch5];

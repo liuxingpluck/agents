@@ -1,6 +1,6 @@
 // 确定性战斗模拟:固定 60Hz 步进,无渲染依赖,不使用 Math.random。
 import {
-  ATTACK_BTNS, Btn, BtnName, CharacterDef, DIR_MASK, Fighter, Motion, MoveDef, Pickup, Projectile,
+  ATTACK_BTNS, Btn, BtnName, CharacterDef, DIR_MASK, Fighter, Hazard, Motion, MoveDef, Pickup, Projectile,
   RoomDef, SIM, SimEvent, SKILL_BTNS, Tier,
 } from './types';
 
@@ -32,6 +32,8 @@ export interface World {
   projectiles: Projectile[];
   /** 地上的道具 */
   pickups: Pickup[];
+  /** 场景机关 */
+  hazards: Hazard[];
   /** 是否允许敌人掉落道具(训练 / 对战模式关闭) */
   drops: boolean;
   events: SimEvent[];
@@ -50,12 +52,32 @@ export interface World {
   protectAll: boolean;
 }
 
+/** 各主题自动生成的喷火口数量(没列出的主题没有机关) */
+const THEME_HAZARDS: Record<string, number> = { mine: 2, city: 1, abyss: 3 };
+
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
-  return {
-    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], drops: true, events: [],
+  const w: World = {
+    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], hazards: [], drops: true, events: [],
     controllers: new Map(), nextId: 1, wave: 0, waveTimer: 30, cleared: false, useWaves: true,
     defaultEnemyAI: null, summonAI: null, protectAll: false,
   };
+  // 机关:房间自己写了就用房间的;否则有敌人的房间按主题自动摆几个喷火口
+  const auto = room.waves.length ? THEME_HAZARDS[room.theme] ?? 0 : 0;
+  const defs = room.hazards ?? Array.from({ length: auto }, (_v, i) => ({
+    x: 7 + ((room.width - 12) * (i + 0.5)) / auto + w.rng.range(-1.5, 1.5),
+    z: w.rng.range(0.8, room.depth - 0.8), radius: 1.1, period: 300, damage: 12,
+  }));
+  defs.forEach((d, i) => w.hazards.push({ ...d, id: w.nextId++, offset: i * 97, hitIds: [] }));
+  return w;
+}
+
+/**
+ * 机关当前处于周期的哪个位置。
+ * @returns 距离下次喷发还有多少帧(warn,0 表示正在喷)以及是否正在喷发
+ */
+export function hazardState(w: World, h: Hazard): { untilBurst: number; active: boolean } {
+  const phase = (w.frame + h.offset) % h.period;
+  return { untilBurst: phase < SIM.HAZARD_ACTIVE ? 0 : h.period - phase, active: phase < SIM.HAZARD_ACTIVE };
 }
 
 export function spawnFighter(w: World, def: CharacterDef, team: number, x: number, z: number, ctrl?: Controller): Fighter {
@@ -724,6 +746,31 @@ function updateProjectiles(w: World) {
   w.projectiles = w.projectiles.filter(p => p.life > 0);
 }
 
+// ---------- 机关 ----------
+
+/** 喷火口喷发时使用的「招式」(只用来结算伤害与击飞) */
+const HAZARD_HIT: MoveDef = {
+  id: ':hazard', name: '喷火', tier: Tier.HEAVY, anim: 'slam', startup: 0, active: 1, recovery: 0,
+  damage: 12, comboValue: 2, hitbox: { x0: 0, x1: 0, y0: 0, y1: 0, z: 0 },
+  hitstun: 22, hitstop: 4, pushX: 0.1, launch: 0.3,
+};
+
+/** 喷火口:喷发期间烧到范围内贴近地面的所有角色,不分敌我 */
+function updateHazards(w: World) {
+  for (const h of w.hazards) {
+    const phase = (w.frame + h.offset) % h.period;
+    if (phase === 0) { h.hitIds = []; w.events.push({ type: 'hazard', x: h.x, z: h.z }); }
+    if (phase >= SIM.HAZARD_ACTIVE) continue;
+    for (const f of w.fighters) {
+      if (h.hitIds.includes(f.id) || f.y > 1.2) continue;
+      const dx = f.x - h.x, dz = (f.z - h.z) * 1.4;
+      if (dx * dx + dz * dz > h.radius * h.radius) continue;
+      // 队伍传 -1(不属于任何一方),所以谁站在上面都会中
+      if (applyHit(w, null, -1, dx >= 0 ? 1 : -1, f, { ...HAZARD_HIT, damage: h.damage }, f.x, f.y + 0.5)) h.hitIds.push(f.id);
+    }
+  }
+}
+
 // ---------- 道具 ----------
 
 /** 道具计时,以及玩家方角色走到道具上时自动拾取 */
@@ -817,6 +864,7 @@ export function step(w: World, inputs?: Map<number, number>) {
   resolveThrownBodies(w);
   updateProjectiles(w);
   updatePickups(w);
+  updateHazards(w);
   // 清理尸体
   if (w.frame % 30 === 0) w.fighters = w.fighters.filter(f => !(f.state === 'dead' && (f.team !== 0 || f.brain.owner !== undefined) && w.frame - f.deadFrame > 90));
   updateWaves(w);

@@ -85,6 +85,7 @@ export class Sfx {
         case 'cast': this.tone(500, 1200, 0.2, 0.2, 'triangle'); break;
         case 'break': this.burst(0.2, 700, 0.7, 'bandpass', 0.6); this.burst(0.12, 2600, 0.3, 'highpass'); break;
         case 'bossPhase': this.tone(60, 220, 0.6, 0.8, 'sawtooth'); this.burst(0.5, 500, 0.6, 'lowpass'); break;
+        case 'hazard': this.burst(0.5, 600, 0.5, 'lowpass'); this.tone(90, 40, 0.4, 0.4, 'sawtooth'); break;
         case 'wallBounce': this.burst(0.18, 300, 0.8, 'lowpass'); this.tone(120, 50, 0.2, 0.7); break;
         case 'pickup': this.tone(660, 990, 0.12, 0.3, 'triangle'); this.tone(990, 1320, 0.14, 0.2, 'triangle'); break;
         case 'recover': this.burst(0.1, 1500, 0.2, 'bandpass', 2); break;

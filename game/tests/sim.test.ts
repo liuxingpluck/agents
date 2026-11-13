@@ -163,6 +163,19 @@ describe('combat sim', () => {
     expect(boss.brain.phase2).toBe(1);
   });
 
+  it('喷火口:喷发时不分敌我都会被烧并击飞', () => {
+    const room = { ...ROOMS.outpost, hazards: [{ x: 5, z: 2, radius: 1.2, period: 100, damage: 10 }] };
+    const w = createWorld(room, ROSTER, 7);
+    w.useWaves = false;
+    const p = spawnFighter(w, ROSTER.kael, 0, 5, 2);
+    const e = spawnFighter(w, ROSTER.husk, 1, 5.6, 2);
+    const far = spawnFighter(w, ROSTER.husk, 1, 12, 2);
+    for (let i = 0; i < 100 + 5; i++) step(w, new Map([[p.id, 0]]));
+    expect(p.hp).toBeLessThan(p.def.stats.hp);
+    expect(e.hp).toBeLessThan(e.def.stats.hp);
+    expect(far.hp).toBe(far.def.stats.hp);
+  });
+
   it('同样的种子与输入得到完全相同的结果', () => {
     const sim = () => {
       const w = createWorld(ROOMS.outpost, ROSTER, 42);
