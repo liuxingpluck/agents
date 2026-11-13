@@ -47,7 +47,8 @@ export class GameRenderer {
   private stage = new THREE.Group();
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // alpha: true 让画布支持透明底(给角色拍立绘时用);平时场景有背景色,看不出区别
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.scene.background = new THREE.Color('#0d0c14');
     this.scene.fog = new THREE.Fog('#12101a', 16, 50);
@@ -313,6 +314,49 @@ export class GameRenderer {
         }
       }
     }
+  }
+
+  /**
+   * 给一个角色「拍照」,返回 PNG 图片(data URL)。用来把程序绘制的模型导出成头像 / 立绘占位图。
+   * @param kind portrait 半身头像(带暗色背景) / full 全身立绘(透明背景)
+   * @param size 输出的宽高(像素)
+   */
+  snapshot(w: World, fighterId: number, kind: 'portrait' | 'full', size: { w: number; h: number }): string {
+    const f = w.fighters.find(x => x.id === fighterId);
+    if (!f) return '';
+    const canvas = this.renderer.domElement;
+    const old = { w: canvas.width, h: canvas.height, bg: this.scene.background, fog: this.scene.fog, ratio: this.renderer.getPixelRatio() };
+    // 先正常渲染几帧,让角色的姿势过渡到位
+    for (let i = 0; i < 12; i++) this.render(w, fighterId, 1 / 30);
+    this.renderer.setPixelRatio(1);
+    this.renderer.setSize(size.w, size.h, false);
+    this.camera.aspect = size.w / size.h;
+    this.camera.updateProjectionMatrix();
+    this.stage.visible = false;
+    for (const [id, rig] of this.rigs) { rig.root.visible = id === fighterId; rig.shadow.visible = false; }
+    this.scene.fog = null;
+    const h = 1.8 * f.def.look.scale;
+    if (kind === 'portrait') {
+      this.scene.background = new THREE.Color('#15131c');
+      this.camera.position.set(f.x + 1.5, f.y + h * 0.92, f.z + 1.7);
+      this.camera.lookAt(f.x + 0.05, f.y + h * 0.83, f.z);
+    } else {
+      this.scene.background = null;
+      this.renderer.setClearColor(0x000000, 0);
+      // 距离按身高算:让角色大约占满画面高度的八成
+      const d = h * 1.82;
+      this.camera.position.set(f.x + d * 0.42, f.y + h * 0.58, f.z + d * 0.9);
+      this.camera.lookAt(f.x + 0.12, f.y + h * 0.5, f.z);
+    }
+    this.renderer.render(this.scene, this.camera);
+    const url = canvas.toDataURL('image/png');
+    // 恢复现场
+    this.scene.background = old.bg; this.scene.fog = old.fog;
+    this.stage.visible = true;
+    for (const rig of this.rigs.values()) rig.shadow.visible = true;
+    this.renderer.setPixelRatio(old.ratio);
+    this.resize(canvas.clientWidth, canvas.clientHeight);
+    return url;
   }
 
   /** 世界坐标 → 屏幕像素坐标(伤害数字等界面元素定位用) */

@@ -709,6 +709,7 @@ function frame(now: number) {
   const t0 = performance.now();
   const active = phase === 'play' || phase === 'clear';
   document.body.classList.toggle('playing', active); // 触屏按键只在战斗中显示
+  document.body.classList.toggle('menu', phase === 'select' || phase === 'map'); // 选人与路线图界面隐藏底部操作说明,免得重叠
   // 背景音乐跟着场面走:战斗中有 Boss 用首领曲,否则战斗曲;其余时间是低沉的氛围音
   const fighting = phase === 'play' || phase === 'replay';
   music.setMood(!fighting ? 'calm' : world.fighters.some(f => f.def.role === 'boss' && f.hp > 0) ? 'boss' : 'battle');
@@ -808,6 +809,18 @@ void boot();
     startNode(CHAPTERS[0].start[1]);
   },
   startNode,
+  /**
+   * 给任意角色拍一张头像或立绘,返回 PNG 的 data URL(scripts/render-portraits.mjs 用它生成占位图)。
+   */
+  snapshot(id: string, kind: 'portrait' | 'full', w: number, h: number) {
+    world = createWorld(ROOMS.outpost, ROSTER, 1);
+    world.useWaves = false;
+    player = spawnFighter(world, ROSTER[id], 0, 10, 2);
+    gfx.buildRoom(ROOMS.outpost, 11);
+    phase = 'ending'; closeOverlays();
+    for (let i = 0; i < 5; i++) step(world);
+    return gfx.snapshot(world, player.id, kind, { w, h });
+  },
   /** 把十位主角排成一排站好(检查外观用) */
   lineup() {
     world = createWorld(ROOMS.outpost, ROSTER, 1);

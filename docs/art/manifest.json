@@ -1,3 +1,30 @@
 {
- "files": []
+ "files": [
+  "full/brynn.png",
+  "full/ilex.png",
+  "full/kael.png",
+  "full/li.png",
+  "full/morgan.png",
+  "full/nola.png",
+  "full/odran.png",
+  "full/rook.png",
+  "full/sera.png",
+  "full/vesper.png",
+  "portraits/bishop.png",
+  "portraits/brynn.png",
+  "portraits/colossus.png",
+  "portraits/gareth.png",
+  "portraits/ilex.png",
+  "portraits/kael.png",
+  "portraits/li.png",
+  "portraits/morgan.png",
+  "portraits/nameless.png",
+  "portraits/nola.png",
+  "portraits/odran.png",
+  "portraits/queenshade.png",
+  "portraits/rook.png",
+  "portraits/sera.png",
+  "portraits/vesper.png",
+  "ui/title.png"
+ ]
 }

@@ -87,7 +87,7 @@
   #pad button[data-b=JUMP] { right: 164px; bottom: 26px; } #pad button.s { width: 58px; height: 58px; line-height: 58px; font-size: 19px; }
   #pad button[data-b=SPECIAL] { right: 88px; bottom: 94px; border-color: #ffb347; } #pad button[data-b=DODGE] { right: 8px; bottom: 132px; }
   body:not(.playing) #touch { display: none; } /* 菜单界面不显示触屏按键,以免挡住点击 */
-  body.touch #help { display: none; } body.touch #links { bottom: auto; top: 76px; }
+  body.touch #help, body.menu #help { display: none; } body.touch #links { bottom: auto; top: 76px; }
   #moves { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: #000c; }
   #moves.show { display: flex; }
   #moves .box { width: min(560px, 94vw); border: 1px solid #5b5560; background: #12101af2; padding: 16px 22px; }
