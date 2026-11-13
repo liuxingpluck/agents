@@ -106,6 +106,15 @@
   #practice { position: absolute; left: 20px; top: 92px; display: none; flex-direction: column; gap: 3px;
     padding: 10px 14px; border: 1px solid #5b5560; background: #0b0a10cc; font-size: 13px; font-family: ui-monospace, Menlo, monospace; }
   #practice b { color: var(--ember); font-size: 17px; font-family: "Noto Serif SC", serif; letter-spacing: .15em; }
+  .bar.gd { height: 4px; margin-top: 4px; width: 50%; } .bar.gd > i { background: linear-gradient(#bfe4ff, #5a9be0); }
+  #cutin { position: absolute; left: 0; top: 26vh; height: 150px; display: none; align-items: center; gap: 22px; padding-right: 60px;
+    background: linear-gradient(90deg, #000e 60%, transparent); border-top: 2px solid var(--ember); border-bottom: 2px solid var(--ember); }
+  #cutin.foe { left: auto; right: 0; flex-direction: row-reverse; padding: 0 0 0 60px; background: linear-gradient(270deg, #000e 60%, transparent); }
+  #cutin.show { display: flex; animation: cutin 1.1s cubic-bezier(.2, .9, .3, 1) forwards; }
+  #cutin img { height: 150px; width: 150px; object-fit: cover; }
+  #cutin b { font-size: 44px; letter-spacing: .3em; font-style: italic; color: #ffd27a; text-shadow: 0 0 22px var(--ember); }
+  @keyframes cutin { 0% { transform: translateX(-100%); opacity: 0; } 15%, 75% { transform: none; opacity: 1; } 100% { transform: translateX(-30%); opacity: 0; } }
+  #cutin.foe.show { animation-name: cutinR; } @keyframes cutinR { 0% { transform: translateX(100%); opacity: 0; } 15%, 75% { transform: none; opacity: 1; } 100% { transform: translateX(30%); opacity: 0; } }
   #toast { position: absolute; left: 0; right: 0; bottom: 22vh; text-align: center; font-size: 18px; letter-spacing: .3em; color: #ffd27a; opacity: 0; }
   #toast.show { animation: toast 1.2s; } @keyframes toast { 0% { opacity: 0; transform: translateY(10px); } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
   .dmg { position: absolute; font: 900 italic 22px Georgia, serif; color: #fff1c9; -webkit-text-stroke: 1px #3a1a08; pointer-events: none;
@@ -121,13 +130,14 @@
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
-  <div id="player" class="panel"><div class="name" id="p-name"></div><div class="bar"><i id="p-hp"></i></div><div class="bar en"><i id="p-en"></i></div>
+  <div id="player" class="panel"><div class="name" id="p-name"></div><div class="bar"><i id="p-hp"></i></div><div class="bar en"><i id="p-en"></i></div><div class="bar gd"><i id="p-gd"></i></div>
     <div id="player2" style="display:none;margin-top:10px"><div class="name" id="p2-name" style="font-size:13px;color:#7ad0ff"></div><div class="bar" style="height:10px;width:80%"><i id="p2-hp" style="background:linear-gradient(#5aa8e0,#1f4a7a)"></i></div><div class="bar en" style="width:56%"><i id="p2-en"></i></div></div></div>
   <div id="enemy" class="panel"><div class="name" id="e-name"></div><div class="bar"><i id="e-hp"></i></div></div>
   <div id="wave"></div>
   <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
   <div id="flash"></div>
   <div id="toast"></div>
+  <div id="cutin"></div>
   <div id="practice"></div>
   <div id="result"></div>
   <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
@@ -141,10 +151,10 @@
   <div id="fade"></div>
   <div id="links"><a href="#" id="open-settings">设置</a><a href="./train.html">AI 训练场</a><a href="./editor.html">角色 / 地图编辑器</a></div>
   <div id="help">
-    WASD 移动 · →→ 冲刺(冲刺中攻击 = 突进技) · 空格 跳(被打飞时按 = 受身) · Shift 闪避<br>
-    J 轻攻击(↓+J 踢技) · K 重攻击(↓+K 挑空) · J+K 抓投<br>
-    L 特殊技:L / →+L / ↓+L / ↑+L(奥义) · <b>Tab 招式表</b> · Esc 返回标题<br>
-    双人:选人界面按 P 开启,2P 用方向键 + 小键盘 1 轻 / 2 重 / 0 跳 / 3 特殊技 / . 闪避
+    WASD 移动 · →→ 冲刺(冲刺中攻击 = 突进技) · 空格 跳(被打飞时按 = 受身)<br>
+    J 轻攻击(↓+J 踢技) · K 重攻击(<b>按住蓄力</b>,蓄满破防;↓+K 挑空) · J+K 抓投<br>
+    Shift <b>按住格挡</b>(刚按下的瞬间挡住 = 弹反) · 方向 + Shift 闪避 · L 特殊技:L / →+L / ↓+L / ↑+L(奥义)<br>
+    空中连招:挑空后按跳追上去,J 连打 3 下,K 把对手砸向地面 · <b>Tab 招式表</b> · Esc 返回标题
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

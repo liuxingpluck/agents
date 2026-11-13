@@ -19,6 +19,33 @@ export function nearestFoe(w: World, self: Fighter): Fighter | null {
   return best;
 }
 
+/**
+ * 绕开障碍物:想横向移动却连续好几帧没挪动,说明被什么东西挡住了,就改为沿纵深方向绕行一小段。
+ * 脚本 AI 和连打机器人共用。
+ * @param out 本帧原本打算输出的按键
+ * @returns 修正后的按键
+ */
+export function steerAround(w: World, self: Fighter, out: number): number {
+  const b = self.brain;
+  const wantX = (out & (Btn.LEFT | Btn.RIGHT)) !== 0;
+  // 正在绕行时不重复计数,否则会每隔几帧就改一次方向,原地上下抖动
+  if ((b.side ?? 0) <= 0 && wantX && self.state !== 'attack' && Math.abs(self.x - (b.lastX ?? -99)) < 0.004) b.stuck = (b.stuck ?? 0) + 1;
+  else b.stuck = 0;
+  b.lastX = self.x;
+  if (b.stuck > 6) {
+    // 第一次朝场地更开阔的一侧绕;如果刚绕过一次还是被挡住,就换另一边
+    const open = self.z < w.room.depth / 2 ? 1 : -1;
+    b.sideDir = (b.sideTried ?? 0) > 0 ? -(b.sideDir ?? open) : open;
+    b.side = 34; b.sideTried = 90; b.stuck = 0;
+  }
+  if ((b.sideTried ?? 0) > 0) b.sideTried--;
+  if ((b.side ?? 0) > 0) {
+    b.side--;
+    return (out & ~(Btn.UP | Btn.DOWN)) | (b.sideDir > 0 ? Btn.DOWN : Btn.UP);
+  }
+  return out;
+}
+
 /** 角色的全部地面招式(普通技入口 + 指令技 + 技能),去重后缓存在闭包里 */
 function groundMoves(self: Fighter): MoveDef[] {
   const d = self.def;
@@ -78,7 +105,14 @@ export function makeScriptAI(aggression = 0.5): Controller {
     // --- 走位 ---
     const wantDist = info.ranged ? 5.5 : mayEngage ? info.reach * 0.85 : 3.2 + (self.id % 3) * 0.6;
     if (adx > wantDist + 0.2) out |= toward;
-    else if (adx < wantDist - (info.ranged ? 2 : 0.5)) out |= away;
+    else if (adx < wantDist - (info.ranged ? 2 : 0.5)) {
+      // 远程敌人被贴近时会后撤拉开距离,但不会没完没了地跑:退一阵就停下来硬拼一会儿,
+      // 否则会出现绕着障碍物兜圈子、谁也打不到谁的局面
+      if (info.ranged) {
+        if ((b.hold ?? 0) > 0) b.hold--;
+        else { out |= away; b.kite = (b.kite ?? 0) + 1; if (b.kite > 70) { b.kite = 0; b.hold = 150; } }
+      } else out |= away;
+    }
     else if ((dx > 0) !== (self.facing === 1) && w.frame % 8 === 0) out |= toward; // 原地转身面向目标
     const zOff = mayEngage ? 0 : ((self.id % 2) * 2 - 1) * 0.9;
     const tz = dz + zOff;
@@ -112,6 +146,18 @@ export function makeScriptAI(aggression = 0.5): Controller {
       }
     }
     if (!info.ranged && mayEngage && adx <= info.reach + 0.6 && adz <= 0.6) b.engage = 1;
-    return out;
+
+    // 持盾的敌人会格挡:看到对手在近处出招,有一定概率举盾挡一会儿。
+    // 对付他们要用抓投,或者蓄力重击破防。
+    if (self.def.look.shield) {
+      if ((b.guardFor ?? 0) > 0) { b.guardFor--; return Btn.DODGE; }
+      const facingMe = (t.facing === 1) === (dx < 0);
+      if (t.state === 'attack' && facingMe && adx < 2.6 && adz < 0.8 && !self.aiMove
+        && (self.state === 'idle' || self.state === 'walk') && w.rng.next() < (isBoss ? 0.05 : 0.14)) {
+        b.guardFor = 26 + w.rng.int(24);
+        return Btn.DODGE; // 不带方向 = 原地格挡
+      }
+    }
+    return steerAround(w, self, out);
   };
 }

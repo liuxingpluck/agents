@@ -5,6 +5,7 @@ import { createWorld, spawnFighter, step, World } from './sim/world';
 import { ChapterDef, CharacterDef, Fighter, MapNode, RoomDef } from './sim/types';
 import { makeScriptAI } from './sim/ai/script';
 import { HEROES, ROSTER } from './data/characters';
+import { chainIds } from './data/tuning';
 import { ROOMS } from './data/rooms';
 import { CAMPAIGN_ROOMS, CHAPTERS, enemyAggression, LANE_NAMES } from './data/chapters';
 import { GameRenderer } from './render/renderer';
@@ -182,6 +183,7 @@ function refreshSelect() {
     `<h2>${h.name} <small>${h.title} · ${ROLE_NAME[h.role] ?? ''}</small></h2>` +
     `<p>${h.lore}</p>` +
     `<p class="mono">生命 ${h.stats.hp} · 速度 ${(h.stats.speed * 100).toFixed(1)} · 重量 ${h.stats.weight}</p>` +
+    `<p class="mono">轻攻击连打 <b>${chainIds(h, h.normals.LP, 'LP').length}</b> 下 · 重攻击连打 <b>${chainIds(h, h.normals.HP, 'HP').length}</b> 下 · 抓取范围 <b>${h.moves.grab?.hitbox.x1 ?? 1}</b> 米</p>` +
     `<p class="mono">指令技:${[...new Set(cmds)].join(' / ')}</p>` +
     `<p class="mono">特殊技:${skills.join(' / ')}</p>`;
   const full = $('full') as HTMLImageElement;
@@ -206,14 +208,17 @@ function movesHtml(h: CharacterDef): string {
   const cmds = [...new Map(h.commands.map(c => [`${c.motion}${btnText(c.button)}`, c])).values()];
   const row = (k: string, v: string) => `<tr><td>${k}</td><td>${v}</td></tr>`;
   return `<h1>${h.name} · 招式表</h1><table>` +
-    row('J 连按', chainText(h.normals.LP, 'LP')) +
+    row(`J 连按(${chainIds(h, h.normals.LP, 'LP').length} 下)`, chainText(h.normals.LP, 'LP')) +
     row('↓ + J 连按', chainText(h.normals.LK, 'LK')) +
-    row('K', chainText(h.normals.HP, 'HP')) +
+    row(`K 连按(${chainIds(h, h.normals.HP, 'HP').length} 下)`, `${chainText(h.normals.HP, 'HP')}(最后一下挑空)`) +
+    row('按住 K', '蓄力重击:伤害更高,蓄过半会破防并打飞') +
     row('↓ + K', `${h.moves[h.normals.HK ?? '']?.name ?? '—'}${h.moves[h.normals.HK ?? '']?.launch ? '(挑空)' : ''}`) +
-    row('J + K', `${h.moves.grab?.name ?? '抓投'}(抓投,无视霸体;按住 ← 向身后投)`) +
+    row('J + K', `${h.moves.grab?.name ?? '抓投'}(抓投,范围 ${h.moves.grab?.hitbox.x1 ?? 1} 米,无视霸体与格挡;按住 ← 向身后投)`) +
+    row('空中 J ×3 / K', '空中连打 / 砸地(对手落地弹起,可继续追打)') +
     cmds.map(c => row(`${motionText(c.motion)} + ${btnText(c.button) === '轻' ? 'J' : 'K'}`, h.moves[c.move]?.name ?? '')).join('') +
     h.skills.slice(0, 4).map((id, i) => row(dirs[i], `${h.moves[id]?.name ?? ''} <small>能量 ${h.moves[id]?.cost ?? 0}</small>`)).join('') +
-    row('→→ 后按 J', '冲刺攻击') + row('被打飞时按 空格', '空中受身') + row('Shift', '闪避(短暂无敌)') +
+    row('→→ 后按 J', '冲刺攻击') + row('被打飞时按 空格', '空中受身') +
+    row('按住 Shift', '格挡(只挡正面;刚按下的瞬间挡住 = 弹反,对手硬直)') + row('方向 + Shift', '闪避(短暂无敌)') +
     `</table><p>连段规则:轻 → 重 → 指令技 → 特殊技,只能往后接。同一招反复用,对手会越来越快恢复。<br>按 <b>Tab</b> 关闭</p>`;
 }
 
@@ -258,7 +263,7 @@ async function startDuel() {
   const model = local ?? await loadBuiltinModel(foeDef.id);
   if (phase !== 'select') return; // 等内置模型下载的工夫,玩家已经离开了选人界面
   world = createWorld(ARENA, ROSTER, (Date.now() & 0xffff) | 1);
-  world.useWaves = false; world.drops = false; world.protectAll = true;
+  world.useWaves = false; world.drops = false; world.obstacles = false; world.protectAll = true;
   player = spawnFighter(world, HEROES[heroIndex], 0, 4.5, 1.7);
   const ctrl = model ? makePolicyController(b64ToF32(model.theta), model.layout) : makeScriptAI(0.8);
   rival = spawnFighter(world, foeDef, 1, 9.5, 1.7, ctrl);
@@ -301,7 +306,7 @@ function confirmSelect() {
 function startPractice() {
   const room = ROOMS.outpost;
   world = createWorld(room, ROSTER, 1);
-  world.useWaves = false; world.drops = false;
+  world.useWaves = false; world.drops = false; world.obstacles = false;
   player = spawnFighter(world, HEROES[heroIndex], 0, 8, room.depth / 2);
   dummy = spawnFighter(world, ROSTER.husk, 1, 10, room.depth / 2);
   gfx.buildRoom(room, 11);
@@ -739,7 +744,8 @@ function frame(now: number) {
         const left = world.fighters.filter(f => f.team !== player.team && f.hp > 0).length;
         const boss = world.fighters.find(f => f.id === e.id)?.def.role === 'boss';
         if (boss) slowmo = 1.2; else if (left === 0) slowmo = 0.45;
-      }
+      } else if (e.type === 'parry') slowmo = Math.max(slowmo, 0.3);
+      else if (e.type === 'super') slowmo = Math.max(slowmo, 0.55);
     }
     hud.update(world, player, STEP, player2);
     if (practice && phase === 'play') updatePractice();

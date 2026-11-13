@@ -44,6 +44,7 @@ export function runEpisode(
   w.useWaves = false;
   w.protectAll = true;
   w.drops = false;
+  w.obstacles = false;
   // 开局两人相距随机一小段,左右站位可互换
   const gap = 2.5 + w.rng.next() * 3;
   const cx = ARENA.width / 2;

@@ -195,6 +195,120 @@ describe('combat sim', () => {
     expect(e.aiMove).toBeUndefined();
   });
 
+  it('蓄力重击:按住重攻击会蓄力,伤害更高并把对手打飞', () => {
+    const tapped = duel(); tapped.e.hp = 99999;
+    run(tapped.w, tapped.p.id, [[Btn.HP, 2], [0, 30]]);
+    const tapDmg = 99999 - tapped.e.hp;
+    expect(tapped.e.state).not.toBe('launched');
+
+    const held = duel(); held.e.hp = 99999;
+    run(held.w, held.p.id, [[Btn.HP, 40]]);
+    expect(held.p.charge).toBeGreaterThan(SIM.CHARGE_MAX * 0.5); // 还在蓄力中,没有出手
+    expect(held.e.hp).toBe(99999);
+    run(held.w, held.p.id, [[0, 12]]);
+    expect(99999 - held.e.hp).toBeGreaterThan(tapDmg * 1.3);
+    expect(held.e.state).toBe('launched');
+  });
+
+  it('格挡:正面挡住攻击只掉一点血,背后挡不住', () => {
+    const { w, p, e } = duel();
+    e.facing = -1;
+    // 玩家先举盾(按住闪避键、不按方向),过了弹反窗口后再挨打
+    run(w, p.id, [[Btn.DODGE, 12]]);
+    expect(p.state).toBe('guard');
+    e.aiMove = 'lp1';
+    for (let i = 0; i < 40; i++) step(w, new Map([[p.id, Btn.DODGE]]));
+    expect(p.state).toBe('guard');
+    expect(p.hp).toBeGreaterThan(p.def.stats.hp - 4);
+    expect(p.hp).toBeLessThan(p.def.stats.hp);
+    expect(p.guard).toBeLessThan(SIM.GUARD_MAX);
+    // 敌人绕到背后再打:挡不住
+    e.x = p.x - 1; e.facing = 1; e.aiMove = 'lp1';
+    const hp = p.hp;
+    for (let i = 0; i < 40; i++) step(w, new Map([[p.id, Btn.DODGE]]));
+    expect(p.hp).toBeLessThan(hp - 3);
+  });
+
+  it('完美格挡(弹反):刚举盾的瞬间挡下攻击,不掉血且对手陷入硬直', () => {
+    const { w, p, e } = duel();
+    e.facing = -1;
+    e.aiMove = 'lp1';                       // 抓挠:前摇 18 帧
+    for (let i = 0; i < 14; i++) step(w, new Map([[p.id, 0]]));
+    for (let i = 0; i < 8; i++) step(w, new Map([[p.id, Btn.DODGE]]));
+    expect(p.hp).toBe(p.def.stats.hp);
+    expect(e.state).toBe('hitstun');
+    expect(w.fighters.find(f => f.id === e.id)!.stun).toBeGreaterThan(15);
+  });
+
+  it('破防:防御值被打光会陷入长硬直;蓄力过半的重击直接破防', () => {
+    const { w, p, e } = duel();
+    e.facing = -1; e.hp = 99999;
+    // 让敌人举盾:直接放进格挡状态并持续按住
+    const guard = () => { e.state = 'guard'; e.stateFrame = 30; e.move = null; };
+    guard(); e.guard = 5;
+    let broke = 0;
+    for (let i = 0; i < 20; i++) { step(w, new Map([[p.id, i < 2 ? Btn.LP : 0], [e.id, Btn.DODGE]])); broke += w.events.filter(ev => ev.type === 'guardBreak').length; }
+    expect(broke).toBe(1);
+    expect(e.state).toBe('hitstun');
+
+    const d2 = duel(); d2.e.facing = -1; d2.e.hp = 99999;
+    d2.e.state = 'guard'; d2.e.stateFrame = 30;
+    let broke2 = 0;
+    for (let i = 0; i < 60; i++) { step(d2.w, new Map([[d2.p.id, i < 42 ? Btn.HP : 0], [d2.e.id, Btn.DODGE]])); broke2 += d2.w.events.filter(ev => ev.type === 'guardBreak').length; }
+    expect(broke2).toBe(1);
+    expect(d2.e.hp).toBeLessThan(99999 - 15);
+  });
+
+  it('空中连招:空对空命中会上浮;砸地技让对手落地后弹起一次', () => {
+    const { w, p, e } = duel();
+    e.hp = 99999;
+    // 对手已被挑到空中,玩家也在空中,出空中重击(砸地技)
+    e.state = 'launched'; e.y = 1.6; e.vy = 0.05; e.comboCount = 1;
+    p.state = 'jump'; p.y = 1.4; p.vy = 0; p.x = e.x - 0.8;
+    const spikeId = p.def.airNormals.HK!;
+    expect(p.def.moves[spikeId].spike).toBe(true);
+    let bounce = 0, floated = false;
+    for (let i = 0; i < 70; i++) {
+      step(w, new Map([[p.id, i < 2 ? Btn.HK : 0]]));
+      bounce += w.events.filter(ev => ev.type === 'groundBounce').length;
+      if (w.events.some(ev => ev.type === 'hit') && p.vy >= SIM.AIR_HIT_FLOAT) floated = true;
+    }
+    expect(floated).toBe(true);
+    expect(bounce).toBe(1);
+  });
+
+  it('抓取范围因职业而异:远抓的角色隔着两米多也能抓到', () => {
+    const grabAt = (hero: string, dist: number) => {
+      const w = createWorld(ROOMS.outpost, ROSTER, 7); w.useWaves = false;
+      const p = spawnFighter(w, ROSTER[hero], 0, 5, 2);
+      const e = spawnFighter(w, ROSTER.husk, 1, 5 + dist, 2);
+      run(w, p.id, [[Btn.LP | Btn.LK, 2], [0, 16]]);
+      return e.state === 'grabbed' || p.grabTarget === e.id;
+    };
+    expect(grabAt('rook', 1.3)).toBe(true);
+    expect(grabAt('vesper', 1.6)).toBe(false);   // 刺客要贴身
+    expect(grabAt('morgan', 2.6)).toBe(true);    // 骸骨之手,最远
+    expect(grabAt('kael', 2.6)).toBe(false);
+  });
+
+  it('障碍物:挡路、能跳过;敌人会绕过去而不是卡住', () => {
+    const w = createWorld(ROOMS.outpost, ROSTER, 7);
+    w.useWaves = false; w.defaultEnemyAI = makeScriptAI(0.8);
+    const p = spawnFighter(w, ROSTER.kael, 0, 5, 2);
+    spawnFighter(w, ROSTER.rock, SIM.PROP_TEAM, 7, 2);
+    // 直着走会被岩石挡住
+    run(w, p.id, [[Btn.RIGHT, 80]]);
+    expect(p.x).toBeLessThan(6.2);
+    // 跳起来可以越过去
+    run(w, p.id, [[Btn.RIGHT | Btn.JUMP, 2], [Btn.RIGHT, 50]]);
+    expect(p.x).toBeGreaterThan(7.8);
+    // 敌人在岩石另一侧,正对着玩家:它应当绕过岩石找上门来
+    p.x = 5; p.z = 2; p.state = 'idle'; p.y = 0; p.vy = 0;
+    const e = spawnFighter(w, ROSTER.husk, 1, 9.5, 2, makeScriptAI(0.8));
+    for (let i = 0; i < 400; i++) step(w, new Map([[p.id, 0]]));
+    expect(e.x).toBeLessThan(6.4);
+  });
+
   it('同样的种子与输入得到完全相同的结果', () => {
     const sim = () => {
       const w = createWorld(ROOMS.outpost, ROSTER, 42);

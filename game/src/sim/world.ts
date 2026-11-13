@@ -40,6 +40,8 @@ export interface World {
   tether: number;
   /** 双人合作:每一波额外多出的敌人数量(Boss 波不加) */
   extraPerWave: number;
+  /** 是否在第一波时随机布置障碍物(训练 / 对战 / 练习时关闭) */
+  obstacles: boolean;
   /** 是否允许敌人掉落道具(训练 / 对战模式关闭) */
   drops: boolean;
   events: SimEvent[];
@@ -67,7 +69,7 @@ const THEME_HAZARDS: Record<string, number> = { mine: 2, city: 1, abyss: 3 };
  */
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
   const w: World = {
-    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], hazards: [], tether: 0, extraPerWave: 0, drops: true, events: [],
+    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], hazards: [], tether: 0, extraPerWave: 0, obstacles: true, drops: true, events: [],
     controllers: new Map(), nextId: 1, wave: 0, waveTimer: 30, cleared: false, useWaves: true,
     defaultEnemyAI: null, summonAI: null, protectAll: false,
   };
@@ -117,7 +119,7 @@ export const isAirborne = (f: Fighter) => f.y > 0 || f.state === 'jump' || f.sta
 function setState(f: Fighter, s: Fighter['state']) {
   f.state = s;
   f.stateFrame = 0;
-  if (s !== 'attack') f.move = null;
+  if (s !== 'attack') { f.move = null; f.charge = 0; } // 离开出招状态:清掉招式与蓄力
 }
 
 /** 清空「被连击」的记录(角色恢复自由行动时调用) */
@@ -221,6 +223,7 @@ function startMove(w: World, f: Fighter, m: MoveDef) {
   if (m.invuln) f.invuln = Math.max(f.invuln, m.invuln);
   if (!isAirborne(f)) { f.vx = 0; f.vz = 0; }
   if (m.projectile || m.anim === 'cast') w.events.push({ type: 'cast', id: f.id });
+  if (m.tier >= Tier.SUPER) w.events.push({ type: 'super', id: f.id });
 }
 
 /** 同强度的另一个攻击键 */
@@ -930,13 +933,21 @@ function updateWaves(w: World) {
   w.waveTimer = 70;
   const hero = w.fighters.find(f => f.team === 0 && isAlive(f));
   const hx = hero?.x ?? w.room.width / 2;
-  // 第一波出现时,在房间里摆几个木桶(打碎可能掉道具)
-  if (w.wave === 1 && w.roster.barrel) {
-    const n = 2 + w.rng.int(3);
-    for (let i = 0; i < n; i++) {
-      const x = w.rng.range(5, w.room.width - 3);
-      if (Math.abs(x - hx) < 2) continue; // 不压在玩家身上
-      spawnFighter(w, w.roster.barrel, SIM.PROP_TEAM, x, w.rng.range(0.4, w.room.depth - 0.4));
+  // 第一波出现时布置场地:随机摆放岩石、木箱、木桶、路障。
+  // 它们挡路也挡飞行道具,所以既是掩体也是需要绕开的地形;每次进房间的摆法都不一样。
+  if (w.wave === 1 && w.obstacles) {
+    const placed: Array<{ x: number; z: number }> = [];
+    const kinds = ['rock', 'crate', 'barrel', 'rock', 'barricade', 'crate', 'barrel'];
+    const n = 4 + w.rng.int(3);
+    for (let i = 0, tries = 0; i < n && tries < 40; tries++) {
+      const def = w.roster[kinds[(i + w.rng.int(3)) % kinds.length]];
+      if (!def) { i++; continue; }
+      const x = w.rng.range(6, w.room.width - 3), z = w.rng.range(0.5, w.room.depth - 0.5);
+      // 不压在玩家身上,彼此之间也留出能走人的空隙
+      if (Math.abs(x - hx) < 2.5 || placed.some(p => Math.abs(p.x - x) < 2.6 && Math.abs(p.z - z) < 1.4)) continue;
+      placed.push({ x, z });
+      spawnFighter(w, def, SIM.PROP_TEAM, x, z);
+      i++;
     }
   }
   ids.forEach((id, i) => {

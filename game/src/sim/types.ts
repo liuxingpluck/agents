@@ -296,6 +296,8 @@ export type SimEvent =
   | { type: 'guardBreak'; id: number }
   /** 蓄力重击出手(level 0..1 为蓄力程度) */
   | { type: 'chargeRelease'; id: number; level: number }
+  /** 发动奥义 */
+  | { type: 'super'; id: number }
   /** 被砸向地面后弹起 */
   | { type: 'groundBounce'; id: number; x: number; z: number }
   /** 被打飞的角色撞到版边反弹 */

@@ -13,6 +13,7 @@ import { morgan, extras as morganExtras } from './chars/morgan';
 import { odran } from './chars/odran';
 import { li } from './chars/li';
 import { nola } from './chars/nola';
+import { applyHeroTuning } from './tuning';
 import { enemies as ch1 } from './enemies/ch1';
 import { enemies as ch2 } from './enemies/ch2';
 import { enemies as ch3 } from './enemies/ch3';
@@ -88,6 +89,8 @@ export const brute: CharacterDef = {
 
 /** 可选角色,按选人界面的显示顺序排列 */
 export const HEROES: CharacterDef[] = [kael, brynn, sera, ilex, rook, vesper, morgan, odran, li, nola];
+// 统一加工:各职业的连段数、抓取范围、空中连招(见 tuning.ts)
+for (const h of HEROES) applyHeroTuning(h);
 
 /** 场景物件:木桶。站着不动,几下就碎,有较大概率掉道具。 */
 export const barrel: CharacterDef = {
@@ -95,13 +98,32 @@ export const barrel: CharacterDef = {
   stats: { hp: 18, speed: 0, jump: 0, weight: 50, energyMax: 1 },
   look: { scale: 0.55, bulk: 1.1, skin: '#5a4030', primary: '#6b4a32', secondary: '#3a2a1e', accent: '#8a8490', weapon: 'none' },
   moves: {}, normals: {}, airNormals: {}, commands: [], skills: [],
+  solid: { hx: 0.34, hz: 0.3, h: 0.95 },
 };
+
+/** 生成一个不会动的场景障碍物(挡路、挡飞行道具;hp 很高的相当于打不坏) */
+function obstacle(id: string, name: string, hp: number, scale: number, bulk: number, solid: { hx: number; hz: number; h: number }, primary: string, accent: string): CharacterDef {
+  return {
+    id, name, title: '', role: 'prop', lore: '',
+    stats: { hp, speed: 0, jump: 0, weight: 50, energyMax: 1 },
+    look: { scale, bulk, skin: primary, primary, secondary: '#2a2420', accent, weapon: 'none' },
+    moves: {}, normals: {}, airNormals: {}, commands: [], skills: [],
+    solid,
+  };
+}
+
+/** 岩石:很结实,基本打不碎,是最可靠的掩体;比较矮,可以跳过去 */
+export const rock = obstacle('rock', '岩石', 400, 0.6, 1.5, { hx: 0.6, hz: 0.45, h: 1.05 }, '#55525c', '#6a6672');
+/** 木箱:几下就碎,会掉道具 */
+export const crate = obstacle('crate', '木箱', 30, 0.5, 1.2, { hx: 0.45, hz: 0.4, h: 0.85 }, '#6b4a32', '#8a8490');
+/** 路障:横着的一长段木栅,挡住一整条线,打得碎但比较耐打;太高跳不过去,要绕 */
+export const barricade = obstacle('barricade', '路障', 110, 0.75, 1.0, { hx: 1.15, hz: 0.28, h: 1.35 }, '#4a3626', '#8a8490');
 
 /** 全部角色表(可选角色 + 敌人 + 召唤物 + 场景物件),模拟层按 id 查找 */
 export const ROSTER: Record<string, CharacterDef> = {};
 /** 全部敌人与 Boss(不含召唤物) */
 export const ENEMIES: CharacterDef[] = [husk, brute, ...ch1, ...ch2, ...ch3, ...ch4, ...ch5];
-for (const c of [...HEROES, ...ENEMIES, ...morganExtras, barrel]) ROSTER[c.id] = c;
+for (const c of [...HEROES, ...ENEMIES, ...morganExtras, barrel, rock, crate, barricade]) ROSTER[c.id] = c;
 
 /** 可选角色的 id 列表 */
 export const PLAYABLE = HEROES.map(c => c.id);

@@ -2,7 +2,7 @@
 // 它们只负责「画」:根据模拟层给出的角色状态(站、走、攻击、倒地等)摆姿势,
 // 不参与任何战斗判定。模型朝 +x 方向搭建。
 import * as THREE from 'three';
-import { Fighter, Look, SIM, Tier } from '../sim/types';
+import { CharacterDef, Fighter, Look, SIM, Tier } from '../sim/types';
 import { findArt } from './art';
 
 /** 一个姿势 = 一组关节角度。每帧算出「目标姿势」,再平滑过渡过去,动作才不会生硬。 */
@@ -263,6 +263,11 @@ function targetPose(f: Fighter, t: number): Pose {
       p.armL = up ? 1.2 : 2.2; p.armR = up ? 1.0 : 2.0; p.lean = up ? 0.1 : -0.05;
       break;
     }
+    case 'guard': {
+      // 格挡:双臂架在身前,重心下沉
+      p.crouch = 0.12; p.lean = 0.15; p.armL = 1.5; p.foreL = 1.6; p.armR = 1.2; p.foreR = 1.7; p.legL = 0.35; p.legR = -0.3;
+      break;
+    }
     case 'dodge': {
       p.crouch = 0.35; p.lean = 0.9; p.legL = 0.9; p.kneeL = 1.2; p.legR = -0.4; p.kneeR = 0.6; p.armL = -0.6; p.armR = -0.6;
       break;
@@ -339,6 +344,8 @@ export interface ActorView {
   shadow: THREE.Mesh;
   update(f: Fighter, time: number, dt: number): void;
   hitFlash(): void;
+  /** 残影(只有贴图角色支持) */
+  ghost?(color: string): THREE.Mesh | null;
 }
 
 /** 该角色是否有战斗贴图(至少要有 idle 这一张) */
@@ -398,6 +405,21 @@ export class SpriteRig implements ActorView {
   /** 被打中时调用:触发一次闪白。 */
   hitFlash() { this.flash = 1; }
 
+  /**
+   * 生成一个「残影」:一张停在原地、马上淡出的半透明副本(冲刺、突进、瞬移时用,显得动作很快)。
+   * @param color 残影的颜色
+   */
+  ghost(color: string): THREE.Mesh | null {
+    if (!this.mat.map) return null;
+    // 几何体单独复制一份:残影消失时会被销毁,不能和本体共用
+    const m = new THREE.Mesh(this.plane.geometry.clone(), new THREE.MeshBasicMaterial({
+      map: this.mat.map, transparent: true, opacity: 0.5, color, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    }));
+    m.position.copy(this.root.position); m.position.y += this.plane.position.y;
+    m.scale.x = this.plane.scale.x;
+    return m;
+  }
+
   /** 根据模拟状态选择姿势图 */
   /** 根据角色状态挑一张姿势图的名字(走路在两张图间交替)。 */
   private poseOf(f: Fighter, time: number): string {
@@ -415,6 +437,7 @@ export class SpriteRig implements ActorView {
         return tier >= Tier.SKILL ? 'special' : tier >= Tier.HEAVY ? 'heavy' : 'light';
       }
       case 'hitstun': case 'launched': case 'grabbed': return 'hurt';
+      case 'guard': return 'idle';
       case 'knockdown': case 'dead': return 'down';
       default: return 'idle';
     }
@@ -432,7 +455,10 @@ export class SpriteRig implements ActorView {
     this.flash = Math.max(0, this.flash - dt * 7);
     const warn = armorWarning(f, time);
     // 受击瞬间提亮;霸体大招前摇时偏橙色闪烁
-    this.mat.color.setRGB(0.9 + this.flash * 3 + warn, 0.9 + this.flash * 3 - warn * 0.3, 0.9 + this.flash * 3 - warn * 0.8);
+    // 蓄力越久越亮(带闪烁);格挡时整体偏冷色
+    const chg = f.charge > 0 ? (f.charge / SIM.CHARGE_MAX) * (0.5 + 0.3 * Math.sin(time * 40)) : 0;
+    const grd = f.state === 'guard' ? 0.25 : 0;
+    this.mat.color.setRGB(0.9 + this.flash * 3 + warn + chg - grd, 0.9 + this.flash * 3 - warn * 0.3 + chg * 0.7 - grd * 0.3, 0.9 + this.flash * 3 - warn * 0.8 + chg * 0.2 + grd);
     const blink = f.invuln > 0 && f.state !== 'dodge' && f.hp > 0 && Math.floor(time * 20) % 2 === 0;
     this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
   }
@@ -444,21 +470,49 @@ export class PropRig implements ActorView {
   shadow: THREE.Mesh;
   private wobble = 0;
 
-  constructor(look: Look) {
-    const h = SIM.BODY_H * look.scale, r = SIM.BODY_HALF_W * look.bulk;
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.85, h, 10), mat(look.primary));
-    body.position.y = h / 2;
-    this.root.add(body);
-    for (const y of [0.25, 0.75]) {
-      const hoop = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.03, r * 1.03, h * 0.07, 10), mat(look.accent));
-      hoop.position.y = h * y;
-      this.root.add(hoop);
+  /** @param def 物件定义:按 id 决定外形(木桶 / 木箱 / 岩石 / 路障),尺寸取自它的碰撞范围 */
+  constructor(def: CharacterDef) {
+    const look = def.look;
+    const sd = def.solid ?? { hx: SIM.BODY_HALF_W * look.bulk, hz: SIM.BODY_HALF_W * look.bulk, h: SIM.BODY_H * look.scale };
+    const main = mat(look.primary), trim = mat(look.accent), dark = mat(look.secondary);
+    const add = (geo: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z = 0) => {
+      const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); this.root.add(mesh); return mesh;
+    };
+    switch (def.id) {
+      case 'rock': {
+        // 岩石:几块压扁的多面体堆在一起
+        const a = add(new THREE.DodecahedronGeometry(sd.hx * 1.05), main, 0, sd.h * 0.5); a.scale.set(1, sd.h / (sd.hx * 1.7), sd.hz / sd.hx); a.rotation.y = 0.6;
+        const b2 = add(new THREE.DodecahedronGeometry(sd.hx * 0.6), trim, sd.hx * 0.5, sd.h * 0.3, sd.hz * 0.4); b2.rotation.set(0.5, 1, 0.2);
+        break;
+      }
+      case 'crate': {
+        add(new THREE.BoxGeometry(sd.hx * 2, sd.h, sd.hz * 2), main, 0, sd.h / 2);
+        for (const y of [0.08, 0.92]) add(new THREE.BoxGeometry(sd.hx * 2.06, sd.h * 0.1, sd.hz * 2.06), dark, 0, sd.h * y);
+        add(new THREE.BoxGeometry(sd.hx * 2.04, sd.h * 0.08, sd.hz * 2.04), trim, 0, sd.h * 0.5).rotation.z = 0.5;
+        break;
+      }
+      case 'barricade': {
+        // 路障:几根立柱加两道横木,顶端削尖
+        for (let i = -2; i <= 2; i++) {
+          add(new THREE.BoxGeometry(0.16, sd.h, 0.16), main, i * sd.hx * 0.45, sd.h / 2);
+          add(new THREE.ConeGeometry(0.12, 0.3, 4), main, i * sd.hx * 0.45, sd.h + 0.14);
+        }
+        for (const y of [0.35, 0.75]) add(new THREE.BoxGeometry(sd.hx * 2, 0.12, 0.1), dark, 0, sd.h * y, 0.1);
+        break;
+      }
+      default: {
+        // 木桶
+        const h = sd.h, r = sd.hx;
+        add(new THREE.CylinderGeometry(r, r * 0.85, h, 10), main, 0, h / 2);
+        for (const y of [0.25, 0.75]) add(new THREE.CylinderGeometry(r * 1.03, r * 1.03, h * 0.07, 10), trim, 0, h * y);
+      }
     }
     this.shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(r * 1.2, 12),
+      new THREE.CircleGeometry(Math.max(sd.hx, sd.hz) * 1.25, 12),
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false }),
     );
     this.shadow.rotation.x = -Math.PI / 2;
+    this.shadow.scale.set(1, sd.hz / Math.max(sd.hx, sd.hz), 1);
   }
 
   hitFlash() { this.wobble = 1; }

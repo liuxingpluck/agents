@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { Btn } from '../src/sim/types';
 import { HEROES, ROSTER } from '../src/data/characters';
+import { chainIds, HERO_TUNING } from '../src/data/tuning';
 import { ROOMS } from '../src/data/rooms';
 import { createWorld, spawnFighter, step } from '../src/sim/world';
 
@@ -29,14 +30,22 @@ function mash(heroId: string, seq: number[], gap: number) {
 
 describe('连招手感', () => {
   for (const h of HEROES) {
-    it(`${h.name}:快按与慢按「轻轻轻重」都能连上 4 下`, () => {
+    const t = HERO_TUNING[h.id];
+    const J = Array(t.j).fill(Btn.LP), K = Array(t.k).fill(Btn.HP);
+    it(`${h.name}:轻攻击连打 ${t.j} 下后接重攻击,快按慢按都能连上`, () => {
       for (const gap of [9, 13]) {
-        const r = mash(h.id, [Btn.LP, Btn.LP, Btn.LP, Btn.HP], gap);
-        expect(r.max, `间隔 ${gap} 帧:${r.used.join('>')}`).toBeGreaterThanOrEqual(4);
+        const r = mash(h.id, [...J, Btn.HP], gap);
+        expect(r.max, `间隔 ${gap} 帧:${r.used.join('>')}`).toBeGreaterThanOrEqual(t.j + 1);
       }
     });
-    it(`${h.name}:「轻轻轻重」之后能取消出特殊技`, () => {
-      const r = mash(h.id, [Btn.LP, Btn.LP, Btn.LP, Btn.HP, Btn.S1], 13);
+    it(`${h.name}:轻攻击 ${t.j} 段、重攻击 ${t.k} 段,各自都能打满`, () => {
+      expect(chainIds(h, h.normals.LP, 'LP').length).toBe(t.j);
+      expect(chainIds(h, h.normals.HP, 'HP').length).toBe(t.k);
+      const r = mash(h.id, [...J, ...K], 13);
+      expect(r.max, r.used.join('>')).toBeGreaterThanOrEqual(t.j + t.k - 1);
+    });
+    it(`${h.name}:「轻…轻 → 重」之后能取消出特殊技`, () => {
+      const r = mash(h.id, [...J, Btn.HP, Btn.S1], 13);
       expect(r.used, r.used.join('>')).toContain(h.skills[0]);
     });
   }

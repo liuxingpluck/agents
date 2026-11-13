@@ -1,10 +1,11 @@
 // 「连打新手」机器人:模拟一个只会贴上去连按、能量够了就放技能的玩家。
 // 用途:平衡性试玩的基准(tests/balance.test.ts)、以及以后的演示模式。
-// 它只会一件「聪明事」:看到带霸体的大招快打到自己时向后闪避(这是游戏教给玩家的基本应对)。
+// 它只会两件「聪明事」(都是游戏教给玩家的基本应对):
+//   看到带霸体的大招快打到自己时向后闪避;看到对手举盾格挡时改用抓投。
 // 除此之外不走位、不抓破绽,所以它能过的关真人一定能过。
 import { Btn } from '../types';
 import { Controller } from '../world';
-import { nearestFoe } from './script';
+import { nearestFoe, steerAround } from './script';
 
 /** 创建一个「连打新手」控制器(每个角色用独立一份) */
 export function makeMasher(): Controller {
@@ -28,7 +29,9 @@ export function makeMasher(): Controller {
     else if ((dx > 0) !== (self.facing === 1)) out |= dx > 0 ? Btn.RIGHT : Btn.LEFT;
     if (Math.abs(dz) > 0.3) out |= dz > 0 ? Btn.DOWN : Btn.UP;
     // 还没贴近就只走位,不出招
-    if (adx > 1.6 || Math.abs(dz) > 0.5) return out;
+    if (adx > 1.6 || Math.abs(dz) > 0.5) return steerAround(w, self, out);
+    // 对手举盾格挡:连打没用,改用抓投(抓投无视格挡)
+    if (t.state === 'guard' && self.def.moves.grab && adx <= self.def.moves.grab.hitbox.x1 && w.frame % 8 < 3) return out | Btn.LP | Btn.LK;
     // 每 8 帧一个节拍,节拍前半段按下(形成「按下」边沿):轻 轻 轻 重,循环
     const beat = Math.floor(w.frame / 8), press = w.frame % 8 < 3;
     if (!press) return out;

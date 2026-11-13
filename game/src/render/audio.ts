@@ -89,6 +89,12 @@ export class Sfx {
         case 'break': this.burst(0.2, 700, 0.7, 'bandpass', 0.6); this.burst(0.12, 2600, 0.3, 'highpass'); break;
         case 'bossPhase': this.tone(60, 220, 0.6, 0.8, 'sawtooth'); this.burst(0.5, 500, 0.6, 'lowpass'); break;
         case 'hazard': this.burst(0.5, 600, 0.5, 'lowpass'); this.tone(90, 40, 0.4, 0.4, 'sawtooth'); break;
+        case 'block': this.burst(0.06, 2600, 0.5, 'bandpass', 3); this.tone(700, 500, 0.05, 0.2, 'square'); break;
+        case 'parry': this.tone(1400, 2200, 0.18, 0.5, 'triangle'); this.burst(0.1, 4000, 0.5, 'highpass'); this.tone(200, 80, 0.2, 0.5); break;
+        case 'guardBreak': this.burst(0.3, 1200, 0.9, 'bandpass', 0.5); this.tone(500, 60, 0.4, 0.7, 'sawtooth'); break;
+        case 'chargeRelease': this.tone(180, 60, 0.25, 0.5 + e.level * 0.4); this.burst(0.2, 700, 0.5 + e.level * 0.4, 'lowpass'); break;
+        case 'groundBounce': this.burst(0.22, 220, 0.9, 'lowpass'); this.tone(110, 40, 0.25, 0.8); break;
+        case 'super': this.tone(200, 900, 0.5, 0.5, 'sawtooth'); this.tone(400, 1800, 0.5, 0.3, 'triangle'); this.burst(0.5, 3000, 0.3, 'highpass'); break;
         case 'wallBounce': this.burst(0.18, 300, 0.8, 'lowpass'); this.tone(120, 50, 0.2, 0.7); break;
         case 'pickup': this.tone(660, 990, 0.12, 0.3, 'triangle'); this.tone(990, 1320, 0.14, 0.2, 'triangle'); break;
         case 'recover': this.burst(0.1, 1500, 0.2, 'bandpass', 2); break;

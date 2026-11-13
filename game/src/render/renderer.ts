@@ -27,6 +27,8 @@ export class GameRenderer {
   // 角色 id → 外观;projMeshes:飞行道具 id → 模型
   private rigs = new Map<number, ActorView>();
   private projMeshes = new Map<number, THREE.Mesh>();
+  /** 每个角色上一次留残影是第几帧(避免同一帧重复生成) */
+  private lastGhostFrame = new Map<number, number>();
   /** 喷火口 id → 地面光圈 */
   private hazardMeshes = new Map<number, THREE.Mesh>();
   /** 地上的道具 id → 模型 */
@@ -263,6 +265,18 @@ export class GameRenderer {
   }
 
   /**
+   * 冲击环:一个迅速扩大并淡出的圆环。
+   * @param flat true 表示平贴在地上(尘浪),否则竖着面向镜头(冲击波)
+   */
+  private ring(x: number, y: number, z: number, color: string, size: number, life: number, grow: number, flat = false) {
+    const mesh = new THREE.Mesh(new THREE.RingGeometry(size * 0.7, size, 28), new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    mesh.position.set(x, y, z + (flat ? 0 : 0.3));
+    if (flat) mesh.rotation.x = -Math.PI / 2;
+    this.scene.add(mesh);
+    this.sparks.push({ mesh, life, max: life, grow });
+  }
+
+  /**
    * 刀光 / 拳风:出招瞬间在角色身前画一道弧线,迅速放大并淡出。
    * 弧线大小取自招式判定框的长度,所以长枪的刀光比拳头的大。
    */
@@ -291,14 +305,45 @@ export class GameRenderer {
   handleEvents(events: SimEvent[], w?: World) {
     for (const e of events) {
       if (e.type === 'hit') {
+        // 火花颜色跟随攻击者(各角色的招式有自己的色调);重击再加一圈冲击波
+        const tint = w?.fighters.find(x => x.id === e.attacker)?.def.look.glow ?? '#ff5a1f';
         this.spark(e.x, e.y, e.z, e.heavy ? '#ffb347' : '#fff1c9', e.heavy ? 0.32 : 0.2, 0.18, e.heavy ? 7 : 5);
-        this.spark(e.x, e.y, e.z, '#ff5a1f', 0.12, 0.3, 9);
+        this.spark(e.x, e.y, e.z, tint, 0.12, 0.3, 9);
+        if (e.heavy) this.ring(e.x, e.y, e.z, tint, 0.25, 0.2, 7);
+        if (e.combo >= 5) for (let i = 0; i < Math.min(4, e.combo / 5); i++) this.spark(e.x + (Math.random() - 0.5) * 0.8, e.y + (Math.random() - 0.5) * 0.8, e.z, '#ffe9c0', 0.07, 0.3, 6);
         this.shake = Math.max(this.shake, e.heavy ? 0.16 : 0.06);
         if (e.heavy) this.punch = Math.max(this.punch, 0.5);
         this.rigs.get(e.victim)?.hitFlash();
       } else if (e.type === 'ko') { this.shake = Math.max(this.shake, 0.28); this.punch = 1; }
       else if (e.type === 'comboBreak') this.shake = Math.max(this.shake, 0.2);
       else if (e.type === 'whiff' && w) this.slash(w, e.id, e.heavy);
+      else if (e.type === 'block') {
+        // 格挡:蓝白色的小火花
+        this.spark(e.x, e.y, e.z, '#9fd0ff', 0.16, 0.16, 4);
+        this.shake = Math.max(this.shake, 0.05);
+      } else if (e.type === 'parry') {
+        // 弹反:一圈白光迅速扩散 + 强震屏
+        this.ring(e.x, e.y, e.z, '#ffffff', 0.3, 0.28, 9);
+        this.spark(e.x, e.y, e.z, '#bfe4ff', 0.3, 0.2, 6);
+        this.shake = Math.max(this.shake, 0.22); this.punch = 0.8;
+      } else if (e.type === 'guardBreak' && w) {
+        const f = w.fighters.find(x => x.id === e.id);
+        if (f) { for (let i = 0; i < 6; i++) this.spark(f.x + (Math.random() - 0.5) * 0.9, f.y + 0.6 + Math.random() * 1.1, f.z, '#9fd0ff', 0.12, 0.45, 5); this.ring(f.x, f.y + 1, f.z, '#9fd0ff', 0.4, 0.3, 6); }
+        this.shake = Math.max(this.shake, 0.25);
+      } else if (e.type === 'chargeRelease' && w) {
+        const f = w.fighters.find(x => x.id === e.id);
+        if (f) this.ring(f.x + f.facing * 0.6, f.y + 1, f.z, '#ffd27a', 0.3 + e.level * 0.4, 0.25, 6 + e.level * 5);
+        this.shake = Math.max(this.shake, 0.1 + e.level * 0.2);
+      } else if (e.type === 'groundBounce') {
+        // 砸地:贴地的尘浪 + 碎屑
+        this.ring(e.x, 0.06, e.z, '#b9b4ad', 0.5, 0.4, 5, true);
+        for (let i = -2; i <= 2; i++) this.spark(e.x + i * 0.3, 0.2 + Math.random() * 0.4, e.z, '#8a8490', 0.14, 0.45, 4);
+        this.shake = Math.max(this.shake, 0.2); this.punch = Math.max(this.punch, 0.6);
+      } else if (e.type === 'super' && w) {
+        const f = w.fighters.find(x => x.id === e.id);
+        if (f) { this.ring(f.x, f.y + 1, f.z, f.def.look.glow ?? '#ff6a2a', 0.5, 0.5, 12); this.ring(f.x, 0.06, f.z, '#ffd27a', 0.6, 0.6, 8, true); }
+        this.shake = Math.max(this.shake, 0.3);
+      }
       else if (e.type === 'break') {
         // 木桶碎裂:几片木屑色的碎块
         for (let i = 0; i < 4; i++) this.spark(e.x + (Math.random() - 0.5) * 0.6, 0.3 + Math.random() * 0.6, e.z, '#8a6a4a', 0.14, 0.4, 3);
@@ -389,12 +434,21 @@ export class GameRenderer {
       let rig = this.rigs.get(f.id);
       if (!rig) {
         // 有战斗贴图就用贴图人,否则用程序绘制的方块人
-        rig = f.def.role === 'prop' ? new PropRig(f.def.look)
+        rig = f.def.role === 'prop' ? new PropRig(f.def)
           : hasSprites(f.def.id) ? new SpriteRig(f.def.id, f.def.look) : new Rig(f.def.look);
         this.rigs.set(f.id, rig);
         this.scene.add(rig.root, rig.shadow);
       }
       rig.update(f, this.time, dt);
+      // 残影:冲刺、闪避、带突进的招式、蓄力满时,每隔几帧在身后留一个淡出的影子
+      const fast = f.state === 'run' || f.state === 'dodge' || (f.state === 'attack' && ((f.move?.moveX ?? 0) >= 0.1 || (f.move?.tier ?? 0) >= 4));
+      if (fast && rig.ghost && w.frame % 3 === 0 && w.frame !== this.lastGhostFrame.get(f.id)) {
+        this.lastGhostFrame.set(f.id, w.frame);
+        const g = rig.ghost(f.def.look.glow ?? (f.team === 0 ? '#9fc4ff' : '#ff8a5a'));
+        if (g) { this.scene.add(g); this.sparks.push({ mesh: g, life: 0.22, max: 0.22, grow: 0 }); }
+      }
+      // 蓄力中:脚下聚起一圈光
+      if (f.charge > 4 && w.frame % 6 === 0) this.ring(f.x, 0.05, f.z, '#ffd27a', 0.9 - (f.charge / 45) * 0.5, 0.25, -0.4, true);
       if ((f.id === focusId || f.id === focusId2) && f.state !== 'dead') { sum += f.x; cnt++; }
     }
     if (cnt) focusX = sum / cnt; // 跟随的角色都倒下时,镜头停在原地
