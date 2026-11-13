@@ -171,6 +171,28 @@ export class GameRenderer {
   }
 
   /**
+   * 刀光 / 拳风:出招瞬间在角色身前画一道弧线,迅速放大并淡出。
+   * 弧线大小取自招式判定框的长度,所以长枪的刀光比拳头的大。
+   */
+  private slash(w: World, id: number, heavy: boolean) {
+    const f = w.fighters.find(x => x.id === id);
+    const m = f?.move;
+    if (!f || !m) return;
+    const reach = Math.max(0.6, Math.min(2.8, m.hitbox.x1));
+    const midY = f.y + (m.hitbox.y0 + m.hitbox.y1) / 2;
+    // 半个圆环,开口朝向角色;上挑类招式竖着画
+    const vertical = m.anim === 'upper' || m.anim === 'overhead' || m.anim === 'slam';
+    const geo = new THREE.RingGeometry(reach * 0.55, reach * 0.72, 16, 1, -Math.PI / 2.4, Math.PI / 1.2);
+    const color = f.def.look.glow ?? (f.team === 0 ? '#fff1c9' : '#ff8a5a');
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: heavy ? 0.9 : 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    mesh.position.set(f.x + f.facing * reach * 0.25, midY, f.z + 0.2);
+    mesh.scale.x = f.facing;
+    if (vertical) mesh.rotation.z = f.facing * 0.9;
+    this.scene.add(mesh);
+    this.sparks.push({ mesh, life: heavy ? 0.16 : 0.11, max: heavy ? 0.16 : 0.11, grow: 0.25 });
+  }
+
+  /**
    * 把模拟层这一帧的事件变成画面反馈:火花、震屏、镜头冲击、尘土。
    * @param w 传入世界以便查到角色位置(落地尘土用);不传则跳过需要位置的效果
    */
@@ -184,6 +206,7 @@ export class GameRenderer {
         this.rigs.get(e.victim)?.hitFlash();
       } else if (e.type === 'ko') { this.shake = Math.max(this.shake, 0.28); this.punch = 1; }
       else if (e.type === 'comboBreak') this.shake = Math.max(this.shake, 0.2);
+      else if (e.type === 'whiff' && w) this.slash(w, e.id, e.heavy);
       else if (e.type === 'break') {
         // 木桶碎裂:几片木屑色的碎块
         for (let i = 0; i < 4; i++) this.spark(e.x + (Math.random() - 0.5) * 0.6, 0.3 + Math.random() * 0.6, e.z, '#8a6a4a', 0.14, 0.4, 3);
@@ -270,7 +293,9 @@ export class GameRenderer {
     for (const s of this.sparks) {
       s.life -= dt;
       const k = 1 - s.life / s.max;
-      s.mesh.scale.setScalar(1 + k * s.grow);
+      // 保留水平翻转的方向(刀光朝左时 scale.x 为负)
+      const v = 1 + k * s.grow, sx = s.mesh.scale.x < 0 ? -1 : 1;
+      s.mesh.scale.set(sx * v, v, v);
       (s.mesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1 - k);
     }
     // 清理寿命用完的火花

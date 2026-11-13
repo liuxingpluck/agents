@@ -501,7 +501,7 @@ void boot();
 // 供自动化测试与调试使用
 (window as unknown as Record<string, unknown>).__game = {
   get world() { return world; }, get player() { return player; }, get phase() { return phase; }, get run() { return run; },
-  perf,
+  perf, gfx,
   /** 跳过菜单,直接用第 i 个角色进入示例房间(测试用) */
   pick(i: number) {
     heroIndex = i;
