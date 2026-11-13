@@ -3,11 +3,15 @@
 游戏目前用程序绘制的方块人。**只要把图片按下面的路径和文件名放进仓库,游戏会自动用图片替换方块**;
 没有的图继续用方块,所以可以分批交付,不必一次做完。
 
-## 现有的占位图
+## 现状(2026-11-14)
 
-`public/art/` 里目前已有 26 张图:主角与 Boss 的头像、主角全身立绘、标题背景。
-它们是用游戏自带的方块模型自动渲染出来的**占位图**(清单见 `public/art/placeholders.json`,生成脚本是 `scripts/render-portraits.mjs`),
-**请直接用正式美术覆盖同名文件**,不需要保留。战斗姿势图(`sprites/`)和场景图(`bg/`)还没有任何文件。
+全部 211 张正式美术已交付并接入游戏。目录约定在交付后调整过:
+
+- **源文件**(PNG 原图)放在 `game/art/source/`,目录结构与下文相同(`ui/` `portraits/` `full/` `sprites/` `bg/`)
+- **网页实际使用的图**是压缩后的 WebP,在 `game/public/art/`,由脚本从源文件生成,**不要手工改这里**
+- 更新或新增图片的流程:把 PNG 放进 `game/art/source/` 对应位置 → 在 `game/` 下运行
+  `python3 scripts/art-build.py`(需要 Pillow)→ `npm run art:manifest` → `npm run build:pages` → 提交
+- 交付说明与生成记录:`game/art/DELIVERY-NOTES.md`、`game/art/generation-records.json`
 
 ## 你要做的事
 
@@ -18,7 +22,7 @@
    - `prompt` / `negative`:正向 / 反向提示词(英文,可直接使用)
    - `priority`:0 最先做,1 其次,2 最后
    - `note`:这张图在游戏里的用途
-2. 按 `priority` 从小到大生成,保存到对应 `path`。
+2. 按 `priority` 从小到大生成。`path` 里写的是 `public/art/...`,**实际请保存到 `art/source/...` 的同名位置**(见上方「现状」)。
 3. 全部(或一批)放好后,在 `game/` 目录运行:
    ```bash
    node scripts/art-manifest.mjs

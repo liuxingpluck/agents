@@ -102,7 +102,7 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
     hp: def.stats.hp, energy: 0,
     move: null, moveFrame: 0, moveHit: false, hitIds: [], lastRehitFrame: 0,
     stun: 0, hitstop: 0, comboCount: 0, comboValue: 0, comboDamage: 0, comboMoveUses: {}, juggle: 0, invuln: 0,
-    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
+    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, charge: 0, guard: SIM.GUARD_MAX, spiked: false, bounced: false, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
   };
   w.fighters.push(f);
   if (ctrl) w.controllers.set(f.id, ctrl);
@@ -123,7 +123,7 @@ function setState(f: Fighter, s: Fighter['state']) {
 /** 清空「被连击」的记录(角色恢复自由行动时调用) */
 function resetCombo(f: Fighter) {
   f.comboCount = 0; f.comboValue = 0; f.comboDamage = 0; f.comboMoveUses = {}; f.juggle = 0;
-  f.wallBounced = false; f.thrownBy = 0;
+  f.wallBounced = false; f.thrownBy = 0; f.spiked = false; f.bounced = false;
 }
 
 // ---------- 输入 ----------
@@ -215,6 +215,7 @@ function startMove(w: World, f: Fighter, m: MoveDef) {
   f.moveHit = false;
   f.hitIds = [];
   f.lastRehitFrame = 0;
+  f.charge = 0;
   if (m.cost) f.energy -= m.cost;
   if (m.selfLaunch) { f.vy = m.selfLaunch; f.y = Math.max(f.y, 0.001); }
   if (m.invuln) f.invuln = Math.max(f.invuln, m.invuln);
@@ -228,7 +229,7 @@ const SIBLING: Partial<Record<BtnName, BtnName>> = { LP: 'LK', LK: 'LP', HP: 'HK
 /** 这一招现在能不能出:地面 / 空中是否匹配、能量够不够 */
 function canUse(f: Fighter, m: MoveDef | undefined, air: boolean): m is MoveDef {
   if (!m) return false;
-  if (!!m.air !== air) return false;
+  if (!!m.air !== air && !(air && m.airOk)) return false;
   if (m.cost && f.energy < m.cost) return false;
   return true;
 }
@@ -320,6 +321,8 @@ function tryGroundAction(w: World, f: Fighter): boolean {
   if (buffered(w, f, 'JUMP')) { consume(f, 'JUMP'); startJump(f); return true; }
   if (buffered(w, f, 'DODGE')) {
     consume(f, 'DODGE');
+    // 不按方向 = 原地格挡(按住保持);按着方向 = 朝那个方向闪避翻滚
+    if (!(f.input & DIR_MASK)) { setState(f, 'guard'); f.vx = 0; f.vz = 0; return true; }
     turnToInput(f);
     setState(f, 'dodge');
     f.invuln = Math.max(f.invuln, SIM.DODGE_INVULN);
@@ -369,6 +372,7 @@ function updateFighter(w: World, f: Fighter) {
   if (f.def.role === 'prop') { f.stateFrame++; return; } // 物件不会动
   if (f.invuln > 0) f.invuln--;
   f.stateFrame++;
+  if (f.state !== 'guard' && f.guard < SIM.GUARD_MAX) f.guard = Math.min(SIM.GUARD_MAX, f.guard + SIM.GUARD_REGEN);
   const sp = f.def.stats.speed;
 
   switch (f.state) {
@@ -419,6 +423,15 @@ function updateFighter(w: World, f: Fighter) {
         startMove(w, f, f.def.moves.grab);
         break;
       }
+      // 蓄力重击:重攻击的第一下,在即将出手时如果还按着重攻击键,就停在蓄势姿态继续蓄力;
+      // 松手或蓄满时打出。蓄力越久伤害越高,蓄到一半以上还会破防并把对手打飞。
+      if (m.tier === Tier.HEAVY && f.y <= 0 && f.moveFrame === m.startup - 1 && f.charge < SIM.CHARGE_MAX
+        && (f.input & (Btn.HP | Btn.HK)) && (m.id === f.def.normals.HP || m.id === f.def.normals.HK)) {
+        f.charge++;
+        f.vx = 0; f.vz = 0;
+        break;
+      }
+      if (f.charge >= SIM.CHARGE_MIN && f.moveFrame === m.startup - 1) w.events.push({ type: 'chargeRelease', id: f.id, level: f.charge / SIM.CHARGE_MAX });
       f.moveFrame++;
       const air = f.y > 0;
       if (air) f.vy -= SIM.GRAVITY * (m.selfLaunch ? 0.9 : 1);
@@ -451,6 +464,16 @@ function updateFighter(w: World, f: Fighter) {
       if (f.moveFrame >= m.startup + m.active + m.recovery) {
         setState(f, f.y > 0 ? 'jump' : 'idle');
       }
+      break;
+    }
+    case 'guard': {
+      // 格挡:按住闪避键保持(至少 8 帧);期间不能移动,但可以直接出招反击
+      f.vx *= 0.7; f.vz = 0;
+      if (f.stateFrame > 3) {
+        const m = pickMove(w, f, -1);
+        if (m) { startMove(w, f, m); break; }
+      }
+      if (!(f.input & Btn.DODGE) && f.stateFrame >= 8) setState(f, 'idle');
       break;
     }
     case 'dodge': {
@@ -506,9 +529,22 @@ function updateFighter(w: World, f: Fighter) {
     f.y += f.vy;
     if (f.y <= 0) {
       land(w, f);
-      if (f.state === 'launched') { setState(f, 'knockdown'); f.vx *= 0.5; }
+      if (f.state === 'launched' && f.spiked && !f.bounced && f.hp > 0) {
+        // 被砸到地上:弹起一次,进攻方可以继续追打
+        f.spiked = false; f.bounced = true;
+        f.y = 0.001; f.vy = 0.25; f.vx *= 0.4; f.hitstop = 4;
+        w.events.push({ type: 'groundBounce', id: f.id, x: f.x, z: f.z });
+      } else if (f.state === 'launched') { setState(f, 'knockdown'); f.vx *= 0.5; }
       else if (f.state === 'jump' || f.state === 'attack') { setState(f, 'idle'); f.vx = 0; f.vz = 0; }
     }
+  }
+  // 实心障碍物:贴近地面的角色不能穿过去,沿着重叠较浅的方向被推出来(跳得比它高就能越过)
+  for (const o of w.fighters) {
+    const sd = o.def.solid;
+    if (!sd || o === f || o.state === 'dead' || f.y >= sd.h) continue;
+    const px = sd.hx + 0.3 - Math.abs(f.x - o.x), pz = sd.hz + 0.2 - Math.abs(f.z - o.z);
+    if (px <= 0 || pz <= 0) continue;
+    if (px < pz) f.x += (f.x >= o.x ? px : -px); else f.z += (f.z >= o.z ? pz : -pz);
   }
   const r = w.room;
   // 撞墙反弹:被打飞的角色高速撞到版边会弹回来,给进攻方一次追打机会(每套连击只弹一次)
@@ -586,6 +622,45 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   const airborne = v.y > 0 || v.state === 'launched';
   if (m.grab && (airborne || !atk || v.def.role === 'prop')) return false; // 抓不到空中的对手,也抓不了物件
 
+  // 蓄力程度(0..1):只对「正在打出的这一招」有效
+  const charged = atk && atk.move === m && atk.charge >= SIM.CHARGE_MIN ? atk.charge / SIM.CHARGE_MAX : 0;
+
+  // ---- 格挡 ----
+  // 只挡得住正面来的攻击;抓投挡不住;带破防属性或蓄力过半的重击会直接打破防御
+  if (v.state === 'guard' && !m.grab && v.facing === -dir) {
+    const breaks = !!m.guardBreak || charged >= 0.5;
+    if (!breaks && v.stateFrame <= SIM.PARRY_WINDOW) {
+      // 完美格挡(弹反):刚举起防御的一瞬间挡下攻击——不掉血,近战攻击者被弹开、陷入硬直
+      v.energy = Math.min(v.def.stats.energyMax, v.energy + 12);
+      v.hitstop = 8;
+      if (atk && !m.projectile) {
+        releaseGrab(w, atk);
+        setState(atk, 'hitstun');
+        atk.stun = 32; atk.vx = -dir * 0.1; atk.hitstop = 8; atk.aiMove = undefined;
+      }
+      w.events.push({ type: 'parry', x: hx, y: hy, z: v.z, victim: v.id, attacker: atk?.id ?? -1 });
+      return true;
+    }
+    if (!breaks) {
+      // 普通格挡:只受一点点伤害(不会因此死亡),消耗防御值;重攻击消耗加倍
+      const chip = Math.round(m.damage * SIM.BLOCK_CHIP);
+      v.hp = Math.max(1, v.hp - chip);
+      v.guard -= m.damage * (m.tier >= Tier.HEAVY ? 2 : 1);
+      v.vx = dir * m.pushX * 0.6;
+      v.hitstop = Math.max(2, m.hitstop - 2);
+      if (atk) { atk.moveHit = true; atk.hitstop = v.hitstop; } // 被防住也允许继续连段(压制)
+      w.events.push({ type: 'block', x: hx, y: hy, z: v.z, victim: v.id });
+      if (v.guard > 0) return true;
+    }
+    // 破防:防御被打穿,陷入长硬直
+    v.guard = SIM.GUARD_MAX * 0.5;
+    setState(v, 'hitstun');
+    v.stun = SIM.GUARD_BREAK_STUN;
+    w.events.push({ type: 'guardBreak', id: v.id });
+    if (!breaks) return true; // 防御值耗尽:这一下已经按格挡结算过了
+    // 被破防技打穿:继续按正常命中结算(下面会算伤害与击飞)
+  }
+
   const inCombo = v.state === 'hitstun' || v.state === 'launched';
   if (!inCombo) resetCombo(v);
   v.comboCount++;
@@ -596,7 +671,7 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   let scale = Math.max(SIM.DAMAGE_SCALE_MIN, 1 - SIM.DAMAGE_SCALE_STEP * (v.comboCount - 1));
   const isBoss = v.def.role === 'boss';
   if (isBoss && v.comboDamage > v.def.stats.hp * SIM.BOSS_COMBO_DAMAGE_CAP) scale = SIM.DAMAGE_SCALE_MIN;
-  let dmg = Math.max(1, Math.round(m.damage * scale));
+  let dmg = Math.max(1, Math.round(m.damage * scale * (1 + SIM.CHARGE_BONUS * charged)));
 
   // 霸体:出招前摇与判定期间不被打断,只吃减免后的伤害。抓取无视霸体。
   const armored = !m.grab && v.state === 'attack' && !!v.move?.armor && v.moveFrame <= v.move.startup + v.move.active;
@@ -674,11 +749,21 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
     atk.grabTimer = m.grab.hold;
     return true;
   }
-  if (m.launch || airborne) {
+  // 空对空:攻击者自己在空中时,命中会让他稍微上浮,能在空中多停一会儿接着打
+  const atkAir = !!atk && atk.y > 0;
+  if (atkAir && airborne) atk!.vy = Math.max(atk!.vy, SIM.AIR_HIT_FLOAT);
+  if (m.spike && airborne) {
+    // 砸地技:把浮空的对手猛砸下去,落地时会弹起一次(见 updateFighter 的落地处理)
     setState(v, 'launched');
-    const base = m.launch ?? 0.17;
-    v.vy = base * Math.pow(SIM.JUGGLE_DECAY, v.juggle) * Math.min(1.15, 0.6 + 0.4 * wgt);
+    v.spiked = true;
+    v.vy = -0.36; v.vx = dir * m.pushX * 0.3 * wgt; v.vz = 0;
     v.juggle++;
+  } else if (m.launch || airborne || charged >= 0.5) {
+    setState(v, 'launched');
+    const base = m.launch ?? (charged >= 0.5 ? 0.3 : 0.17);
+    v.vy = base * Math.pow(SIM.JUGGLE_DECAY, v.juggle) * Math.min(1.15, 0.6 + 0.4 * wgt);
+    // 空中连招的浮空衰减只算一半,所以跳起来追打能连得更久
+    v.juggle += atkAir ? 0.5 : 1;
     v.y = Math.max(v.y, 0.001);
     v.vx = dir * m.pushX * 0.5 * wgt; v.vz = 0;
   } else if (m.knockdown) {

@@ -9,7 +9,7 @@ import { nearestFoe } from '../sim/ai/script';
 /** 把角色的 12 种状态归并成 8 组(one-hot = 只有所属那一组填 1,其余填 0) */
 const STATE_GROUP: Record<FState, number> = {
   idle: 0, walk: 0, run: 0, jump: 1, attack: 2, hitstun: 3, launched: 4,
-  knockdown: 5, getup: 5, dodge: 6, grabbed: 7, dead: 5,
+  knockdown: 5, getup: 5, dodge: 6, guard: 6, grabbed: 7, dead: 5,
 };
 /** 状态分组的数量 */
 const N_STATE = 8;

@@ -16,8 +16,8 @@ export async function loadArtManifest(): Promise<Set<string>> {
   return files;
 }
 
-/** 某张图是否存在(path 相对 public/art/,不带扩展名时依次尝试 png / webp) */
+/** 某张图是否存在(path 相对 public/art/,不带扩展名;优先用压缩好的 webp,其次 png) */
 export function findArt(pathNoExt: string): string | null {
-  for (const ext of ['png', 'webp', 'jpg']) if (files.has(`${pathNoExt}.${ext}`)) return `./art/${pathNoExt}.${ext}`;
+  for (const ext of ['webp', 'png', 'jpg']) if (files.has(`${pathNoExt}.${ext}`)) return `./art/${pathNoExt}.${ext}`;
   return null;
 }

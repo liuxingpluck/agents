@@ -116,6 +116,12 @@ export interface MoveDef {
    * 抓取无视霸体,但抓不到空中、倒地的对手。按住后方向可向身后投。
    */
   grab?: { hold: number; throwDamage: number; throwVx: number; throwVy: number };
+  /** 空中砸地技:打中浮空的对手会把他猛砸向地面,落地后弹起一次,可以继续追打 */
+  spike?: boolean;
+  /** 地面招式也允许在空中使用(多为飞行道具类技能) */
+  airOk?: boolean;
+  /** 破防:无视对手的格挡并直接打破他的防御 */
+  guardBreak?: boolean;
 }
 
 /** 指令技的出法:方向动作 + 按键 → 招式 id */
@@ -180,15 +186,17 @@ export interface CharacterDef {
   commands: CommandDef[];
   /** 技能键 S1.. 对应的招式 */
   skills: string[];
+  /** 实心障碍物(只对场景物件有意义):挡住走路和飞行道具。hx / hz 是半宽与半深,h 是高度(跳得比它高就能越过) */
+  solid?: { hx: number; hz: number; h: number };
 }
 
 /**
  * 角色状态:idle 站立 / walk 走 / run 跑 / jump 空中 / attack 出招中 / hitstun 受击硬直 /
- * launched 被打飞 / knockdown 倒地 / getup 起身 / dodge 闪避 / grabbed 被抓住 / dead 死亡
+ * launched 被打飞 / knockdown 倒地 / getup 起身 / dodge 闪避 / grabbed 被抓住 / guard 格挡 / dead 死亡
  */
 export type FState =
   | 'idle' | 'walk' | 'run' | 'jump' | 'attack' | 'hitstun' | 'launched'
-  | 'knockdown' | 'getup' | 'dodge' | 'grabbed' | 'dead';
+  | 'knockdown' | 'getup' | 'dodge' | 'grabbed' | 'guard' | 'dead';
 
 /** 场上的一个角色(运行时状态) */
 export interface Fighter {
@@ -225,6 +233,13 @@ export interface Fighter {
   /** 按键缓冲:按钮名 -> 按下的帧 */
   buffer: Partial<Record<BtnName, number>>;
   airActions: number;
+  /** 重攻击已经蓄力的帧数(按住重攻击键不放) */
+  charge: number;
+  /** 防御值:格挡会消耗它,耗尽则被破防;不格挡时慢慢恢复 */
+  guard: number;
+  /** 正被砸向地面(落地时弹起);本套连击是否已经砸地反弹过 */
+  spiked: boolean;
+  bounced: boolean;
   /** 本次连击中是否已经撞墙反弹过(每套连击只弹一次) */
   wallBounced: boolean;
   /**
@@ -275,6 +290,14 @@ export type SimEvent =
   | { type: 'whiff'; id: number; heavy: boolean }
   | { type: 'land'; id: number }
   | { type: 'comboBreak'; victim: number }
+  /** 格挡住了一次攻击 / 完美格挡(弹反) / 被破防 */
+  | { type: 'block'; x: number; y: number; z: number; victim: number }
+  | { type: 'parry'; x: number; y: number; z: number; victim: number; attacker: number }
+  | { type: 'guardBreak'; id: number }
+  /** 蓄力重击出手(level 0..1 为蓄力程度) */
+  | { type: 'chargeRelease'; id: number; level: number }
+  /** 被砸向地面后弹起 */
+  | { type: 'groundBounce'; id: number; x: number; z: number }
   /** 被打飞的角色撞到版边反弹 */
   | { type: 'wallBounce'; id: number; x: number; y: number; z: number }
   /** 机关喷发 */
@@ -391,6 +414,18 @@ export const SIM = {
   DODGE_SPEED: 0.16,
   RUN_MULT: 1.8,
   Z_SPEED_MULT: 0.7,
+  /** 蓄力重击:按住至少多少帧才算蓄力、最多蓄多少帧;蓄满时的伤害加成 */
+  CHARGE_MIN: 8,
+  CHARGE_MAX: 45,
+  CHARGE_BONUS: 0.9,
+  /** 格挡:防御值上限、每帧恢复量、完美格挡(弹反)的时间窗口、被破防后的硬直、格挡时仍会受到的伤害比例 */
+  GUARD_MAX: 100,
+  GUARD_REGEN: 0.3,
+  PARRY_WINDOW: 7,
+  GUARD_BREAK_STUN: 55,
+  BLOCK_CHIP: 0.15,
+  /** 空中连招:空对空命中时自己获得的上浮速度(能在空中多停一会儿继续打) */
+  AIR_HIT_FLOAT: 0.055,
   /** 撞墙反弹:水平速度超过这个值才会弹,弹回时保留的速度比例 */
   WALL_BOUNCE_MIN_VX: 0.09,
   WALL_BOUNCE_KEEP: 0.55,

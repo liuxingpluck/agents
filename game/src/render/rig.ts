@@ -402,7 +402,11 @@ export class SpriteRig implements ActorView {
   /** 根据角色状态挑一张姿势图的名字(走路在两张图间交替)。 */
   private poseOf(f: Fighter, time: number): string {
     switch (f.state) {
-      case 'walk': case 'run': return Math.floor(time * (f.state === 'run' ? 9 : 6)) % 2 ? 'walk2' : 'walk1';
+      case 'walk': case 'run': {
+        // 两帧交替;敌人只有一张步行图,就让它和站立图交替,同样有迈步的感觉
+        const second = findArt(`sprites/${this.id}/walk2`) ? 'walk2' : 'idle';
+        return Math.floor(time * (f.state === 'run' ? 9 : 6)) % 2 ? second : 'walk1';
+      }
       case 'jump': return 'jump';
       case 'attack': {
         const tier = f.move?.tier ?? 0;

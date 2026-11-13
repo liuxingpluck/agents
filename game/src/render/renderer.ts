@@ -98,19 +98,23 @@ export class GameRenderer {
     const groundUrl = findArt(`bg/${room.theme}/ground`);
     if (groundUrl) {
       const gt = new THREE.TextureLoader().load(groundUrl);
-      gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.colorSpace = THREE.SRGBColorSpace;
-      gt.repeat.set((W + 4) / 6, (D + 0.8) / 6);
-      (road.material as THREE.MeshStandardMaterial).map = gt;
-      (road.material as THREE.MeshStandardMaterial).color.set('#ffffff');
+      gt.wrapS = gt.wrapT = THREE.MirroredRepeatWrapping; gt.colorSpace = THREE.SRGBColorSpace;
+      // 贴图铺满整块地面(每 6 米重复一次);中间那条纯色「路」就不需要了
+      gt.repeat.set((W + 40) / 6, (D + 30) / 6);
+      (ground.material as THREE.MeshStandardMaterial).map = gt;
+      (ground.material as THREE.MeshStandardMaterial).color.set('#8f8f96'); // 压暗一些,让角色更突出
+      road.visible = false;
     }
     const farUrl = findArt(`bg/${room.theme}/far`);
     if (farUrl) {
       const ft = new THREE.TextureLoader().load(farUrl);
-      ft.wrapS = THREE.RepeatWrapping; ft.colorSpace = THREE.SRGBColorSpace;
-      const fw = W + 60, fh = 24;
+      // 镜像平铺:每隔一张左右翻转,这样接缝两侧的画面总是对得上
+      ft.wrapS = THREE.MirroredRepeatWrapping; ft.colorSpace = THREE.SRGBColorSpace;
+      // 远景画立在可行走区域的正后方,底边略低于地面,这样画里的近处地形正好接上地面,中间不留空带
+      const fw = W + 48, fh = 12;
       ft.repeat.set(fw / (fh * 2), 1); // 远景图宽高比 2:1,横向平铺
       const far = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), new THREE.MeshBasicMaterial({ map: ft, fog: false }));
-      far.position.set(W / 2, fh / 2 - 1.5, -14);
+      far.position.set(W / 2, fh / 2 - 0.4, -3.2);
       this.stage.add(far);
     }
     const hasFar = !!farUrl;
@@ -123,7 +127,8 @@ export class GameRenderer {
     // 远景:残墙、石柱、枯树
     const stone = new THREE.MeshStandardMaterial({ color: pal.stone, roughness: 1, flatShading: true });
     const dark = new THREE.MeshStandardMaterial({ color: '#131218', roughness: 1, flatShading: true });
-    for (let x = -4; x < W + 6; x += 2.4 + rnd() * 2.5) {
+    // 有手绘远景时不再生成程序布景(方块残墙和插画背景放在一起很突兀,还会挡住画面主体)
+    for (let x = -4; x < (hasFar ? -4 : W + 6); x += 2.4 + rnd() * 2.5) {
       const h = 1.2 + rnd() * 2.6;
       const wall = new THREE.Mesh(new THREE.BoxGeometry(1.6 + rnd() * 1.6, h, 0.8), stone);
       wall.position.set(x, h / 2, -1.6 - rnd() * 1.2); wall.rotation.z = (rnd() - 0.5) * 0.08;
@@ -153,7 +158,7 @@ export class GameRenderer {
         this.stage.add(fire, bowl, flame);
       }
     }
-    this.decorate(room.theme, W, rnd, stone, dark, pal);
+    if (!hasFar) this.decorate(room.theme, W, rnd, stone, dark, pal);
     // (曾经有近景剪影方块,离镜头太近会挡住角色,已去掉)
     // 灰雪 / 余烬粒子
     const N = 500;
