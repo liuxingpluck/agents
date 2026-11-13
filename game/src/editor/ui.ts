@@ -4,7 +4,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** 任意数据对象(编辑器直接改被编辑的 CharacterDef / RoomDef 等) */
 export type Rec = Record<string, any>;
+/** 可作为子节点的内容;假值会被忽略,方便写条件渲染 */
 type Kid = Node | string | null | undefined | false;
+/** 元素属性表 */
 type Attrs = Record<string, string | number | boolean | EventListener | undefined> | null;
 
 /**

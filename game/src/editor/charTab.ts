@@ -10,15 +10,20 @@ import {
   Opt, Rec, areaField, checkField, colorField, debounce, el, fill, labeled, numField, renderErrors, selectEl, textField,
 } from './ui';
 
+/** 四个攻击键:轻拳 / 重拳 / 轻脚 / 重脚 */
 const ATTACK: BtnName[] = ['LP', 'HP', 'LK', 'HK'];
+/** 招式层级下拉:轻 < 重 < 指令 < 技能 < 奥义 */
 const TIER_OPTS: Opt[] = [['0', '0 轻'], ['1', '1 重'], ['2', '2 指令'], ['3', '3 技能'], ['4', '4 奥义']];
+/** 职业的中文名 */
 const ROLE_NAMES: Record<string, string> = {
   warrior: '战士', tank: '坦克', mage: '法师', archer: '弓手', brawler: '格斗家', assassin: '刺客', summoner: '召唤师',
   berserker: '狂战士', lancer: '枪兵', support: '辅助', enemy: '敌人', boss: '首领',
 };
+/** 武器的中文名 */
 const WEAPON_NAMES: Record<string, string> = {
   none: '无', sword: '剑', hammer: '锤', staff: '法杖', bow: '弓', daggers: '双匕首', axe: '斧', spear: '枪', mace: '钉头锤', claws: '利爪',
 };
+/** 搓招方向的显示文字(D=下 F=前 B=后 U=上) */
 const MOTION_NAMES: Record<string, string> = { DF: '↓→ (DF)', DB: '↓← (DB)', DU: '↓↑ (DU)', FF: '→→ (FF)', BF: '←→ (BF)', DD: '↓↓ (DD)' };
 
 /** 新招式的默认值(轻攻击,数值在规范内) */
@@ -35,6 +40,7 @@ function newMove(id: string): MoveDef {
  */
 export function createCharTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   const root = el('div', { class: 'tab' });
+  // selId:当前选中的自制角色 id
   let selId: string | null = null;
   /** 展开了详情行的招式 id */
   const expanded = new Set<string>();
@@ -54,6 +60,7 @@ export function createCharTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
       previewNote.textContent = '预览已更新为当前定义';
     } else previewNote.textContent = '定义暂时无效:预览保持上一个有效版本';
   }, 300);
+  // 预览区下方的状态提示
   const previewNote = el('span', { class: 'note' });
 
   /** 任何改动后:保存、刷新校验面板、预览(不重建表单,避免输入框失焦) */
@@ -73,6 +80,7 @@ export function createCharTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
 
   // ---------- 顶部工具栏与列表 ----------
   const listBox = el('div', { class: 'list' });
+  // 「复制内置英雄」用的下拉
   const heroSel = el('select', null, ...HEROES.map(h => el('option', { value: h.id }, `${h.name} · ${h.title}`)));
   const toolbar = el('div', { class: 'row' },
     el('button', { class: 'primary', onclick: () => addChar(blankHero(uniqueId('hero', allIds()))) }, '＋ 新建角色'),
@@ -176,6 +184,7 @@ export function createCharTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   /** 外观:体型、四种颜色、武器、装饰开关、光效色 */
   function lookSection(d: CharacterDef): HTMLElement {
     const l = d.look as unknown as Rec;
+    // 光效色是可选字段:复选框控制有无,颜色框控制颜色(下面手动同步)
     const glowOn = checkField(l, 'glow', () => { /* 见下 */ }, true);
     glowOn.checked = typeof l.glow === 'string';
     const glowColor = colorField({ glow: l.glow ?? '#ff6a2a' }, 'glow', () => { /* 由下方监听处理 */ });
@@ -205,6 +214,7 @@ export function createCharTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   }
 
   // ---------- 招式表 ----------
+  // 招式表与出招映射两块区域的容器
   const movesBox = el('div');
   const mapBox = el('div');
   /** 招式选择下拉的选项:空项 + 全部招式 */
@@ -278,8 +288,10 @@ export function createCharTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
     const mr = m as unknown as Rec;
     const hb = m.hitbox as unknown as Rec;
     const wrap = el('div', { class: 'detailwrap' });
+    // 可选数字字段:留空 = 该字段不存在
     const optNum = (label: string, key: string, o = {}) => labeled(label, numField(mr, key, touch, { optional: true, ...o }));
 
+    // 连携:命中后按某键可接的下一招;清空时顺手删掉空的 chain
     const chainSel = ATTACK.map(b => labeled(`连携 ${b} →`, selectEl(moveOpts(d), m.chain?.[b] ?? '', v => {
       if (v) { m.chain = { ...(m.chain ?? {}), [b]: v }; } else if (m.chain) { delete m.chain[b]; if (!Object.keys(m.chain).length) delete m.chain; }
       touch();

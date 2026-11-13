@@ -96,6 +96,18 @@ export class Hud {
     $('banner-sub').innerHTML = sub;
     $('banner').classList.add('show');
   }
+  /**
+   * 过关结算卡:大号评价字母 + 几行战绩。显示在屏幕上方,不挡操作。
+   * @param rank 评价(S / A / B / C)
+   * @param rows 战绩行:[名称, 数值]
+   */
+  result(rank: string, rows: Array<[string, string]>) {
+    $('result').innerHTML = `<div class="rk rk-${rank}">${rank}</div><div class="rows"><h2>区域净化</h2>` +
+      rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('') + `</div>`;
+    $('result').classList.add('show');
+  }
+  hideResult() { $('result').classList.remove('show'); }
+
   /** 显示 / 隐藏「GO →」前进提示 */
   go(show: boolean) { $('go').classList.toggle('show', show); }
 

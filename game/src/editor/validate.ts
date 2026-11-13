@@ -19,6 +19,7 @@ export const BUDGET_CAP = 600;
 /** 一个角色最多可挂的技能键数(S1 ~ S8) */
 export const MAX_SKILLS = 8;
 
+// 下面几组是允许使用的枚举值:动画 / 武器 / 搓招方向 / 职业 / 节点类型
 const ANIMS: readonly AnimKind[] = [
   'punchL', 'punchR', 'kick', 'highKick', 'sweep', 'upper', 'slash', 'overhead', 'thrust', 'spin',
   'cast', 'shoot', 'slam', 'airKick', 'airSlash',
@@ -31,6 +32,7 @@ const KINDS = ['battle', 'elite', 'rest', 'boss'] as const;
 /** 供编辑器下拉框使用的枚举(与校验保持同一来源) */
 export const ENUMS = { ANIMS, WEAPONS, MOTIONS, ROLES, KINDS } as const;
 
+// 需要按层级检查区间的数值字段
 type Field = 'startup' | 'active' | 'recovery' | 'damage' | 'hitstun' | 'hitstop';
 type Range = [number, number];
 type FieldRanges = Record<Field, Range>;
@@ -43,6 +45,7 @@ const TIER_RANGE: Record<number, FieldRanges> = {
   3: { startup: [6, 16], active: [2, 24], recovery: [16, 26], damage: [5, 24], hitstun: [20, 26], hitstop: [3, 10] },
   4: { startup: [8, 14], active: [20, 36], recovery: [26, 34], damage: [7, 10], hitstun: [24, 24], hitstop: [4, 4] },
 };
+/** 层级与字段的中文名,用于生成错误提示 */
 const TIER_NAME = ['轻攻击', '重攻击', '指令技', '技能', '奥义'];
 const FIELD_NAME: Record<Field, string> = {
   startup: '起手帧', active: '持续帧', recovery: '收招帧', damage: '伤害', hitstun: '硬直', hitstop: '顿帧',
@@ -61,10 +64,12 @@ const HERO_STATS: Record<string, Range> = {
 const ENEMY_STATS: Record<string, Range> = {
   hp: [10, 1000], speed: [0.02, 0.1], jump: [0.2, 0.45], weight: [0.5, 2.5], energyMax: [0, 200],
 };
+/** 角色属性的中文名,用于错误提示 */
 const STAT_NAME: Record<string, string> = { hp: '生命', speed: '移速', jump: '跳跃初速', weight: '体重', energyMax: '能量上限' };
 
 // ---------- 小工具 ----------
 
+/** 通用对象类型(导入的 JSON 先收窄成它再逐项检查) */
 type Obj = Record<string, unknown>;
 
 /** 是否为普通对象(排除 null 与数组) */

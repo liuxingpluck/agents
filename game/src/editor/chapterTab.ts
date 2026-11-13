@@ -5,8 +5,11 @@ import { blankChapter, uniqueId } from './templates';
 import { ENUMS, isValidId, validateChapter } from './validate';
 import { Opt, Rec, el, fill, labeled, multiSelectEl, numField, renderErrors, selectEl, textField } from './ui';
 
+/** 节点类型的中文名 */
 const KIND_NAMES: Record<string, string> = { battle: '战斗', elite: '精英', rest: '休整', boss: '首领' };
+/** 三条路线的中文名(下标 = lane) */
 const LANE_NAMES = ['上路', '中路', '下路'];
+/** SVG 元素必须使用的命名空间 */
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /** 创建带命名空间的 SVG 元素 */
@@ -24,6 +27,7 @@ function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
  * @returns SVG 元素
  */
 export function drawGraph(ch: ChapterDef): SVGSVGElement {
+  // 路线图的尺寸参数:列宽、路线高、四周留白
   const colW = 96, laneH = 64, padX = 52, padY = 36;
   const maxCol = Math.max(1, ...ch.nodes.map(n => (Number.isFinite(n.col) ? n.col : 0)));
   const W = padX * 2 + maxCol * colW, H = padY * 2 + laneH * 2;
@@ -35,6 +39,7 @@ export function drawGraph(ch: ChapterDef): SVGSVGElement {
     s.append(svg('rect', { x: 0, y: y - laneH / 2 + 4, width: W, height: laneH - 8, class: 'lane' }));
     s.append(svg('text', { x: 6, y: y - laneH / 2 + 16, class: 'lanelabel' }, LANE_NAMES[l]));
   }
+  // 节点坐标:列号决定横向,路线决定纵向;非法值退回到第 0 列 / 中路,避免画崩
   const pos = (n: MapNode) => ({ x: padX + (Number.isFinite(n.col) ? n.col : 0) * colW, y: padY + (n.lane >= 0 && n.lane <= 2 ? n.lane : 1) * laneH });
   const byId = new Map(ch.nodes.map(n => [n.id, n]));
   // 连线
@@ -70,8 +75,10 @@ export function drawGraph(ch: ChapterDef): SVGSVGElement {
  */
 export function createChapterTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   const root = el('div', { class: 'tab' });
+  // selId:当前选中的章节 id;cur() 取出该章节对象
   let selId: string | null = null;
   const cur = (): ChapterDef | undefined => ctx.pack.chapters.find(c => c.id === selId);
+  // allIds:已用章节 id;roomIds:可选房间 id
   const allIds = () => ctx.pack.chapters.map(c => c.id);
   const roomIds = () => ctx.roomOptions().map(([v]) => v);
 
@@ -128,7 +135,7 @@ export function createChapterTab(ctx: Ctx): { root: HTMLElement; onShow(): void 
       if (!isValidId(nv) || allIds().includes(nv)) { alert('id 不合法或已存在:需小写字母开头,仅小写字母/数字/下划线,2~24 字符,且不能重复。'); idBox.value = d.id; return; }
       d.id = nv; selId = nv; ctx.save(); renderAll();
     });
-    // 剧情:一行一句
+    // 把「一行一句」的文本框与剧情数组互相绑定
     const lines = (key: 'intro' | 'outro') => {
       const ta = el('textarea', { rows: 4 });
       ta.value = d[key].join('\n');

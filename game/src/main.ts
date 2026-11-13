@@ -50,6 +50,8 @@ interface Run {
   cleared: string[];
   /** 生命值比例 0..1,跨房间继承 */
   hp: number;
+  /** 本次旅程的累计得分(旧存档没有这一项,读取时按 0 处理) */
+  score?: number;
 }
 let run: Run | null = null;
 const SAVE_KEY = 'ashen-abyss.save.v1';
@@ -116,7 +118,7 @@ function story(title: string, lines: string[], then: () => void) {
 
 /** 关闭所有覆盖层(横幅、选人、路线图),切换阶段前先清场。 */
 function closeOverlays() {
-  hud.hideBanner(); hud.go(false);
+  hud.hideBanner(); hud.go(false); hud.hideResult();
   $('select').classList.remove('show');
   $('map').classList.remove('show');
 }
@@ -268,7 +270,7 @@ function drawMap() {
   }));
   const cur = nodeOf(r.avail[mapSel]);
   const room = ALL_ROOMS[cur.room];
-  $('map-info').innerHTML = `<b>${KIND_NAME[cur.kind]}</b> · ${LANE_NAMES[cur.lane]}<br>${room?.name ?? ''}　生命 ${Math.round(r.hp * 100)}%`;
+  $('map-info').innerHTML = `<b>${KIND_NAME[cur.kind]}</b> · ${LANE_NAMES[cur.lane]}<br>${room?.name ?? ''}　生命 ${Math.round(r.hp * 100)}%　得分 ${r.score ?? 0}`;
 }
 
 /** 进入一个节点对应的房间 */
@@ -308,7 +310,15 @@ function onRoomCleared() {
   if (!r.cleared.includes(node.id)) r.cleared.push(node.id);
   if (node.kind !== 'rest') {
     player.hp = Math.min(player.def.stats.hp, player.hp + player.def.stats.hp * 0.15); // 清场奖励:回复 15%
-    hud.flash(`区域净化 · 评价 ${rank()}`);
+    // 本房间得分:连击加分,受伤与拖时间扣分;精英房 ×1.5,Boss 房 ×3
+    const secs = stats.frames / 60;
+    const base = Math.max(50, Math.round(300 + stats.maxCombo * 25 - stats.damageTaken * 2 - secs * 2));
+    const gained = Math.round(base * (node.kind === 'boss' ? 3 : node.kind === 'elite' ? 1.5 : 1));
+    r.score = (r.score ?? 0) + gained;
+    hud.result(rank(), [
+      ['最高连击', String(stats.maxCombo)], ['受到伤害', String(Math.round(stats.damageTaken))],
+      ['用时', `${secs.toFixed(1)} 秒`], ['得分', `+${gained}`], ['累计', String(r.score)],
+    ]);
   }
   r.hp = player.hp / player.def.stats.hp;
   r.avail = [...node.next];
@@ -342,7 +352,7 @@ function leaveRoom() {
 function ending() {
   phase = 'ending';
   try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
-  hud.banner('烬渊', '名字回到了深渊。<br>感谢游玩。<br><br>按 <b>Enter</b> 回到标题');
+  hud.banner('烬渊', `名字回到了深渊。<br>感谢游玩。<br><br>最终得分 <b>${run?.score ?? 0}</b><br><br>按 <b>Enter</b> 回到标题`);
   $('banner-title').style.fontSize = '';
 }
 

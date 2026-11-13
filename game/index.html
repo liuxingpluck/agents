@@ -94,6 +94,14 @@
   #moves table { width: 100%; border-collapse: collapse; font-size: 14px; }
   #moves td { padding: 4px 6px; border-bottom: 1px solid #ffffff14; } #moves td:first-child { color: var(--ember); white-space: nowrap; font-family: ui-monospace, Menlo, monospace; width: 38%; }
   #moves small { opacity: .6; } #moves p { font-size: 12px; opacity: .7; line-height: 1.7; margin: 10px 0 0; } #moves b { color: var(--ember); }
+  #result { position: absolute; left: 50%; top: 13vh; transform: translateX(-50%); display: none; gap: 22px; align-items: center;
+    padding: 14px 26px; border: 1px solid #5b5560; background: #0b0a10cc; }
+  #result.show { display: flex; animation: resin .45s cubic-bezier(.2, 1.6, .4, 1); } @keyframes resin { from { opacity: 0; transform: translateX(-50%) scale(.7); } }
+  #result .rk { font: 900 italic 96px Georgia, serif; line-height: 1; color: var(--bone); text-shadow: 0 0 24px #000; }
+  #result .rk-S { color: #ffd27a; text-shadow: 0 0 30px #ff6a2a; } #result .rk-A { color: var(--ember); } #result .rk-C { opacity: .6; }
+  #result h2 { margin: 0 0 6px; font-size: 15px; letter-spacing: .5em; font-weight: 400; opacity: .8; }
+  #result .rows div { display: flex; justify-content: space-between; gap: 34px; font-size: 14px; line-height: 1.6; }
+  #result .rows span { opacity: .65; } #result .rows b { font-family: ui-monospace, Menlo, monospace; font-weight: 400; }
   #toast { position: absolute; left: 0; right: 0; bottom: 22vh; text-align: center; font-size: 18px; letter-spacing: .3em; color: #ffd27a; opacity: 0; }
   #toast.show { animation: toast 1.2s; } @keyframes toast { 0% { opacity: 0; transform: translateY(10px); } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
   .dmg { position: absolute; font: 900 italic 22px Georgia, serif; color: #fff1c9; -webkit-text-stroke: 1px #3a1a08; pointer-events: none;
@@ -115,6 +123,7 @@
   <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
   <div id="flash"></div>
   <div id="toast"></div>
+  <div id="result"></div>
   <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
   <div id="select"><h1>选择持名者</h1><div id="cards"></div><div id="select-row"><div id="detail"></div><img id="full" alt="" /></div>
     <div class="tip">A / D 切换 · Enter 或 J 确认 · 战斗中按 Esc 返回这里</div></div>

@@ -15,7 +15,9 @@ export function createIoTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   const packErrs = el('div', { class: 'errs' });
   const importErrs = el('div', { class: 'errs' });
   const status = el('div', { class: 'note', id: 'io-status' });
+  // 隐藏的文件选择框,由「导入」按钮触发
   const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
+  // 导入方式单选:默认「合并」
   const mergeRadio = el('input', { type: 'radio', name: 'impmode', value: 'merge', checked: true });
   const replaceRadio = el('input', { type: 'radio', name: 'impmode', value: 'replace' });
 

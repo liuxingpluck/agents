@@ -10,6 +10,7 @@ export const BUILTIN_CHAR_IDS = Object.keys(ROSTER);
 /** 内置房间 id */
 export const BUILTIN_ROOM_IDS = Object.keys(ROOMS);
 
+/** 各标签页共用的「上下文」:当前内容包、保存、下拉选项、预览 */
 export interface Ctx {
   /** 当前正在编辑的内容包(原地修改,各标签页都读它) */
   pack: ContentPack;
@@ -27,6 +28,7 @@ export interface Ctx {
   playableOptions(): Opt[];
   /** 重新渲染所有标签页(导入 / 清空后用) */
   refreshAll(): void;
+  /** 右侧的战斗预览面板 */
   preview: Preview;
 }
 

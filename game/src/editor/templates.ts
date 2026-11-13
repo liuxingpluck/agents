@@ -1,7 +1,9 @@
-// 新建内容时用的模板。模板本身必须通过 validateCharacter(见 tests/validate.test.ts)。
+// 新建角色/房间/章节时的空白模板,以及生成不重复 id 的小工具。
+// 模板本身必须通过 validateCharacter 校验(见 tests/validate.test.ts),改数值时要小心。
 import { CharacterDef, ChapterDef, RoomDef, Tier } from '../sim/types';
 import { box, mv, toMap } from '../data/build';
 
+// 招式档位的简写:轻 / 重 / 指令技 / 技能 / 奥义
 const { LIGHT: L, HEAVY: H, COMMAND: C, SKILL: S, SUPER: U } = Tier;
 
 /**

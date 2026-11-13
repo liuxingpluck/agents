@@ -16,7 +16,12 @@ function makeDummy(): CharacterDef {
   return { ...b, id: 'brute', stats: { ...b.stats, hp: 1_000_000 } };
 }
 
+/**
+ * 预览面板:管理画布、模拟世界和键盘输入。
+ * 编辑器只需调用 showCharacter / playRoom,其余(循环、重建)内部处理。
+ */
 export class Preview {
+  // 内部状态:渲染器、输入、当前世界、玩家、当前模式(试角色/试房间)等
   private gfx: GameRenderer;
   private input = new InputManager();
   private world!: World;
@@ -26,6 +31,7 @@ export class Preview {
   private room: RoomDef = DUMMY_ROOM;
   private roster: Record<string, CharacterDef> = ROSTER;
   private last = performance.now();
+  // acc:累积的时间,用来按固定 1/60 秒推进模拟;deadTimer:主角倒下后的计时
   private acc = 0;
   private deadTimer = 0;
   /** 是否保持能量满(方便测试技能与奥义) */

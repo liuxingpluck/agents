@@ -13,12 +13,15 @@ import { Opt, Rec, areaField, el, fill, labeled, numField, renderErrors, selectE
  */
 export function createRoomTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   const root = el('div', { class: 'tab' });
+  // selId:当前选中的房间 id;cur() 取出该房间对象
   let selId: string | null = null;
   const cur = (): RoomDef | undefined => ctx.pack.rooms.find(r => r.id === selId);
+  // allIds:所有已用房间 id(内置 + 自制),用来防重名;charIds:所有可选角色 id
   const allIds = () => [...BUILTIN_ROOM_IDS, ...ctx.pack.rooms.map(r => r.id)];
   const charIds = () => ctx.charOptions().map(([v]) => v);
 
   const errBox = el('div', { class: 'errs' });
+  /** 任何改动后调用:保存并重新校验 */
   const touch = () => { ctx.save(); updateErrors(); };
   /** 刷新校验面板(房间 id 与内置重复也算问题) */
   function updateErrors() {
@@ -34,6 +37,7 @@ export function createRoomTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
   const heroSel = el('select');
   const playNote = el('span', { class: 'note' });
 
+  // 顶部按钮:新建 / 复制 / 删除房间
   const toolbar = el('div', { class: 'row' },
     el('button', {
       class: 'primary',
@@ -63,6 +67,7 @@ export function createRoomTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
     const d = cur();
     if (!d) { fill(formBox, el('p', { class: 'hint' }, '选择或创建一个房间后在此编辑。')); renderErrors(errBox, []); return; }
 
+    // 改 id 时要求合法且不重复,并同步章节里的引用
     const idBox = el('input', { type: 'text', value: d.id });
     idBox.addEventListener('change', () => {
       const nv = idBox.value.trim();
@@ -100,6 +105,7 @@ export function createRoomTab(ctx: Ctx): { root: HTMLElement; onShow(): void } {
 
   /** 重绘波次行 */
   function renderWaves(d: RoomDef, box: HTMLElement) {
+    // 波次里显示角色名;找不到时标注「不存在」
     const nameOf = (id: string) => ctx.roster()[id]?.name ?? `${id}(不存在)`;
     const rows = d.waves.map((w, i) => {
       const add = selectEl([['', '＋ 添加敌人…'], ...ctx.charOptions()] as Opt[], '', v => { if (v) { w.push(v); touch(); renderWaves(d, box); } });
