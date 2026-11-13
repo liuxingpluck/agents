@@ -76,6 +76,16 @@
       <div class="legend"><span><i style="background:#ff6a2a"></i>对脚本 AI 胜率</span><span><i style="background:#7ad0ff"></i>对连打机器人胜率</span><span><i style="background:#e8e2d6"></i>伤害差(造成 − 承受)</span></div>
     </section>
   </div>
+  <div class="stack" style="grid-column: 1 / -1; order: 3">
+    <section>
+      <h2>显卡测试(WebGPU)</h2>
+      <p style="margin:0 0 10px;font-size:13px;opacity:.75;line-height:1.7">
+        现在的训练只用 CPU。点下面的按钮,可以在你这台机器上实测:同一个神经网络,用显卡成批计算比 CPU 快还是慢。
+      </p>
+      <button id="gpu-test">开始测试</button>
+      <div id="gpu-out" style="margin-top:10px;font-size:13px;line-height:1.8"></div>
+    </section>
+  </div>
   <section id="arena-wrap">
     <canvas id="arena"></canvas>
     <div id="arena-info"></div>

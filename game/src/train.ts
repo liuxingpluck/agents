@@ -8,6 +8,7 @@ import { GameRenderer } from './render/renderer';
 import { ARENA, EPISODE_FRAMES } from './ml/env';
 import { makePolicyController } from './ml/policy';
 import { ExamPoint, loadBuiltinModel, Progress, SavedModel, Trainer } from './ml/trainer';
+import { benchmarkGpu, gpuSupported } from './ml/gpu';
 
 /** 按 id 取页面元素的简写。 */
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -199,6 +200,33 @@ $<HTMLInputElement>('file').addEventListener('change', async ev => {
   } catch (e) { statusEl.textContent = `导入失败:${(e as Error).message}`; }
 });
 for (const el of [heroSel, foeSel, workersIn, selfPlayIn, leagueIn]) el.addEventListener('change', () => { matches = 0; wins = 0; makeTrainer(); });
+
+// ---------- 显卡测试 ----------
+
+$('gpu-test').addEventListener('click', async () => {
+  const out = $('gpu-out'), btn = $<HTMLButtonElement>('gpu-test');
+  if (!trainer) return;
+  if (!gpuSupported()) { out.textContent = '这个浏览器不支持 WebGPU(可以换新版的 Chrome 或 Edge 再试)。训练不受影响,照常使用 CPU。'; return; }
+  btn.disabled = true; out.textContent = '测试中……';
+  try {
+    let s = 4242;
+    const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const r = await benchmarkGpu(trainer.layout, trainer.state.theta, rand);
+    if (!r) { out.textContent = '没有拿到可用的显卡。训练不受影响,照常使用 CPU。'; return; }
+    const fmt = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)} 百万` : n >= 1000 ? `${Math.round(n / 1000)} 千` : String(Math.round(n));
+    const faster = r.rows.filter(x => x.gpuPerSec > x.cpuPerSec).map(x => x.batch);
+    out.innerHTML =
+      `显卡:${r.adapter}　结果核对:${r.maxDiff < 1e-3 ? '与 CPU 一致' : '与 CPU 不一致'}(最大差值 ${r.maxDiff.toExponential(1)})` +
+      `<table style="margin-top:8px;border-collapse:collapse"><tr><th style="text-align:left;padding-right:24px;font-weight:400;opacity:.6">一批算多少个</th><th style="padding-right:24px;font-weight:400;opacity:.6">CPU 每秒</th><th style="font-weight:400;opacity:.6">显卡每秒</th></tr>` +
+      r.rows.map(x => `<tr><td>${x.batch}</td><td style="padding-right:24px">${fmt(x.cpuPerSec)}</td><td>${fmt(x.gpuPerSec)}</td></tr>`).join('') + `</table>` +
+      `<p style="margin:8px 0 0">${faster.length
+        ? `在这台机器上,一批 ${Math.min(...faster)} 个以上时显卡更快。不过训练时每 0.1 秒才需要算几十个,远小于这个批量,而且时间主要花在跑游戏模拟上,所以目前仍然用 CPU。`
+        : '在这台机器上,这几种批量下都是 CPU 更快:网络太小,数据在内存和显卡之间来回的开销超过了计算本身。所以目前训练用 CPU 是合适的。'}</p>`;
+    (window as unknown as Record<string, unknown>).__gpuBench = r;
+  } catch (e) {
+    out.textContent = `测试出错:${(e as Error).message}`;
+  } finally { btn.disabled = false; }
+});
 
 foeSel.value = HEROES[0].id;
 makeTrainer();

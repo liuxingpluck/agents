@@ -40,7 +40,9 @@
   - [x] 联赛:训练时自动把本机其他角色的模型当对手(训练页可开关)
   - [x] 内置模型:10 个角色各一个离线练好的模型(`public/models/`,`scripts/train-builtin.sh` 重新训练);
     单挑 AI 开箱即用(对手每场轮换),训练页以内置模型为起点(`tests/e2e/builtin.mjs`)
-  - [ ] 所有角色轮流训练的全自动联赛;战役精英怪用神经网络(要先练一对多);模型变大后接 WebGPU(为什么现在不做见 `docs/AI.md`)
+  - [x] WebGPU:显卡批量前向计算(`src/ml/gpu.ts`)+ 训练页「显卡测试」(核对与 CPU 一致、三种批量测速,`tests/e2e/gpu.mjs`);
+    训练本身仍用 CPU,原因见 `docs/AI.md`
+  - [ ] 所有角色轮流训练的全自动联赛;战役精英怪用神经网络(要先练一对多);模型变大后把训练推理切到显卡
 - [x] M5 编辑器(`editor.html`):角色 / 房间 / 章节 / 导入导出 + 校验(`src/editor/`)
 - [ ] M6 打磨
   - [x] 美术管线:有图用图(头像、立绘、战斗贴图、场景),没图回退方块
@@ -83,7 +85,7 @@
 
 - `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
 - `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
-- `npm run e2e:all` 构建并跑完全部 13 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 背景音乐 / 双人合作 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI / 内置模型),截图在 `test-results/`
+- `npm run e2e:all` 构建并跑完全部 14 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 背景音乐 / 双人合作 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI / 内置模型 / 显卡测试),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
 
 ## 待用户处理
