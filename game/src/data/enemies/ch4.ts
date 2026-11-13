@@ -50,7 +50,7 @@ export const queenshade: CharacterDef = {
   id: 'queenshade', name: '女王余影', title: '守火者', role: 'boss',
   lore: '守火女王劈开自己名字的那一夜,留在王座前的最后一道影子。她仍在守护那堆已经熄灭的火,并认定每个靠近的人都是来偷火的。',
   stats: { hp: 1200, speed: 0.065, jump: 0.34, weight: 1.5, energyMax: 100 },
-  look: { scale: 1.3, bulk: 1.3, skin: '#b8a0a0', primary: '#6a1f2a', secondary: '#1c1218', accent: '#ff6a3a', weapon: 'sword', cape: true, horns: true, glow: '#ff6a3a' },
+  look: { scale: 1.35, bulk: 1.3, skin: '#b8a0a0', primary: '#6a1f2a', secondary: '#1c1218', accent: '#ff6a3a', weapon: 'sword', cape: true, horns: true, glow: '#ff6a3a', hair: 'long', hairColor: '#ff7a2a', feminine: true, skirt: true, legColor: '#2a1014' },
   moves: toMap([
     // ---------- 普通攻击 ----------
     // 焰剑三连:速度快,前摇 10~12
