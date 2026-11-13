@@ -5,8 +5,9 @@
 
 ## 怎么玩
 
-在线试玩(需要先在仓库设置里开启 GitHub Pages,步骤见 `docs/GITHUB-ACCESS.md`):
-https://liuxingpluck.github.io/agents/
+在线试玩:https://liuxingpluck.github.io/agents/ (每次推送后一两分钟自动更新)
+
+试玩后的意见写在 `docs/FEEDBACK.md`。
 
 | 操作 | 键盘(1P) | 双人时的 2P |
 |---|---|---|

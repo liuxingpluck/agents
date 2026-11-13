@@ -23,6 +23,9 @@
 
 ## 在线试玩(GitHub Pages)
 
+> 状态:用户已开启(2026-11-13)。地址 https://liuxingpluck.github.io/agents/ ,每次推送后一两分钟自动更新。
+> 试玩后的意见请写在 `game/docs/FEEDBACK.md`。
+
 构建产物提交在仓库根目录的 `docs/` 下。开启方法(只需做一次):
 
 1. 仓库 → Settings → Pages

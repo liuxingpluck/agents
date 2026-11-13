@@ -653,6 +653,7 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   }
   if (armored) return true;
   releaseGrab(w, v); // 被打中的人如果正抓着别人,松手
+  v.aiMove = undefined; // 挨打时作废还没执行的 AI 出招指令,免得恢复后无视间隔立刻反击
 
   // 强制挣脱判定
   const forced = v.comboValue >= comboLimitOf(w, v) || uses > SIM.MOVE_REUSE_LIMIT;
@@ -788,6 +789,7 @@ const HAZARD_HIT: MoveDef = {
 
 /** 喷火口:喷发期间烧到范围内贴近地面的所有角色,不分敌我 */
 function updateHazards(w: World) {
+  if (w.cleared) return; // 房间清场后机关停下,免得玩家在过关后被烧倒
   for (const h of w.hazards) {
     const phase = (w.frame + h.offset) % h.period;
     if (phase === 0) { h.hitIds = []; w.events.push({ type: 'hazard', x: h.x, z: h.z }); }

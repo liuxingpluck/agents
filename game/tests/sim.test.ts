@@ -176,6 +176,25 @@ describe('combat sim', () => {
     expect(far.hp).toBe(far.def.stats.hp);
   });
 
+  it('喷火口在房间清场后停止', () => {
+    const room = { ...ROOMS.outpost, waves: [], hazards: [{ x: 5, z: 2, radius: 1.2, period: 60, damage: 10 }] };
+    const w = createWorld(room, ROSTER, 7);
+    step(w); // 没有敌人的房间在第一帧结束时就算清场
+    expect(w.cleared).toBe(true);
+    const p = spawnFighter(w, ROSTER.kael, 0, 5, 2);
+    for (let i = 0; i < 200; i++) step(w, new Map([[p.id, 0]]));
+    expect(p.hp).toBe(p.def.stats.hp);
+  });
+
+  it('挨打会作废敌人还没执行的出招指令', () => {
+    const { w, p, e } = duel();
+    e.hp = 99999;
+    e.hitstop = 10; e.aiMove = 'lp1'; // 敌人还在定格中,指令尚未执行
+    run(w, p.id, [[Btn.LP, 2], [0, 6]]);
+    expect(e.state).toBe('hitstun');
+    expect(e.aiMove).toBeUndefined();
+  });
+
   it('同样的种子与输入得到完全相同的结果', () => {
     const sim = () => {
       const w = createWorld(ROOMS.outpost, ROSTER, 42);

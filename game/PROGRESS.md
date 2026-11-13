@@ -7,6 +7,7 @@
 - 开发分支:`claude/elegant-planck-qpupha`,每完成一小步就 commit + push(推送前先 `git pull --rebase`,生图 AI 也会往这个分支放图)
 - 游戏代码全部在 `game/` 下;构建产物在仓库根 `docs/`(GitHub Pages 用)
 - 不创建 PR(除非用户明确要求)
+- **每次启动的顺序**:① 提交未提交的成果 ② `git pull --rebase` ③ 读 `docs/FEEDBACK.md` 处理反馈 ④ 检查有没有正式美术 ⑤ 都没有再做「下一步」里的事
 - 用户的要求(按优先级):
   1. 代码随时同步到 GitHub
   2. **玩法优先,尽快能玩**;AI 模型(System 1 快速决策模型)放最后
@@ -90,5 +91,6 @@
 
 ## 待用户处理
 
-- 开启 GitHub Pages:见 `docs/GITHUB-ACCESS.md`(分支 `claude/elegant-planck-qpupha`,文件夹 `/docs`)
-- 让生图 AI 读 `game/docs/ART-GUIDE.md` 开始出图
+- (已完成)GitHub Pages 已由用户开启:https://liuxingpluck.github.io/agents/
+- 让生图 AI 读 `game/docs/ART-GUIDE.md` 出正式图(现有 26 张是占位图)
+- 试玩反馈:用户会写在 `game/docs/FEEDBACK.md`。**每次启动先读它**,处理完的条目挪到「已处理」并写明做了什么
