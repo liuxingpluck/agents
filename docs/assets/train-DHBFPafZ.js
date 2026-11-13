@@ -1,4 +1,4 @@
-import{a as e,h as t,i as n,m as r,p as i,t as a,u as o}from"./renderer-CnA77rC0.js";import{a as s,c,o as l,r as u,s as d,t as f}from"./trainer-c9gmzc0_.js";var p=`
+import{a as e,h as t,i as n,m as r,p as i,t as a,u as o}from"./renderer-C7JYgGyr.js";import{a as s,c,o as l,r as u,s as d,t as f}from"./trainer-BItMOWHx.js";var p=`
 struct U { nIn: u32, nOut: u32, batch: u32, wOff: u32, last: u32 };
 @group(0) @binding(0) var<uniform> u: U;
 @group(0) @binding(1) var<storage, read> params: array<f32>;

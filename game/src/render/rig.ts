@@ -3,7 +3,8 @@
 // 不参与任何战斗判定。模型朝 +x 方向搭建。
 import * as THREE from 'three';
 import { CharacterDef, Fighter, Look, SIM, Tier } from '../sim/types';
-import { findArt } from './art';
+import { findArt, spriteMeta } from './art';
+import { chainIds } from '../data/tuning';
 
 /** 一个姿势 = 一组关节角度。每帧算出「目标姿势」,再平滑过渡过去,动作才不会生硬。 */
 export interface Pose {
@@ -370,13 +371,20 @@ export class SpriteRig implements ActorView {
   private flash = 0;
   /** 平面边长(米):画布里角色约占 85% 高度 */
   private size: number;
+  /** 当前姿势图的校正:放大倍数、人物重心在画布里的横向位置(0~1) */
+  private poseK = 1;
+  private poseCx = 0.5;
+  /** 已经走过的距离(米):用来按步幅切换迈步图,避免「脚在滑」 */
+  private dist = 0;
+  private lastX = NaN;
+  private lastZ = 0;
+  /** 身体动作的当前值(逐帧向目标值平滑过渡):前后位移、上下位移、倾斜、横向 / 纵向拉伸 */
+  private mo = { x: 0, y: 0, rot: 0, sx: 1, sy: 1 };
 
   constructor(private id: string, look: Look) {
     this.size = (SIM.BODY_H * look.scale) / 0.85 * 1.05;
     this.mat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, color: 0xe6e6e6 });
     this.plane = new THREE.Mesh(new THREE.PlaneGeometry(this.size, this.size), this.mat);
-    // 脚底在画布底部往上 6%:把平面上移,使脚底落在 y=0
-    this.plane.position.y = this.size * (0.5 - 0.06);
     this.root.add(this.plane);
     this.shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.5 * look.bulk, 16),
@@ -384,6 +392,12 @@ export class SpriteRig implements ActorView {
     );
     this.shadow.rotation.x = -Math.PI / 2;
     this.setPose('idle');
+  }
+
+  /** 在候选姿势里挑第一张存在的图(新美术没到位时自动退回旧图) */
+  private pick(...names: string[]): string {
+    for (const n of names) if (findArt(`sprites/${this.id}/${n}`)) return n;
+    return 'idle';
   }
 
   /** 切换姿势;该姿势没有图时退回 idle */
@@ -400,6 +414,9 @@ export class SpriteRig implements ActorView {
     }
     this.mat.map = t;
     this.mat.needsUpdate = true;
+    // 每张图里人物的大小和位置不完全一样(武器伸得远的图,人会被画得小一些、偏后一些),这里读取校正值
+    const meta = spriteMeta(this.id, pose);
+    this.poseK = meta.k; this.poseCx = meta.cx;
   }
 
   /** 被打中时调用:触发一次闪白。 */
@@ -415,53 +432,140 @@ export class SpriteRig implements ActorView {
     const m = new THREE.Mesh(this.plane.geometry.clone(), new THREE.MeshBasicMaterial({
       map: this.mat.map, transparent: true, opacity: 0.5, color, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
     }));
-    m.position.copy(this.root.position); m.position.y += this.plane.position.y;
-    m.scale.x = this.plane.scale.x;
+    m.position.copy(this.root.position).add(this.plane.position);
+    m.scale.copy(this.plane.scale);
+    m.rotation.z = this.plane.rotation.z;
     return m;
   }
 
-  /** 根据模拟状态选择姿势图 */
-  /** 根据角色状态挑一张姿势图的名字(走路在两张图间交替)。 */
-  private poseOf(f: Fighter, time: number): string {
+  /**
+   * 根据角色状态挑一张姿势图。
+   * 每种情况都按「最贴切的图 → 退而求其次的图」排列,所以第二批美术(跑步循环、各段连击、蓄力、格挡、空中攻击等)
+   * 一放进来就会自动用上,没有的继续用现有的图。
+   */
+  private poseOf(f: Fighter): string {
     switch (f.state) {
-      case 'walk': case 'run': {
-        // 两帧交替;敌人只有一张步行图,就让它和站立图交替,同样有迈步的感觉
-        const second = findArt(`sprites/${this.id}/walk2`) ? 'walk2' : 'idle';
-        return Math.floor(time * (f.state === 'run' ? 9 : 6)) % 2 ? second : 'walk1';
+      case 'run': {
+        // 跑步:有 4 帧循环就用,没有就用两张走路图顶替;按跑过的距离切帧
+        const i = Math.floor(this.dist / 0.55);
+        if (findArt(`sprites/${this.id}/run1`)) return this.pick(`run${1 + (i % 4)}`, `run${1 + (i % 2)}`, 'run1');
+        return i % 2 ? this.pick('walk2', 'idle') : 'walk1';
       }
+      case 'walk': return Math.floor(this.dist / 0.42) % 2 ? this.pick('walk2', 'idle') : 'walk1';
       case 'jump': return 'jump';
       case 'attack': {
-        const tier = f.move?.tier ?? 0;
-        // 敌人只有一张 attack;主角按招式层级分 轻 / 重 / 特殊
-        if (findArt(`sprites/${this.id}/attack`)) return 'attack';
-        return tier >= Tier.SKILL ? 'special' : tier >= Tier.HEAVY ? 'heavy' : 'light';
+        const m = f.move!;
+        if (m.grab) return this.pick('grab', 'attack', 'light');
+        if (m.chargeable) return f.moveFrame < m.startup ? this.pick('charge', 'heavy', 'attack') : this.pick('heavy3', 'heavy', 'attack');
+        if (f.y > 0) return m.tier >= Tier.HEAVY ? this.pick('airheavy', 'attack', 'heavy') : this.pick('airlight', 'attack', 'light');
+        const n = chainIndex(f.def, m.id); // 这是连段里的第几下:让每一下用不同的图
+        if (m.tier >= Tier.SUPER) return this.pick('super', 'special', 'attack');
+        if (m.tier >= Tier.SKILL) return this.pick(`special${1 + (f.def.skills.indexOf(m.id) % 3)}`, 'special', 'attack');
+        if (m.tier >= Tier.COMMAND) return this.pick('command', 'heavy', 'attack');
+        if (m.tier >= Tier.HEAVY) return this.pick(['heavy', 'heavy2', 'heavy3'][n % 3], 'heavy', 'attack2', 'attack');
+        return this.pick(['light', 'light2', 'light3'][n % 3], 'light', 'attack');
       }
-      case 'hitstun': case 'launched': case 'grabbed': return 'hurt';
-      case 'guard': return 'idle';
+      case 'guard': return this.pick('guard', 'idle');
+      case 'dodge': return this.pick('dodge', 'walk1');
+      case 'launched': return this.pick('launched', 'hurt');
+      case 'hitstun': case 'grabbed': return 'hurt';
+      case 'getup': return this.pick('getup', 'idle');
       case 'knockdown': case 'dead': return 'down';
       default: return 'idle';
     }
   }
 
+  /**
+   * 身体动作的目标值。静态的图靠这些小动作「活」起来:走跑时一起一伏并前倾,
+   * 出招时先后仰蓄势、再前冲拉伸、最后收回;挨打时后仰。
+   */
+  private motionTarget(f: Fighter, time: number) {
+    const t = { x: 0, y: 0, rot: 0, sx: 1, sy: 1 };
+    const S = this.size;
+    switch (f.state) {
+      case 'walk': case 'run': {
+        const run = f.state === 'run';
+        const phase = (this.dist / (run ? 0.55 : 0.42)) * Math.PI;
+        t.y = Math.abs(Math.sin(phase)) * S * (run ? 0.045 : 0.022);
+        t.rot = -(run ? 0.13 : 0.04);
+        break;
+      }
+      case 'idle': t.sy = 1 + Math.sin(time * 2.6 + f.id) * 0.008; break; // 呼吸
+      case 'attack': {
+        const m = f.move!, heavy = m.tier >= Tier.HEAVY ? 1.5 : 1;
+        const n = chainIndex(f.def, m.id);
+        if (m.chargeable && f.moveFrame < m.startup) {
+          // 蓄力:压低重心、微微颤抖
+          t.x = -0.06 * S; t.rot = 0.1; t.sy = 0.94; t.sx = 1.04; t.y = Math.sin(time * 60) * 0.006 * S;
+        } else if (f.moveFrame < m.startup) {
+          const k = f.moveFrame / Math.max(1, m.startup);
+          t.x = -0.07 * S * heavy * k; t.rot = 0.07 * heavy * k; // 后仰蓄势
+        } else if (f.moveFrame < m.startup + m.active + 2) {
+          // 击出:前冲 + 横向拉伸;连段里单数下和双数下的倾斜方向相反,看起来不是同一个动作
+          t.x = 0.13 * S * heavy; t.rot = (n % 2 ? 0.05 : -0.1) * heavy; t.sx = 1 + 0.07 * heavy; t.sy = 1 - 0.03 * heavy;
+          if (n % 2) t.y = 0.03 * S;
+        } else {
+          t.x = 0.04 * S; t.rot = -0.02;
+        }
+        break;
+      }
+      case 'hitstun': t.x = -0.05 * S; t.rot = 0.16; break;
+      case 'guard': t.sy = 0.96; t.rot = 0.03; break;
+      case 'dodge': t.rot = -0.3; t.sy = 0.85; break;
+      case 'launched': t.rot = 0.9; break;
+      case 'getup': t.sy = 0.8 + 0.2 * Math.min(1, f.stateFrame / SIM.GETUP_FRAMES); break;
+    }
+    return t;
+  }
+
   update(f: Fighter, time: number, dt: number) {
-    this.setPose(this.poseOf(f, time));
+    // 累计走过的距离(瞬移之类的大跳变不算)
+    if (!Number.isNaN(this.lastX)) { const d = Math.hypot(f.x - this.lastX, f.z - this.lastZ); if (d < 0.6) this.dist += d; }
+    this.lastX = f.x; this.lastZ = f.z;
+
+    this.setPose(this.poseOf(f));
+    const tgt = this.motionTarget(f, time), mo = this.mo;
+    const ease = Math.min(1, dt * (f.state === 'attack' ? 34 : 18));
+    for (const key of ['x', 'y', 'rot', 'sx', 'sy'] as const) mo[key] += (tgt[key] - mo[key]) * ease;
+
     const hurt = f.state === 'hitstun' || f.state === 'launched' || f.state === 'grabbed';
     const jitter = f.hitstop > 0 && hurt ? Math.sin(time * 90) * 0.06 : 0;
     this.root.position.set(f.x + jitter, f.y, f.z);
-    this.plane.scale.x = f.facing; // 朝左时水平翻转
-    this.plane.rotation.z = f.state === 'launched' ? -f.facing * 0.9 : 0; // 被打飞时身体后仰
+    // 画布按校正倍数放大;脚底(画布底部往上 6.25%)对齐地面;人物重心对齐角色所在位置
+    const k = this.poseK, S = this.size;
+    this.plane.scale.set(f.facing * k * mo.sx, k * mo.sy, 1);
+    this.plane.position.set(
+      f.facing * (mo.x - (this.poseCx - 0.5) * S * k),
+      S * k * mo.sy * (0.5 - 0.0625) + mo.y,
+      0,
+    );
+    this.plane.rotation.z = -f.facing * mo.rot; // 正值 = 向后仰
     this.shadow.position.set(f.x, 0.02, f.z);
     this.shadow.scale.setScalar(Math.max(0.4, 1 - f.y * 0.25));
     this.flash = Math.max(0, this.flash - dt * 7);
     const warn = armorWarning(f, time);
-    // 受击瞬间提亮;霸体大招前摇时偏橙色闪烁
-    // 蓄力越久越亮(带闪烁);格挡时整体偏冷色
+    // 受击瞬间提亮;霸体大招前摇时偏橙色闪烁;蓄力越久越亮(带闪烁);格挡时整体偏冷色
     const chg = f.charge > 0 ? (f.charge / SIM.CHARGE_MAX) * (0.5 + 0.3 * Math.sin(time * 40)) : 0;
     const grd = f.state === 'guard' ? 0.25 : 0;
     this.mat.color.setRGB(0.9 + this.flash * 3 + warn + chg - grd, 0.9 + this.flash * 3 - warn * 0.3 + chg * 0.7 - grd * 0.3, 0.9 + this.flash * 3 - warn * 0.8 + chg * 0.2 + grd);
     const blink = f.invuln > 0 && f.state !== 'dodge' && f.hp > 0 && Math.floor(time * 20) % 2 === 0;
     this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
   }
+}
+
+/** 每个角色「招式 id → 它是所在连段里的第几下」的缓存 */
+const chainIndexCache = new Map<CharacterDef, Map<string, number>>();
+
+/** 一招是它所在连段(轻 / 踢 / 重)里的第几下(0 起);不在任何连段里则为 0 */
+function chainIndex(def: CharacterDef, moveId: string): number {
+  let m = chainIndexCache.get(def);
+  if (!m) {
+    m = new Map();
+    for (const btn of ['LP', 'LK', 'HP', 'HK'] as const) chainIds(def, def.normals[btn], btn).forEach((id, i) => m!.set(id, i));
+    chainIds(def, def.airNormals.LP, 'LP').forEach((id, i) => m!.set(id, i));
+    chainIndexCache.set(def, m);
+  }
+  return m.get(moveId) ?? 0;
 }
 
 /** 场景物件(木桶)的外观:一个带铁箍的圆桶,被打时晃一下。 */

@@ -45,3 +45,41 @@ for kind, (max_side, quality) in RULES.items():
             total_out += os.path.getsize(dst)
             n += 1
 print(f'导出 {n} 张;源文件合计 {total_in / 1e6:.1f} MB → 网页用 {total_out / 1e6:.1f} MB')
+
+# ---- 测量每张战斗姿势图,生成校正表 public/art/sprites/meta.json ----
+# 背景:出图时每张图都被缩放到「内容撑满画布」。武器伸得远的姿势(比如刺剑),整个人就被缩得更小,
+# 人物也不在画布正中。游戏里如果原样显示,连招时角色会忽大忽小、前后乱跳。
+# 这里对每张图做两个测量,交给游戏去校正:
+#   k  = 放大倍数。画面高度没占满(说明是被宽度限制住、人被缩小了)的图,按比例放大回去,最多放大到 1.32 倍
+#   cx = 人物重心的横向位置(按不透明像素加权)。游戏把重心对准角色所在的位置
+import json
+FULL_H = 435     # 出图时内容框的最大高度(像素)
+UPRIGHT = 0.93   # 攻击 / 行走姿势通常会略微下沉,身高按站立的 93% 估算
+meta = {}
+sp_dir = os.path.join(SRC, 'sprites')
+for hero in sorted(os.listdir(sp_dir)) if os.path.isdir(sp_dir) else []:
+    if not os.path.isdir(os.path.join(sp_dir, hero)):
+        continue
+    for name in sorted(os.listdir(os.path.join(sp_dir, hero))):
+        if not name.lower().endswith('.png'):
+            continue
+        pose = os.path.splitext(name)[0]
+        im = Image.open(os.path.join(sp_dir, hero, name)).convert('RGBA')
+        alpha = im.split()[3]
+        bbox = alpha.point(lambda a: 255 if a > 16 else 0).getbbox()
+        if not bbox:
+            continue
+        h = bbox[3] - bbox[1]
+        # 倒地 / 受身之类横着的姿势不放大
+        lying = pose in ('down', 'getup') or (bbox[2] - bbox[0]) > h * 2.2
+        k = 1.0 if lying or h >= FULL_H - 8 else min(1.32, max(1.0, FULL_H * UPRIGHT / h))
+        # 重心:每一列不透明像素的总量加权平均
+        small = alpha.resize((128, 128))
+        cols = [sum(small.getpixel((x, y)) for y in range(128)) for x in range(128)]
+        total = sum(cols) or 1
+        cx = sum((x + 0.5) * c for x, c in enumerate(cols)) / total / 128
+        meta.setdefault(hero, {})[pose] = {'k': round(k, 3), 'cx': round(cx, 3)}
+os.makedirs(os.path.join(OUT, 'sprites'), exist_ok=True)
+with open(os.path.join(OUT, 'sprites', 'meta.json'), 'w') as f:
+    json.dump(meta, f, separators=(',', ':'))
+print(f'姿势校正表:{sum(len(v) for v in meta.values())} 张')

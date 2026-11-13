@@ -27,6 +27,8 @@ export class GameRenderer {
   // 角色 id → 外观;projMeshes:飞行道具 id → 模型
   private rigs = new Map<number, ActorView>();
   private projMeshes = new Map<number, THREE.Mesh>();
+  /** 每个角色上一次扬尘是第几帧 */
+  private lastDustFrame = new Map<number, number>();
   /** 每个角色上一次留残影是第几帧(避免同一帧重复生成) */
   private lastGhostFrame = new Map<number, number>();
   /** 喷火口 id → 地面光圈 */
@@ -446,6 +448,11 @@ export class GameRenderer {
         this.lastGhostFrame.set(f.id, w.frame);
         const g = rig.ghost(f.def.look.glow ?? (f.team === 0 ? '#9fc4ff' : '#ff8a5a'));
         if (g) { this.scene.add(g); this.sparks.push({ mesh: g, life: 0.22, max: 0.22, grow: 0 }); }
+      }
+      // 奔跑:脚后跟每隔几帧扬起一小团尘土
+      if (f.state === 'run' && f.y <= 0 && w.frame % 7 === 0 && w.frame !== this.lastDustFrame.get(f.id)) {
+        this.lastDustFrame.set(f.id, w.frame);
+        this.spark(f.x - f.facing * 0.35, 0.12, f.z - 0.3, '#8a8490', 0.1, 0.35, 3);
       }
       // 蓄力中:脚下聚起一圈光
       if (f.charge > 4 && w.frame % 6 === 0) this.ring(f.x, 0.05, f.z, '#ffd27a', 0.9 - (f.charge / 45) * 0.5, 0.25, -0.4, true);
