@@ -19,7 +19,7 @@ force = '--force' in sys.argv
 # 各类图片的导出设置:(最长边上限, 画质)。立绘和头像在游戏里显示得小,适当缩小;战斗图保持原尺寸以保证清晰。
 RULES = {
     'ui': (1920, 80), 'portraits': (384, 82), 'full': (768, 84),
-    'sprites': (512, 86), 'bg': (2048, 80),
+    'sprites': (512, 86), 'bg': (2048, 80), 'props': (512, 86),
 }
 
 total_in = total_out = n = 0
@@ -55,6 +55,9 @@ print(f'导出 {n} 张;源文件合计 {total_in / 1e6:.1f} MB → 网页用 {to
 import json
 FULL_H = 435     # 出图时内容框的最大高度(像素)
 UPRIGHT = 0.93   # 攻击 / 行走姿势通常会略微下沉,身高按站立的 93% 估算
+# 本来就「矮」的姿势:人物高度大约是站立时的多少。这类图内容撑满画布时人其实被放大了,要缩回去
+LOW = {'charge': 0.8, 'dodge': 0.5, 'getup': 0.62, 'run1': 0.88, 'run2': 0.88, 'run3': 0.88, 'run4': 0.88, 'guard': 0.9}
+LYING = ('down', 'launched')  # 横着的姿势:不校正大小
 meta = {}
 sp_dir = os.path.join(SRC, 'sprites')
 for hero in sorted(os.listdir(sp_dir)) if os.path.isdir(sp_dir) else []:
@@ -70,15 +73,25 @@ for hero in sorted(os.listdir(sp_dir)) if os.path.isdir(sp_dir) else []:
         if not bbox:
             continue
         h = bbox[3] - bbox[1]
-        # 倒地 / 受身之类横着的姿势不放大
-        lying = pose in ('down', 'getup') or (bbox[2] - bbox[0]) > h * 2.2
-        k = 1.0 if lying or h >= FULL_H - 8 else min(1.32, max(1.0, FULL_H * UPRIGHT / h))
+        if pose in LYING or (pose not in LOW and (bbox[2] - bbox[0]) > h * 2.2):
+            k = 1.0
+        elif pose in LOW:
+            k = min(1.32, max(0.6, FULL_H * LOW[pose] / h))
+        else:
+            k = 1.0 if h >= FULL_H - 8 else min(1.32, max(1.0, FULL_H * UPRIGHT / h))
         # 重心:每一列不透明像素的总量加权平均
         small = alpha.resize((128, 128))
         cols = [sum(small.getpixel((x, y)) for y in range(128)) for x in range(128)]
         total = sum(cols) or 1
         cx = sum((x + 0.5) * c for x, c in enumerate(cols)) / total / 128
         meta.setdefault(hero, {})[pose] = {'k': round(k, 3), 'cx': round(cx, 3)}
+# 人工微调:某张图在游戏里看着偏大 / 偏小 / 偏前偏后时,在 art/source/sprites/overrides.json 里写
+#   { "kael": { "charge": { "k": 1.1, "cx": 0.45 } } }   (k、cx 可以只写一个),会覆盖上面的自动测量
+ov_path = os.path.join(sp_dir, 'overrides.json')
+if os.path.exists(ov_path):
+    for hero, poses in json.load(open(ov_path)).items():
+        for pose, v in poses.items():
+            meta.setdefault(hero, {}).setdefault(pose, {'k': 1.0, 'cx': 0.5}).update(v)
 os.makedirs(os.path.join(OUT, 'sprites'), exist_ok=True)
 with open(os.path.join(OUT, 'sprites', 'meta.json'), 'w') as f:
     json.dump(meta, f, separators=(',', ':'))

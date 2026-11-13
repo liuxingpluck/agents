@@ -460,7 +460,11 @@ export class SpriteRig implements ActorView {
         if (f.y > 0) return m.tier >= Tier.HEAVY ? this.pick('airheavy', 'attack', 'heavy') : this.pick('airlight', 'attack', 'light');
         const n = chainIndex(f.def, m.id); // 这是连段里的第几下:让每一下用不同的图
         if (m.tier >= Tier.SUPER) return this.pick('super', 'special', 'attack');
-        if (m.tier >= Tier.SKILL) return this.pick(`special${1 + (f.def.skills.indexOf(m.id) % 3)}`, 'special', 'attack');
+        if (m.tier >= Tier.SKILL) {
+          // 第 4 个技能是终极技,用 super 图;前三个技能各用一张
+          const si = f.def.skills.indexOf(m.id);
+          return si === 3 ? this.pick('super', 'special', 'attack') : this.pick(`special${1 + (Math.max(0, si) % 3)}`, 'special', 'attack2', 'attack');
+        }
         if (m.tier >= Tier.COMMAND) return this.pick('command', 'heavy', 'attack');
         if (m.tier >= Tier.HEAVY) return this.pick(['heavy', 'heavy2', 'heavy3'][n % 3], 'heavy', 'attack2', 'attack');
         return this.pick(['light', 'light2', 'light3'][n % 3], 'light', 'attack');
@@ -582,7 +586,13 @@ export class PropRig implements ActorView {
     const add = (geo: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z = 0) => {
       const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); this.root.add(mesh); return mesh;
     };
-    switch (def.id) {
+    const art = findArt(`props/${def.id}`);
+    if (art) {
+      // 有美术图:用一块面向镜头的平面显示。图里物件贴着画布底边,所以平面底边对齐地面
+      const side = Math.max(sd.hx * 2, sd.h) * 1.3;
+      const tex = texLoader.load(art); tex.colorSpace = THREE.SRGBColorSpace;
+      add(new THREE.PlaneGeometry(side, side), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, color: 0xe6e6e6 }), 0, side * 0.47);
+    } else switch (def.id) {
       case 'rock': {
         // 岩石:几块压扁的多面体堆在一起
         const a = add(new THREE.DodecahedronGeometry(sd.hx * 1.05), main, 0, sd.h * 0.5); a.scale.set(1, sd.h / (sd.hx * 1.7), sd.hz / sd.hx); a.rotation.y = 0.6;

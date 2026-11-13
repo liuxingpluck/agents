@@ -19,6 +19,26 @@ const PALETTES: Record<string, Palette> = {
 /** 一个短命的小特效(火花/尘土):life 是剩余寿命,grow 是它变大的倍数。 */
 interface Spark { mesh: THREE.Mesh; life: number; max: number; grow: number }
 
+let sparkTex: THREE.Texture | null = null;
+/** 火花贴图:中心亮、向外淡出的光团,加一个四角星芒。只画一次,所有火花共用。 */
+function sparkTexture(): THREE.Texture {
+  if (sparkTex) return sparkTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(0.25, 'rgba(255,255,255,0.55)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, 64, 64);
+  // 星芒:横竖两道细长的亮条,两头渐隐
+  for (const horizontal of [true, false]) {
+    const ray = horizontal ? g.createLinearGradient(0, 0, 64, 0) : g.createLinearGradient(0, 0, 0, 64);
+    ray.addColorStop(0, 'rgba(255,255,255,0)'); ray.addColorStop(0.5, 'rgba(255,255,255,0.95)'); ray.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = ray;
+    if (horizontal) g.fillRect(0, 30, 64, 4); else g.fillRect(30, 0, 4, 64);
+  }
+  sparkTex = new THREE.CanvasTexture(c);
+  return sparkTex;
+}
+
 /** 渲染器总管:每帧把模拟世界画到画布上,并处理镜头跟随、震屏等效果。 */
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -260,8 +280,9 @@ export class GameRenderer {
 
   /** 生成一个火花:在指定位置放个发光小方块,逐渐放大并淡出。 */
   private spark(x: number, y: number, z: number, color: string, size: number, life: number, grow: number) {
-    const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(size), new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-    mesh.position.set(x, y, z + 0.3); mesh.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+    // 一块贴着「光团 + 星芒」贴图的小平面,随机转个角度,看起来就是一朵迸开的火花
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 3.2, size * 3.2), new THREE.MeshBasicMaterial({ map: sparkTexture(), color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    mesh.position.set(x, y, z + 0.3); mesh.rotation.z = Math.random() * Math.PI;
     this.scene.add(mesh);
     this.sparks.push({ mesh, life, max: life, grow });
   }
@@ -499,13 +520,19 @@ export class GameRenderer {
       kSeen.add(k.id);
       let m = this.pickupMeshes.get(k.id);
       if (!m) {
-        m = k.kind === 'food'
+        const art = findArt(`props/${k.kind}`);
+        if (art) {
+          // 有美术图:一块小平面(不旋转)
+          const tex = new THREE.TextureLoader().load(art); tex.colorSpace = THREE.SRGBColorSpace;
+          m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08 }));
+          m.userData.flat = true;
+        } else m = k.kind === 'food'
           ? new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffd27a' }))
           : new THREE.Mesh(new THREE.OctahedronGeometry(0.22), new THREE.MeshBasicMaterial({ color: '#ff6a2a' }));
         this.pickupMeshes.set(k.id, m); this.scene.add(m);
       }
       m.position.set(k.x, 0.35 + Math.sin(this.time * 4 + k.id) * 0.08, k.z);
-      m.rotation.y += dt * 2;
+      if (!m.userData.flat) m.rotation.y += dt * 2;
       m.visible = k.life > 120 || Math.floor(this.time * 10) % 2 === 0;
     }
     for (const [id, m] of this.pickupMeshes) if (!kSeen.has(id)) { this.scene.remove(m); this.pickupMeshes.delete(id); }
