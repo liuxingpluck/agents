@@ -17,6 +17,7 @@ run 冒烟 node tests/e2e/smoke.mjs
 run 四键操作 node tests/e2e/controls.mjs
 run 战役流程 node tests/e2e/campaign.mjs
 run 全流程速通 node tests/e2e/fullrun.mjs
+run 回放 node tests/e2e/replay.mjs
 run 触屏与设置 node tests/e2e/touch.mjs
 run 编辑器 node tests/e2e/editor.mjs http://localhost:4173/editor.html
 run 训练页 node tests/e2e/train.mjs http://localhost:4173/train.html test-results 25

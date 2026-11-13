@@ -4,6 +4,7 @@ import {
   RoomDef, SIM, SimEvent, SKILL_BTNS, Tier,
 } from './types';
 
+/** 可复现的随机数发生器:同一个种子永远产生同一串数字(回放、训练、测试都靠它) */
 export class Rng {
   private s: number;
   constructor(seed: number) { this.s = seed >>> 0 || 1; }
@@ -23,6 +24,7 @@ export class Rng {
 /** 控制器:读世界状态,返回输入位掩码。玩家、脚本 AI、神经网络都实现它。 */
 export type Controller = (world: World, self: Fighter) => number;
 
+/** 一局游戏的全部状态。把它存下来就能完整还原这一帧。 */
 export interface World {
   frame: number;
   rng: Rng;
@@ -55,6 +57,10 @@ export interface World {
 /** 各主题自动生成的喷火口数量(没列出的主题没有机关) */
 const THEME_HAZARDS: Record<string, number> = { mine: 2, city: 1, abyss: 3 };
 
+/**
+ * 创建一个空世界(还没有角色)。
+ * @param room 房间  @param roster 角色表(按 id 查找)  @param seed 随机种子
+ */
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
   const w: World = {
     frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], hazards: [], drops: true, events: [],
@@ -80,6 +86,11 @@ export function hazardState(w: World, h: Hazard): { untilBurst: number; active: 
   return { untilBurst: phase < SIM.HAZARD_ACTIVE ? 0 : h.period - phase, active: phase < SIM.HAZARD_ACTIVE };
 }
 
+/**
+ * 往世界里放一个角色。
+ * @param team 队伍:0 玩家方 / 1 敌方 / 2 场景物件
+ * @param ctrl 控制器(不传则只接受外部输入,比如玩家)
+ */
 export function spawnFighter(w: World, def: CharacterDef, team: number, x: number, z: number, ctrl?: Controller): Fighter {
   const f: Fighter = {
     id: w.nextId++, team, def, x, y: 0, z, vx: 0, vy: 0, vz: 0,
@@ -98,12 +109,14 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
 export const isAlive = (f: Fighter) => f.state !== 'dead' && f.hp > 0;
 export const isAirborne = (f: Fighter) => f.y > 0 || f.state === 'jump' || f.state === 'launched';
 
+/** 切换角色状态并把状态计时归零;离开攻击状态时清掉当前招式 */
 function setState(f: Fighter, s: Fighter['state']) {
   f.state = s;
   f.stateFrame = 0;
   if (s !== 'attack') f.move = null;
 }
 
+/** 清空「被连击」的记录(角色恢复自由行动时调用) */
 function resetCombo(f: Fighter) {
   f.comboCount = 0; f.comboValue = 0; f.comboDamage = 0; f.comboMoveUses = {}; f.juggle = 0;
   f.wallBounced = false; f.thrownBy = 0;
@@ -111,8 +124,10 @@ function resetCombo(f: Fighter) {
 
 // ---------- 输入 ----------
 
+// 相对朝向的方向位:前 / 后 / 下 / 上。指令技按「相对朝向」判断,所以面朝左时 ←↓ 也算 ↓→
 const REL_F = 1, REL_B = 2, REL_D = 4, REL_U = 8;
 
+/** 把输入里的方向键换算成相对朝向的方向位 */
 function relDir(f: Fighter, input: number): number {
   let r = 0;
   const right = (input & Btn.RIGHT) !== 0, left = (input & Btn.LEFT) !== 0;
@@ -125,6 +140,7 @@ function relDir(f: Fighter, input: number): number {
   return r;
 }
 
+/** 每种指令动作对应的方向序列(0 表示中间要松开一下,比如 →→) */
 const MOTIONS: Record<Motion, number[]> = {
   DF: [REL_D, REL_F], DB: [REL_D, REL_B], DU: [REL_D, REL_U],
   BF: [REL_B, REL_F], FF: [REL_F, 0, REL_F], DD: [REL_D, 0, REL_D],
@@ -150,6 +166,7 @@ export function hasMotion(f: Fighter, motion: Motion, frame: number, window: num
   return true;
 }
 
+/** 接收这一帧的输入:记录方向变化(给指令技用)和按键按下的时刻(给输入缓冲用) */
 function feedInput(w: World, f: Fighter, input: number) {
   f.prevInput = f.input;
   f.input = input;
@@ -167,6 +184,7 @@ function feedInput(w: World, f: Fighter, input: number) {
   }
 }
 
+/** 这个键是否在缓冲时间内按下过(提前按的键不会被吞掉) */
 function buffered(w: World, f: Fighter, b: BtnName): boolean {
   const t = f.buffer[b];
   return t !== undefined && w.frame - t <= SIM.INPUT_BUFFER;
@@ -175,12 +193,14 @@ const consume = (f: Fighter, b: BtnName) => { delete f.buffer[b]; };
 
 // ---------- 出招 ----------
 
+/** 按当前按住的左右方向转身 */
 function turnToInput(f: Fighter) {
   const right = (f.input & Btn.RIGHT) !== 0, left = (f.input & Btn.LEFT) !== 0;
   if (right && !left) f.facing = 1;
   else if (left && !right) f.facing = -1;
 }
 
+/** 开始出一招:扣能量、清空命中记录,带突进 / 升空 / 无敌的招在这里生效 */
 function startMove(w: World, f: Fighter, m: MoveDef) {
   // 允许在出招瞬间转身——这是「左右连击」的来源
   if (!isAirborne(f)) turnToInput(f);
@@ -201,6 +221,7 @@ function startMove(w: World, f: Fighter, m: MoveDef) {
 /** 同强度的另一个攻击键 */
 const SIBLING: Partial<Record<BtnName, BtnName>> = { LP: 'LK', LK: 'LP', HP: 'HK', HK: 'HP' };
 
+/** 这一招现在能不能出:地面 / 空中是否匹配、能量够不够 */
 function canUse(f: Fighter, m: MoveDef | undefined, air: boolean): m is MoveDef {
   if (!m) return false;
   if (!!m.air !== air) return false;
@@ -246,6 +267,7 @@ function pickMove(w: World, f: Fighter, minTier: number): MoveDef | null {
   return null;
 }
 
+/** 起跳:按住方向则带着水平速度跳出去 */
 function startJump(f: Fighter) {
   const sp = f.def.stats.speed;
   setState(f, 'jump');
@@ -274,6 +296,7 @@ function dashMoveOf(def: CharacterDef): MoveDef | null {
   return m;
 }
 
+/** 站在地面且可以行动时,按优先级尝试:AI 直接出招 → 冲刺攻击 → 出招 → 跳 → 闪避。成功返回 true。 */
 function tryGroundAction(w: World, f: Fighter): boolean {
   // 脚本 AI 的直接出招请求
   if (f.aiMove) {
@@ -331,11 +354,13 @@ function castEffects(w: World, f: Fighter, m: MoveDef) {
 
 // ---------- 状态更新 ----------
 
+/** 落地 */
 function land(w: World, f: Fighter) {
   f.y = 0; f.vy = 0;
   w.events.push({ type: 'land', id: f.id });
 }
 
+/** 推进一个角色一帧:按状态处理行动与受击,再做位移、落地、版边与撞墙判定 */
 function updateFighter(w: World, f: Fighter) {
   if (f.def.role === 'prop') { f.stateFrame++; return; } // 物件不会动
   if (f.invuln > 0) f.invuln--;
@@ -703,6 +728,7 @@ function resolveThrownBodies(w: World) {
   }
 }
 
+/** 近战命中判定:出招判定框与对方身体重叠即命中(同一招对同一目标只中一次,多段招除外) */
 function resolveHits(w: World) {
   for (const a of w.fighters) {
     const m = a.move;
@@ -723,6 +749,7 @@ function resolveHits(w: World) {
   }
 }
 
+/** 飞行道具:向前飞,碰到敌方就结算命中;不带穿透的命中后消失 */
 function updateProjectiles(w: World) {
   for (const p of w.projectiles) {
     p.x += p.dir * p.def.speed;
@@ -793,6 +820,7 @@ function updatePickups(w: World) {
 
 // ---------- 波次 ----------
 
+/** 波次推进:场上敌人清光后,隔一会儿放出下一波;全部打完则标记房间已清 */
 function updateWaves(w: World) {
   if (!w.useWaves || w.cleared) return;
   const enemies = w.fighters.filter(f => f.team === 1 && f.state !== 'dead');

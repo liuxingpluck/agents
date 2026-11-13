@@ -22,7 +22,9 @@ export const Btn = {
   S8: 1 << 17,
 } as const;
 
+/** 按钮名(Btn 的键名) */
 export type BtnName = keyof typeof Btn;
+/** 四个攻击键、八个技能键、以及方向键的位掩码 */
 export const ATTACK_BTNS: BtnName[] = ['LP', 'HP', 'LK', 'HK'];
 export const SKILL_BTNS: BtnName[] = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
 export const DIR_MASK = Btn.UP | Btn.DOWN | Btn.LEFT | Btn.RIGHT;
@@ -36,10 +38,12 @@ export const Tier = { LIGHT: 0, HEAVY: 1, COMMAND: 2, SKILL: 3, SUPER: 4 } as co
  */
 export type Motion = 'DF' | 'DB' | 'DU' | 'FF' | 'BF' | 'DD';
 
+/** 招式的动作类型:决定方块人摆什么姿势(渲染用,不影响判定) */
 export type AnimKind =
   | 'punchL' | 'punchR' | 'kick' | 'highKick' | 'sweep' | 'upper'
   | 'slash' | 'overhead' | 'thrust' | 'spin' | 'cast' | 'shoot' | 'slam' | 'airKick' | 'airSlash';
 
+/** 判定框:一招能打到的范围 */
 export interface Box {
   /** 相对角色原点,x 以朝向为正方向 */
   x0: number; x1: number;
@@ -48,6 +52,7 @@ export interface Box {
   z: number;
 }
 
+/** 飞行道具的参数(火球、箭矢等) */
 export interface ProjectileDef {
   speed: number;
   life: number; // 帧
@@ -57,6 +62,10 @@ export interface ProjectileDef {
   pierce?: boolean;
 }
 
+/**
+ * 一招的完整定义。帧数按 60 帧 / 秒计:
+ * startup 前摇(出手前)→ active 判定(能打到人)→ recovery 收招(打完的硬直)
+ */
 export interface MoveDef {
   id: string;
   name: string;
@@ -109,16 +118,19 @@ export interface MoveDef {
   grab?: { hold: number; throwDamage: number; throwVx: number; throwVy: number };
 }
 
+/** 指令技的出法:方向动作 + 按键 → 招式 id */
 export interface CommandDef {
   motion: Motion;
   button: BtnName;
   move: string;
 }
 
+/** 职业 / 定位。enemy 普通敌人,boss 首领(受连击保护),prop 场景物件 */
 export type Role = 'warrior' | 'tank' | 'mage' | 'archer' | 'brawler' | 'assassin' | 'summoner' | 'berserker' | 'lancer' | 'support' | 'enemy' | 'boss'
   /** 场景物件(木桶等):不会动,谁都能打,打碎掉道具 */
   | 'prop';
 
+/** 外观参数:程序绘制的方块人按这些参数生成 */
 export interface Look {
   /** 身高倍率 */
   scale: number;
@@ -136,6 +148,7 @@ export interface Look {
   glow?: string;
 }
 
+/** 角色定义:纯数据。主角、敌人、Boss、召唤物、木桶都用这一种结构。 */
 export interface CharacterDef {
   id: string;
   name: string;
@@ -161,10 +174,15 @@ export interface CharacterDef {
   skills: string[];
 }
 
+/**
+ * 角色状态:idle 站立 / walk 走 / run 跑 / jump 空中 / attack 出招中 / hitstun 受击硬直 /
+ * launched 被打飞 / knockdown 倒地 / getup 起身 / dodge 闪避 / grabbed 被抓住 / dead 死亡
+ */
 export type FState =
   | 'idle' | 'walk' | 'run' | 'jump' | 'attack' | 'hitstun' | 'launched'
   | 'knockdown' | 'getup' | 'dodge' | 'grabbed' | 'dead';
 
+/** 场上的一个角色(运行时状态) */
 export interface Fighter {
   id: number;
   team: number; // 0 玩家方 1 敌方
@@ -219,6 +237,7 @@ export interface Fighter {
   deadFrame: number;
 }
 
+/** 飞行中的道具(运行时状态) */
 export interface Projectile {
   id: number;
   owner: number;
@@ -241,6 +260,7 @@ export interface Pickup {
   life: number;
 }
 
+/** 模拟层每帧产生的事件:渲染、音效、界面只读这些事件来做反馈,不反过来影响规则 */
 export type SimEvent =
   | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; attacker: number; victim: number; damage: number; combo: number }
   | { type: 'ko'; id: number; team: number }
@@ -262,6 +282,7 @@ export type SimEvent =
   | { type: 'spawn'; id: number }
   | { type: 'cast'; id: number };
 
+/** 房间(一个战斗场景)的定义 */
 export interface RoomDef {
   id: string;
   name: string;
@@ -333,6 +354,7 @@ export interface ContentPack {
   chapters: ChapterDef[];
 }
 
+/** 全局规则参数:改这里的数字就能调整体手感 */
 export const SIM = {
   HZ: 60,
   GRAVITY: 0.022,

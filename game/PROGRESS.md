@@ -46,14 +46,16 @@
   - [x] 战斗中按 Tab 看招式表(暂停);顿帧期间不消耗输入缓冲;`tests/combo.test.ts` 连招手感回归(每个主角快按慢按都能连上)
   - [x] 场景机关:地面喷火口(矿道 / 王都 / 烬渊自动生成,也可在房间数据里写 `hazards`),不分敌我
   - [x] 注释梳理第二轮:ml/、data/chapters、data/characters(editor/ 还没做——子 agent 中途额度用尽)
-  - [ ] 回放录制、训练模式显示帧数据(见 `docs/research-opensource.md`)
+  - [x] 过关结算卡(评价 / 连击 / 受伤 / 用时 / 得分)与累计得分
+  - [x] 回放:记录种子 + 逐帧按键,标题画面按 R 重放最近一场,结束时校验与原战斗一致(`tests/e2e/replay.mjs`)
+  - [x] 注释:sim/(world.ts、types.ts)与 editor/ 已补全
+  - [ ] 训练模式显示帧数据(见 `docs/research-opensource.md`)
 
 ## 下一步
 
-1. `docs/research-opensource.md` 里还没做的:回放录制、训练模式显示帧数据、场景机关、分数与排行
+1. `docs/research-opensource.md` 里还没做的:训练模式(木桩 + 帧数据显示)、本地排行榜
 2. 平衡:第三章 Boss 巨像对「连打新手」机器人仍只有 2/10(真人可闪避 + 原地续关,暂时保留)
 3. 等美术图片到位后接入并逐张检查(脚底对齐、朝向、大小)
-4. editor/ 与 sim/(world.ts、types.ts、ai/script.ts)的注释再过一遍
 5. 训练出的 AI 上场(用户说放最后)
 
 ## 已知问题 / 备注
@@ -66,7 +68,7 @@
 
 - `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
 - `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
-- `npm run e2e:all` 构建并跑完全部 7 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 触屏与设置 / 编辑器 / 训练页),截图在 `test-results/`
+- `npm run e2e:all` 构建并跑完全部 8 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 触屏与设置 / 编辑器 / 训练页),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
 
 ## 待用户处理

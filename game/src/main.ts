@@ -27,7 +27,7 @@ const hud = new Hud();
 const sfx = new Sfx();
 
 /** 游戏阶段 */
-type Phase = 'title' | 'select' | 'story' | 'map' | 'play' | 'clear' | 'dead' | 'ending';
+type Phase = 'title' | 'select' | 'story' | 'map' | 'play' | 'clear' | 'dead' | 'ending' | 'replay';
 // phase = 当前处于哪个阶段,各处按它决定按键含义;world / player = 当前战斗世界与玩家角色
 let phase: Phase = 'title';
 let world: World;
@@ -279,18 +279,108 @@ function enterNode(id: string) {
 }
 
 /** 真正开始一场战斗:建世界、放玩家(继承上个房间剩下的血量)、搭场景。 */
-function startNode(id: string) {
-  const r = run!, node = nodeOf(id), room = ALL_ROOMS[node.room];
-  r.node = id;
-  const hero = ROSTER[r.hero];
-  world = createWorld(room, ROSTER, (Date.now() & 0xffff) | 1);
-  world.defaultEnemyAI = makeScriptAI(enemyAggression(r.chapter));
+// ---------- 回放 ----------
+// 模拟是确定性的:同样的房间、角色、随机种子,加上同样的逐帧按键,结果一定一模一样。
+// 所以回放只需要记下「种子 + 每帧按键」,不用录画面。
+
+/** 一场战斗的录像 */
+interface Replay {
+  hero: string; chapter: number; node: string;
+  seed: number;
+  /** 进房间时的生命值 */
+  hp: number;
+  /** 逐帧按键,做了游程压缩:[按键, 连续帧数, 按键, 连续帧数, …] */
+  inputs: number[];
+  /** 录制结束时的校验信息:帧数、玩家位置与生命。回放结束时应当完全一致。 */
+  end: { frame: number; x: number; hp: number };
+}
+const REPLAY_KEY = 'ashen-abyss.replay.v1';
+/** 正在录制的录像(战斗中) */
+let rec: Replay | null = null;
+/** 正在播放的录像,以及播放进度 */
+let playing: Replay | null = null;
+let playIndex = 0, playLeft = 0;
+
+/** 把这一帧的按键记进录像(与上一帧相同就只加计数) */
+function recordInput(mask: number) {
+  if (!rec) return;
+  const a = rec.inputs, n = a.length;
+  if (n && a[n - 2] === mask) a[n - 1]++; else a.push(mask, 1);
+}
+
+/** 结束录制并保存(清场或阵亡时调用)。只保留最近的一场。 */
+function saveReplay() {
+  if (!rec) return;
+  rec.end = { frame: world.frame, x: player.x, hp: player.hp };
+  try { localStorage.setItem(REPLAY_KEY, JSON.stringify(rec)); } catch { /* 存不下就算了 */ }
+  rec = null;
+}
+
+function loadReplay(): Replay | null {
+  try {
+    const r = JSON.parse(localStorage.getItem(REPLAY_KEY) ?? 'null') as Replay | null;
+    return r && ROSTER[r.hero] && CHAPTERS[r.chapter]?.nodes.some(n => n.id === r.node) ? r : null;
+  } catch { return null; }
+}
+
+/** 搭建一场战斗的世界(正式游戏与回放共用,保证两边完全一致) */
+function buildBattle(heroId: string, chapterIndex: number, nodeId: string, seed: number, hp: number) {
+  const node = CHAPTERS[chapterIndex].nodes.find(n => n.id === nodeId)!, room = ALL_ROOMS[node.room];
+  const hero = ROSTER[heroId];
+  world = createWorld(room, ROSTER, seed);
+  world.defaultEnemyAI = makeScriptAI(enemyAggression(chapterIndex));
   world.summonAI = makeScriptAI(0.8);
   player = spawnFighter(world, hero, 0, 3, room.depth / 2);
-  if (node.kind === 'rest') r.hp = Math.min(1, r.hp + 0.6); // 篝火:回复 60% 生命
-  player.hp = Math.max(1, Math.round(hero.stats.hp * r.hp));
-  gfx.buildRoom(room, 7 + r.chapter * 13 + node.col * 5 + node.lane);
+  player.hp = hp;
+  gfx.buildRoom(room, 7 + chapterIndex * 13 + node.col * 5 + node.lane);
   hud.setPlayer(player);
+  return room;
+}
+
+/** 播放最近一场录像 */
+function startReplay() {
+  const r = loadReplay();
+  if (!r) return;
+  closeOverlays();
+  buildBattle(r.hero, r.chapter, r.node, r.seed, r.hp);
+  playing = r; playIndex = 0; playLeft = r.inputs[1] ?? 0;
+  phase = 'replay';
+  hud.flash('回放 · 按 Enter 退出');
+}
+
+/** 取出回放的下一帧按键;播完返回 null */
+function nextReplayInput(): number | null {
+  const a = playing!.inputs;
+  while (playLeft <= 0) {
+    playIndex += 2;
+    if (playIndex >= a.length) return null;
+    playLeft = a[playIndex + 1];
+  }
+  playLeft--;
+  return a[playIndex];
+}
+
+/** 回放播完:核对结果是否与录制时一致,然后回标题 */
+function endReplay() {
+  const e = playing!.end;
+  const same = world.frame === e.frame && Math.abs(player.x - e.x) < 1e-9 && player.hp === e.hp;
+  lastReplayCheck = same;
+  playing = null;
+  showTitle();
+  hud.flash(same ? '回放结束 · 与原战斗完全一致' : '回放结束 · 结果与录制不一致(版本可能已更新)');
+}
+/** 最近一次回放的校验结果(测试用) */
+let lastReplayCheck: boolean | null = null;
+
+function startNode(id: string) {
+  const r = run!, node = nodeOf(id);
+  r.node = id;
+  if (node.kind === 'rest') r.hp = Math.min(1, r.hp + 0.6); // 篝火:回复 60% 生命
+  const seed = (Date.now() & 0xffff) | 1;
+  const hp = Math.max(1, Math.round(ROSTER[r.hero].stats.hp * r.hp));
+  const room = buildBattle(r.hero, r.chapter, id, seed, hp);
+  // 有敌人的房间才录像
+  rec = room.waves.length ? { hero: r.hero, chapter: r.chapter, node: id, seed, hp, inputs: [], end: { frame: 0, x: 0, hp: 0 } } : null;
   closeOverlays();
   stats = { maxCombo: 0, damageTaken: 0, frames: 0 };
   phase = 'play';
@@ -362,6 +452,7 @@ function showTitle() {
   closeOverlays();
   const saved = loadRun();
   hud.banner('烬渊', `<em>ASHEN ABYSS</em><br><br>十位持名者,向无王之都进发。<br><br>按 <b>Enter</b> 开始新的旅程` +
+    (loadReplay() ? `<br>按 <b>R</b> 观看上一场战斗的回放` : '') +
     (saved ? `<br>按 <b>C</b> 继续上次的旅程(${ROSTER[saved.hero].name} · ${CHAPTERS[saved.chapter].name})` : '') +
     (CHAPTERS.length > BUILTIN_CHAPTERS ? `<br>按 <b>M</b> 切换章节:<b>${CHAPTERS[startChapter].name}</b>` : ''));
   $('banner-title').style.fontSize = '';
@@ -382,6 +473,7 @@ input.onKey = code => {
   switch (phase) {
     case 'title':
       if (ok) openSelect();
+      else if (code === 'KeyR') startReplay();
       else if (code === 'KeyM' && CHAPTERS.length > BUILTIN_CHAPTERS) {
         // 在「第一章」和各个自制章节之间循环
         startChapter = startChapter === 0 ? BUILTIN_CHAPTERS : startChapter + 1 >= CHAPTERS.length ? 0 : startChapter + 1;
@@ -413,6 +505,7 @@ input.onKey = code => {
     case 'clear': if (enter) leaveRoom(); break;
     case 'dead': if (enter) { run!.hp = 1; enterNode(run!.node!); } break; // 原地续关,生命回满
     case 'ending': if (enter) showTitle(); break;
+    case 'replay': if (enter || code === 'Escape') { playing = null; showTitle(); } break;
   }
 };
 
@@ -447,9 +540,16 @@ function frame(now: number) {
   const active = phase === 'play' || phase === 'clear';
   document.body.classList.toggle('playing', active); // 触屏按键只在战斗中显示
   while (acc >= STEP && steps < 5) {
-    // 本步的输入:玩家用键盘/手柄,其他角色由 AI 自己决定
+    // 本步的输入:玩家用键盘/手柄(回放时取录像里的按键),其他角色由 AI 自己决定
     const inputs = new Map<number, number>();
-    inputs.set(player.id, active ? input.read() : 0);
+    let mask = active ? input.read() : 0;
+    if (phase === 'replay') {
+      const m = nextReplayInput();
+      if (m === null) { endReplay(); break; }
+      mask = m;
+    }
+    if (phase === 'play') recordInput(mask);
+    inputs.set(player.id, mask);
     const hpBefore = player.hp;
     step(world, inputs);
     gfx.handleEvents(world.events, world);
@@ -470,8 +570,9 @@ function frame(now: number) {
       stats.frames++;
       stats.damageTaken += Math.max(0, hpBefore - player.hp);
       for (const e of world.events) if (e.type === 'hit' && e.attacker === player.id) stats.maxCombo = Math.max(stats.maxCombo, e.combo);
-      if (world.cleared) onRoomCleared();
+      if (world.cleared) { saveReplay(); onRoomCleared(); }
       else if (player.state === 'dead') {
+        saveReplay();
         phase = 'dead';
         hud.banner('你被遗忘了', '余烬夺走了你的名字。<br><br>按 <b>Enter</b> 从这个房间重来');
         $('banner-title').style.fontSize = '';
@@ -512,6 +613,9 @@ void boot();
 (window as unknown as Record<string, unknown>).__game = {
   get world() { return world; }, get player() { return player; }, get phase() { return phase; }, get run() { return run; },
   perf, gfx,
+  get replayCheck() { return lastReplayCheck; },
+  /** 立刻结束录制并回到标题(测试回放用) */
+  stopRecording() { saveReplay(); showTitle(); },
   /** 跳过菜单,直接用第 i 个角色进入示例房间(测试用) */
   pick(i: number) {
     heroIndex = i;
