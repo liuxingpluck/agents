@@ -211,13 +211,13 @@ function movesHtml(h: CharacterDef): string {
     row(`J 连按(${chainIds(h, h.normals.LP, 'LP').length} 下)`, chainText(h.normals.LP, 'LP')) +
     row('↓ + J 连按', chainText(h.normals.LK, 'LK')) +
     row(`K 连按(${chainIds(h, h.normals.HP, 'HP').length} 下)`, `${chainText(h.normals.HP, 'HP')}(最后一下挑空)`) +
-    row('按住 K', '蓄力重击:伤害更高,蓄过半会破防并打飞') +
+    row('按住 K 不放', '第一下照常打出,接着蓄力;松手放出蓄力重击(蓄过半破防并打飞)') +
     row('↓ + K', `${h.moves[h.normals.HK ?? '']?.name ?? '—'}${h.moves[h.normals.HK ?? '']?.launch ? '(挑空)' : ''}`) +
     row('J + K', `${h.moves.grab?.name ?? '抓投'}(抓投,范围 ${h.moves.grab?.hitbox.x1 ?? 1} 米,无视霸体与格挡;按住 ← 向身后投)`) +
     row('空中 J ×3 / K', '空中连打 / 砸地(对手落地弹起,可继续追打)') +
     cmds.map(c => row(`${motionText(c.motion)} + ${btnText(c.button) === '轻' ? 'J' : 'K'}`, h.moves[c.move]?.name ?? '')).join('') +
     h.skills.slice(0, 4).map((id, i) => row(dirs[i], `${h.moves[id]?.name ?? ''} <small>能量 ${h.moves[id]?.cost ?? 0}</small>`)).join('') +
-    row('→→ 后按 J', '冲刺攻击') + row('被打飞时按 空格', '空中受身') +
+    row('奔跑中按 J', '冲刺攻击(按住方向一会儿自动跑,或 →→ 立刻跑)') + row('被打飞时按 空格', '空中受身') +
     row('按住 Shift', '格挡(只挡正面;刚按下的瞬间挡住 = 弹反,对手硬直)') + row('方向 + Shift', '闪避(短暂无敌)') +
     `</table><p>连段规则:轻 → 重 → 指令技 → 特殊技,只能往后接。同一招反复用,对手会越来越快恢复。<br>按 <b>Tab</b> 关闭</p>`;
 }

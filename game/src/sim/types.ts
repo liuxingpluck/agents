@@ -122,6 +122,8 @@ export interface MoveDef {
   airOk?: boolean;
   /** 破防:无视对手的格挡并直接打破他的防御 */
   guardBreak?: boolean;
+  /** 蓄力招:出手前只要还按着重攻击键就一直蓄力,松手才打出(只用于专门的蓄力重击) */
+  chargeable?: boolean;
 }
 
 /** 指令技的出法:方向动作 + 按键 → 招式 id */
@@ -235,6 +237,10 @@ export interface Fighter {
   airActions: number;
   /** 重攻击已经蓄力的帧数(按住重攻击键不放) */
   charge: number;
+  /** 重攻击键已经连续按住多少帧(松开归零) */
+  heavyHeld: number;
+  /** 朝同一个方向连续走了多少帧(走一小会儿就自动跑起来) */
+  walkFrames: number;
   /** 防御值:格挡会消耗它,耗尽则被破防;不格挡时慢慢恢复 */
   guard: number;
   /** 正被砸向地面(落地时弹起);本套连击是否已经砸地反弹过 */
@@ -414,8 +420,10 @@ export const SIM = {
   DODGE_FRAMES: 20,
   DODGE_INVULN: 14,
   DODGE_SPEED: 0.16,
-  RUN_MULT: 1.8,
+  RUN_MULT: 1.75,
   Z_SPEED_MULT: 0.7,
+  /** 朝一个方向连续走这么多帧后自动转为奔跑(也可以快速按两下方向立刻跑) */
+  AUTO_RUN_FRAMES: 16,
   /** 蓄力重击:按住至少多少帧才算蓄力、最多蓄多少帧;蓄满时的伤害加成 */
   CHARGE_MIN: 8,
   CHARGE_MAX: 45,

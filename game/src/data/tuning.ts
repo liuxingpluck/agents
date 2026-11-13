@@ -88,6 +88,31 @@ export function applyHeroTuning(def: CharacterDef) {
   setChain(def, 'LP', t.j, t.jNames);
   setChain(def, 'HP', t.k, t.kNames);
 
+  // 重攻击提速:原来从按下到打出要 8~14 帧、后续几下更慢,按起来发闷。
+  // 现在按角色快慢分三档,每一下都带一小步前移,保证够得着。
+  const cls = def.stats.speed >= 0.075 ? 0 : def.stats.speed >= 0.062 ? 1 : 2; // 0 灵巧 / 1 均衡 / 2 厚重
+  const heavyIds = chainIds(def, def.normals.HP, 'HP');
+  heavyIds.forEach((id, i) => {
+    const m = def.moves[id];
+    m.startup = Math.min(m.startup, [6, 7, 9][cls] + (i > 0 ? 1 : 0));
+    m.recovery = Math.min(m.recovery, [14, 16, 19][cls]);
+    if (!m.projectile) m.moveX = Math.max(m.moveX ?? 0, 0.045);
+    m.hitstop = Math.max(m.hitstop, 8);
+  });
+  const hk = def.moves[def.normals.HK ?? ''];
+  if (hk) { hk.startup = Math.min(hk.startup, [7, 8, 9][cls]); hk.recovery = Math.min(hk.recovery, 17); }
+
+  // 蓄力重击:按住重攻击不放,第一下打完后自动转入这一招(见 world.ts)。以重攻击第一下为蓝本,更狠、带霸体。
+  const h1 = def.moves[heavyIds[0] ?? ''];
+  if (h1 && !h1.projectile && !def.moves.charge) {
+    def.moves.charge = {
+      ...h1, id: 'charge', name: '蓄力重击', chain: undefined, chargeable: true, armor: true,
+      startup: 7, active: Math.max(4, h1.active), recovery: 20,
+      damage: Math.round(h1.damage * 1.35), hitstun: 26, hitstop: 11, pushX: 0.2, moveX: 0.07,
+      hitbox: { ...h1.hitbox, x1: h1.hitbox.x1 + 0.3 }, anim: 'slam', knockdown: true, launch: undefined,
+    };
+  }
+
   // 抓取范围与出手速度
   const g = def.moves.grab;
   if (g) { g.hitbox = { ...g.hitbox, x1: t.grabRange }; g.startup = t.grabStartup; g.name = t.grabName; }

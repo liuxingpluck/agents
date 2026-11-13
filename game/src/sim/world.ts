@@ -104,7 +104,7 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
     hp: def.stats.hp, energy: 0,
     move: null, moveFrame: 0, moveHit: false, hitIds: [], lastRehitFrame: 0,
     stun: 0, hitstop: 0, comboCount: 0, comboValue: 0, comboDamage: 0, comboMoveUses: {}, juggle: 0, invuln: 0,
-    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, charge: 0, guard: SIM.GUARD_MAX, spiked: false, bounced: false, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
+    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, charge: 0, heavyHeld: 0, walkFrames: 0, guard: SIM.GUARD_MAX, spiked: false, bounced: false, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
   };
   w.fighters.push(f);
   if (ctrl) w.controllers.set(f.id, ctrl);
@@ -375,6 +375,7 @@ function updateFighter(w: World, f: Fighter) {
   if (f.def.role === 'prop') { f.stateFrame++; return; } // 物件不会动
   if (f.invuln > 0) f.invuln--;
   f.stateFrame++;
+  f.heavyHeld = f.input & (Btn.HP | Btn.HK) ? f.heavyHeld + 1 : 0;
   if (f.state !== 'guard' && f.guard < SIM.GUARD_MAX) f.guard = Math.min(SIM.GUARD_MAX, f.guard + SIM.GUARD_REGEN);
   const sp = f.def.stats.speed;
 
@@ -385,15 +386,18 @@ function updateFighter(w: World, f: Fighter) {
       const dx = right === left ? 0 : right ? 1 : -1;
       const dz = f.input & Btn.DOWN ? 1 : f.input & Btn.UP ? -1 : 0;
       if (dx !== 0) f.facing = dx as 1 | -1;
-      if (dx === 0 && dz === 0) { if (f.state !== 'idle') setState(f, 'idle'); f.vx = 0; f.vz = 0; break; }
-      // →→ 冲刺
-      if (f.state !== 'run' && dx !== 0 && (f.input & ~f.prevInput & (Btn.LEFT | Btn.RIGHT)) && hasMotion(f, 'FF', w.frame, 14)) {
-        setState(f, 'run');
-      } else if (f.state === 'idle') setState(f, 'walk');
-      if (f.state === 'run' && dx === 0) setState(f, 'walk');
+      if (dx === 0 && dz === 0) { if (f.state !== 'idle') setState(f, 'idle'); f.vx = 0; f.vz = 0; f.walkFrames = 0; break; }
+      // 奔跑有两种进法:快速按两下方向(立刻跑),或者朝一个方向走上一小会儿(自动跑起来)。
+      // 松开方向或掉头就回到走路;跑动时沿纵深方向也更快。
+      f.walkFrames = dx !== 0 && dx === f.brain.lastDx ? f.walkFrames + 1 : 0;
+      f.brain.lastDx = dx;
+      const doubleTap = dx !== 0 && (f.input & ~f.prevInput & (Btn.LEFT | Btn.RIGHT)) !== 0 && hasMotion(f, 'FF', w.frame, 14);
+      if (f.state !== 'run' && dx !== 0 && (doubleTap || f.walkFrames >= SIM.AUTO_RUN_FRAMES)) setState(f, 'run');
+      else if (f.state === 'idle') setState(f, 'walk');
+      if (f.state === 'run' && (dx === 0 || f.walkFrames === 0)) setState(f, 'walk');
       const mult = f.state === 'run' ? SIM.RUN_MULT : 1;
       f.vx = dx * sp * mult;
-      f.vz = dz * sp * SIM.Z_SPEED_MULT;
+      f.vz = dz * sp * SIM.Z_SPEED_MULT * (f.state === 'run' ? 1.3 : 1);
       break;
     }
     case 'jump': {
@@ -426,15 +430,22 @@ function updateFighter(w: World, f: Fighter) {
         startMove(w, f, f.def.moves.grab);
         break;
       }
-      // 蓄力重击:重攻击的第一下,在即将出手时如果还按着重攻击键,就停在蓄势姿态继续蓄力;
+      // 蓄力重击(专门的一招,见下方「按住不放」的衔接):出手前只要还按着重攻击键就一直蓄力,
       // 松手或蓄满时打出。蓄力越久伤害越高,蓄到一半以上还会破防并把对手打飞。
-      if (m.tier === Tier.HEAVY && f.y <= 0 && f.moveFrame === m.startup - 1 && f.charge < SIM.CHARGE_MAX
-        && (f.input & (Btn.HP | Btn.HK)) && (m.id === f.def.normals.HP || m.id === f.def.normals.HK)) {
+      if (m.chargeable && f.moveFrame === m.startup - 1 && f.charge < SIM.CHARGE_MAX && (f.input & (Btn.HP | Btn.HK))) {
         f.charge++;
         f.vx = 0; f.vz = 0;
         break;
       }
-      if (f.charge >= SIM.CHARGE_MIN && f.moveFrame === m.startup - 1) w.events.push({ type: 'chargeRelease', id: f.id, level: f.charge / SIM.CHARGE_MAX });
+      if (m.chargeable && f.moveFrame === m.startup - 1) w.events.push({ type: 'chargeRelease', id: f.id, level: f.charge / SIM.CHARGE_MAX });
+      // 按住不放:普通重攻击照常立刻打出(不会因为按得久而延迟);
+      // 打完判定后如果重攻击键从头到尾一直没松开,就顺势转入蓄力重击。
+      if (m.tier === Tier.HEAVY && !m.chargeable && f.y <= 0 && f.def.moves.charge
+        && f.moveFrame === m.startup + m.active && f.heavyHeld > f.moveFrame
+        && (m.id === f.def.normals.HP || m.id === f.def.normals.HK)) {
+        startMove(w, f, f.def.moves.charge);
+        break;
+      }
       f.moveFrame++;
       const air = f.y > 0;
       if (air) f.vy -= SIM.GRAVITY * (m.selfLaunch ? 0.9 : 1);
@@ -626,7 +637,7 @@ function applyHit(w: World, atk: Fighter | null, team: number, dir: 1 | -1, v: F
   if (m.grab && (airborne || !atk || v.def.role === 'prop')) return false; // 抓不到空中的对手,也抓不了物件
 
   // 蓄力程度(0..1):只对「正在打出的这一招」有效
-  const charged = atk && atk.move === m && atk.charge >= SIM.CHARGE_MIN ? atk.charge / SIM.CHARGE_MAX : 0;
+  const charged = atk && atk.move === m && m.chargeable ? atk.charge / SIM.CHARGE_MAX : 0;
 
   // ---- 格挡 ----
   // 只挡得住正面来的攻击;抓投挡不住;带破防属性或蓄力过半的重击会直接打破防御

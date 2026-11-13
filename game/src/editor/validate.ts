@@ -40,7 +40,8 @@ type FieldRanges = Record<Field, Range>;
 /** 各层级招式的帧数 / 伤害区间(取自作者规范表;tier 3 伤害取「多段每击 5」到「单段 24」的并集) */
 const TIER_RANGE: Record<number, FieldRanges> = {
   0: { startup: [3, 6], active: [2, 4], recovery: [7, 13], damage: [4, 10], hitstun: [15, 20], hitstop: [3, 6] },
-  1: { startup: [8, 14], active: [3, 5], recovery: [16, 24], damage: [11, 19], hitstun: [22, 26], hitstop: [7, 9] },
+  // 重攻击:2026-11 按试玩反馈提速过(原来前摇 8~14、收招 16~24,按起来发闷)
+  1: { startup: [6, 14], active: [3, 5], recovery: [14, 24], damage: [11, 21], hitstun: [18, 26], hitstop: [7, 11] },
   2: { startup: [5, 12], active: [4, 10], recovery: [14, 22], damage: [12, 18], hitstun: [22, 26], hitstop: [8, 9] },
   3: { startup: [6, 16], active: [2, 24], recovery: [16, 26], damage: [5, 24], hitstun: [20, 26], hitstop: [3, 10] },
   4: { startup: [8, 14], active: [20, 36], recovery: [26, 34], damage: [7, 10], hitstun: [24, 24], hitstop: [4, 4] },
@@ -156,7 +157,8 @@ function checkMove(errs: string[], m: unknown, key: string, hero: boolean, moveI
 
   // 数值字段:必须是数,且落在层级区间内(带容差)
   const air = m.air === true;
-  const isGrab = isObj(m.grab);
+  // 抓取招与蓄力重击都是「特殊节奏」的招,不按普通层级表约束
+  const isGrab = isObj(m.grab) || m.chargeable === true;
   for (const f of Object.keys(FIELD_NAME) as Field[]) {
     const v = m[f];
     if (!isNum(v)) { e(`${FIELD_NAME[f]}(${f})必须是数字`); continue; }

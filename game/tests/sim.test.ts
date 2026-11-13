@@ -120,6 +120,21 @@ describe('combat sim', () => {
     expect(p.comboCount).toBe(0);
   });
 
+  it('跑动:朝一个方向走一小会儿自动跑起来,掉头或松开就停', () => {
+    const { w, p, e } = duel();
+    e.x = 25;
+    run(w, p.id, [[Btn.RIGHT, 10]]);
+    expect(p.state).toBe('walk');
+    run(w, p.id, [[Btn.RIGHT, 12]]);
+    expect(p.state).toBe('run');
+    const vRun = p.vx;
+    expect(vRun).toBeGreaterThan(p.def.stats.speed * 1.5);
+    run(w, p.id, [[Btn.LEFT, 2]]);
+    expect(p.state).toBe('walk');           // 掉头:回到走路
+    run(w, p.id, [[0, 2]]);
+    expect(p.state).toBe('idle');
+  });
+
   it('冲刺攻击:跑动中按轻攻击使出突进技', () => {
     const { w, p, e } = duel();
     e.x = 14;
@@ -195,19 +210,30 @@ describe('combat sim', () => {
     expect(e.aiMove).toBeUndefined();
   });
 
-  it('蓄力重击:按住重攻击会蓄力,伤害更高并把对手打飞', () => {
-    const tapped = duel(); tapped.e.hp = 99999;
-    run(tapped.w, tapped.p.id, [[Btn.HP, 2], [0, 30]]);
-    const tapDmg = 99999 - tapped.e.hp;
-    expect(tapped.e.state).not.toBe('launched');
+  it('重攻击:点按立刻打出,不会因为按得久而延迟', () => {
+    // 按 2 帧 与 按 9 帧(普通人按键的时长),第一下命中的时刻应当完全相同
+    const hitFrame = (hold: number) => {
+      const { w, p, e } = duel(); e.hp = 99999;
+      for (let i = 0; i < 40; i++) { step(w, new Map([[p.id, i < hold ? Btn.HP : 0]])); if (e.hp < 99999) return i; }
+      return -1;
+    };
+    expect(hitFrame(2)).toBeGreaterThan(0);
+    expect(hitFrame(9)).toBe(hitFrame(2));
+    expect(hitFrame(2)).toBeLessThanOrEqual(9); // 凯尔:7 帧前摇
+  });
 
-    const held = duel(); held.e.hp = 99999;
-    run(held.w, held.p.id, [[Btn.HP, 40]]);
-    expect(held.p.charge).toBeGreaterThan(SIM.CHARGE_MAX * 0.5); // 还在蓄力中,没有出手
-    expect(held.e.hp).toBe(99999);
-    run(held.w, held.p.id, [[0, 12]]);
-    expect(99999 - held.e.hp).toBeGreaterThan(tapDmg * 1.3);
-    expect(held.e.state).toBe('launched');
+  it('蓄力重击:按住不放,第一下照常命中,随后转入蓄力,松手打出更重的一击', () => {
+    const { w, p, e } = duel(); e.hp = 99999;
+    let firstHit = -1;
+    for (let i = 0; i < 50; i++) { step(w, new Map([[p.id, Btn.HP]])); if (firstHit < 0 && e.hp < 99999) firstHit = i; }
+    expect(firstHit).toBeGreaterThan(0);          // 第一下没有被蓄力耽误
+    expect(p.move?.id).toBe('charge');            // 之后进入蓄力
+    expect(p.charge).toBeGreaterThan(SIM.CHARGE_MAX * 0.5);
+    const hpBefore = e.hp;
+    e.state = 'idle'; e.y = 0; e.vy = 0; e.x = p.x + 1.2; e.invuln = 0; // 木桩站回面前
+    run(w, p.id, [[0, 14]]);
+    expect(hpBefore - e.hp).toBeGreaterThan(p.def.moves.hp1.damage * 1.5);
+    expect(e.state).toBe('launched');
   });
 
   it('格挡:正面挡住攻击只掉一点血,背后挡不住', () => {
@@ -254,7 +280,7 @@ describe('combat sim', () => {
     const d2 = duel(); d2.e.facing = -1; d2.e.hp = 99999;
     d2.e.state = 'guard'; d2.e.stateFrame = 30;
     let broke2 = 0;
-    for (let i = 0; i < 60; i++) { step(d2.w, new Map([[d2.p.id, i < 42 ? Btn.HP : 0], [d2.e.id, Btn.DODGE]])); broke2 += d2.w.events.filter(ev => ev.type === 'guardBreak').length; }
+    for (let i = 0; i < 90; i++) { step(d2.w, new Map([[d2.p.id, i < 60 ? Btn.HP : 0], [d2.e.id, Btn.DODGE]])); broke2 += d2.w.events.filter(ev => ev.type === 'guardBreak').length; }
     expect(broke2).toBe(1);
     expect(d2.e.hp).toBeLessThan(99999 - 15);
   });
