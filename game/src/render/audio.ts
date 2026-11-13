@@ -63,6 +63,9 @@ export class Sfx {
     o.start(); o.stop(c.currentTime + dur);
   }
 
+  /** 音频环境(背景音乐模块共用它;解锁前为 null) */
+  get context(): AudioContext | null { return this.ctx; }
+
   /** 调整总音量(0..1) */
   setVolume(v: number) {
     this.volume = v;

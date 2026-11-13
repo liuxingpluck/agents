@@ -2,6 +2,7 @@
 import { BtnName } from '../sim/types';
 import { InputManager } from './input';
 import { Sfx } from '../render/audio';
+import { Music } from '../render/music';
 
 /** 面板里列出的动作:[内部名, 显示名]。SPECIAL 是四键制的特殊技键。 */
 const ACTIONS: Array<[BtnName | 'SPECIAL', string]> = [
@@ -27,7 +28,7 @@ export const isSettingsOpen = () => open;
  * 创建设置面板,并把页面上的「设置」链接接上。
  * @param link 点击后打开面板的元素
  */
-export function setupSettings(input: InputManager, sfx: Sfx, link: HTMLElement) {
+export function setupSettings(input: InputManager, sfx: Sfx, music: Music, link: HTMLElement) {
   const el = document.createElement('div');
   el.id = 'settings';
   document.getElementById('hud')!.appendChild(el);
@@ -40,7 +41,8 @@ export function setupSettings(input: InputManager, sfx: Sfx, link: HTMLElement) 
     el.innerHTML = `<div class="box"><h1>设置</h1>` +
       ACTIONS.map(([a, label]) =>
         `<label>${label}<button data-a="${a}">${waiting === a ? '请按下新按键…' : codesOf(a).map(keyName).join(' / ')}</button></label>`).join('') +
-      `<label>音量<input id="vol" type="range" min="0" max="1" step="0.05" value="${sfx.volume}"></label>` +
+      `<label>音效音量<input id="vol" type="range" min="0" max="1" step="0.05" value="${sfx.volume}"></label>` +
+      `<label>音乐音量<input id="mvol" type="range" min="0" max="1" step="0.05" value="${music.volume}"></label>` +
       `<div class="row"><button id="set-reset">恢复默认键位</button><button id="set-close" class="primary">完成</button></div>` +
       `<p>点击某一项后按下新按键即可修改。手柄可直接使用:A 跳 · X 轻 · Y 重 · B 特殊技 · RB 闪避。</p></div>`;
     el.querySelectorAll<HTMLButtonElement>('button[data-a]').forEach(b => b.addEventListener('click', () => {
@@ -52,6 +54,7 @@ export function setupSettings(input: InputManager, sfx: Sfx, link: HTMLElement) 
       };
     }));
     el.querySelector<HTMLInputElement>('#vol')!.addEventListener('input', e => sfx.setVolume(Number((e.target as HTMLInputElement).value)));
+    el.querySelector<HTMLInputElement>('#mvol')!.addEventListener('input', e => music.setVolume(Number((e.target as HTMLInputElement).value)));
     el.querySelector('#set-reset')!.addEventListener('click', () => { input.resetBindings(); draw(); });
     el.querySelector('#set-close')!.addEventListener('click', close);
   };

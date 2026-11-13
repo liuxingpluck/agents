@@ -12,6 +12,7 @@ import { findArt, loadArtManifest } from './render/art';
 import { InputManager } from './ui/input';
 import { Hud } from './ui/hud';
 import { Sfx } from './render/audio';
+import { Music } from './render/music';
 import { loadPack } from './data/custom';
 import { ARENA } from './ml/env';
 import { makePolicyController } from './ml/policy';
@@ -28,6 +29,7 @@ const gfx = new GameRenderer(canvas);
 const input = new InputManager();
 const hud = new Hud();
 const sfx = new Sfx();
+const music = new Music();
 
 /** 游戏阶段 */
 type Phase = 'title' | 'select' | 'story' | 'map' | 'play' | 'clear' | 'dead' | 'ending' | 'replay';
@@ -587,6 +589,7 @@ function showTitle() {
 
 input.onKey = code => {
   sfx.unlock();
+  if (sfx.context) music.attach(sfx.context);
   if (isSettingsOpen()) return;
   if (code === 'Tab' && (phase === 'play' || phase === 'clear' || movesOpen)) { toggleMoves(!movesOpen); return; }
   if (movesOpen) { if (code === 'Escape') toggleMoves(false); return; }
@@ -663,6 +666,9 @@ function frame(now: number) {
   const t0 = performance.now();
   const active = phase === 'play' || phase === 'clear';
   document.body.classList.toggle('playing', active); // 触屏按键只在战斗中显示
+  // 背景音乐跟着场面走:战斗中有 Boss 用首领曲,否则战斗曲;其余时间是低沉的氛围音
+  const fighting = phase === 'play' || phase === 'replay';
+  music.setMood(!fighting ? 'calm' : world.fighters.some(f => f.def.role === 'boss' && f.hp > 0) ? 'boss' : 'battle');
   $('practice').style.display = practice && active ? 'flex' : 'none';
   while (acc >= STEP && steps < 5) {
     // 本步的输入:玩家用键盘/手柄(回放时取录像里的按键),其他角色由 AI 自己决定
@@ -727,7 +733,7 @@ function frame(now: number) {
 async function boot() {
   await loadArtManifest();
   loadCustomContent();
-  setupSettings(input, sfx, $('open-settings'));
+  setupSettings(input, sfx, music, $('open-settings'));
   if (wantsTouch()) setupTouch(input);
   // 点击 / 轻触剧情幕与「GO」提示,等同于按 Enter(触屏没有键盘)
   for (const id of ['banner', 'go']) $(id).addEventListener('click', () => input.onKey?.('Enter'));
@@ -747,7 +753,7 @@ void boot();
 // 供自动化测试与调试使用
 (window as unknown as Record<string, unknown>).__game = {
   get world() { return world; }, get player() { return player; }, get phase() { return phase; }, get run() { return run; },
-  perf, gfx,
+  perf, gfx, music,
   get replayCheck() { return lastReplayCheck; },
   /** 立刻结束录制并回到标题(测试回放用) */
   stopRecording() { saveReplay(); showTitle(); },

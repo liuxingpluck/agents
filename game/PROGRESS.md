@@ -52,6 +52,8 @@
   - [x] 过关结算卡(评价 / 连击 / 受伤 / 用时 / 得分)与累计得分
   - [x] 回放:记录种子 + 逐帧按键,标题画面按 R 重放最近一场,结束时校验与原战斗一致(`tests/e2e/replay.mjs`)
   - [x] 注释:sim/(world.ts、types.ts)与 editor/ 已补全
+  - [x] 背景音乐:程序合成的音序器,菜单 / 战斗 / Boss 三种氛围自动切换,设置里可调音量(`src/render/music.ts`;好不好听需要人来听)
+  - [x] 本地排行榜:标题画面显示各角色最高得分前三
   - [x] 练习场:标题按 T,无限血木桩、能量常满,实时显示招式帧数据与连击伤害(`tests/e2e/practice.mjs`)
 
 ## 下一步
@@ -72,7 +74,7 @@
 
 - `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
 - `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
-- `npm run e2e:all` 构建并跑完全部 10 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI),截图在 `test-results/`
+- `npm run e2e:all` 构建并跑完全部 11 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 背景音乐 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
 
 ## 待用户处理
