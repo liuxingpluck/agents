@@ -34,7 +34,8 @@
   - [x] 平衡性第一轮:「连打新手」机器人批量试玩(`tests/balance.test.ts`),加了清波回血、缩短精英房、下调两个 Boss
   - [x] 自制内容包接入正式游戏(标题画面按 M 切换自制章节)
 - [x] M4 浏览器端 AI 训练(`train.html`):观测 / 网络 / 进化策略 / Worker 并行 / 存档
-  - [ ] 训练出的 AI 在正式游戏里上场;更强的陪练;WebGPU(用户说这块放最后)
+  - [x] 训练出的 AI 上场:标题按 V 单挑神经网络(读取训练场存档;没练过则用脚本 AI,`tests/e2e/duel.mjs`)
+  - [ ] 更强的陪练与课程(脚本 AI 太弱,十几代就能赢);WebGPU 加速;让战役里的精英敌人也用神经网络
 - [x] M5 编辑器(`editor.html`):角色 / 房间 / 章节 / 导入导出 + 校验(`src/editor/`)
 - [ ] M6 打磨
   - [x] 美术管线:有图用图(头像、立绘、战斗贴图、场景),没图回退方块
@@ -68,7 +69,7 @@
 
 - `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
 - `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
-- `npm run e2e:all` 构建并跑完全部 9 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 触屏与设置 / 编辑器 / 训练页),截图在 `test-results/`
+- `npm run e2e:all` 构建并跑完全部 10 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
 
 ## 待用户处理

@@ -13,6 +13,9 @@ import { InputManager } from './ui/input';
 import { Hud } from './ui/hud';
 import { Sfx } from './render/audio';
 import { loadPack } from './data/custom';
+import { ARENA } from './ml/env';
+import { makePolicyController } from './ml/policy';
+import { b64ToF32, loadModel } from './ml/trainer';
 import { setupTouch, wantsTouch } from './ui/touch';
 import { isSettingsOpen, setupSettings } from './ui/settings';
 import { isHeroRole, validateChapter, validateCharacter, validateRoom } from './editor/validate';
@@ -217,10 +220,50 @@ const chapter = (): ChapterDef => CHAPTERS[run!.chapter];
 const nodeOf = (id: string): MapNode => chapter().nodes.find(n => n.id === id)!;
 
 /** 用选中的角色开始一段新旅程 */
+// ---------- 对战模式:单挑训练出来的 AI ----------
+
+/** 是否在对战模式(1 对 1,打倒对方为止) */
+let duel = false;
+/** 对战的对手 */
+let rival: Fighter | null = null;
+
+/**
+ * 开始一场单挑。对手优先用「AI 训练场」里练过的神经网络:
+ * 从所选角色的下一位开始找,第一个存有模型的角色就是对手;都没练过则用脚本 AI。
+ */
+function startDuel() {
+  let foeDef = HEROES[(heroIndex + 1) % HEROES.length];
+  let model = null as ReturnType<typeof loadModel>;
+  for (let i = 1; i <= HEROES.length && !model; i++) {
+    const h = HEROES[(heroIndex + i) % HEROES.length];
+    model = loadModel(h.id);
+    if (model) foeDef = h;
+  }
+  world = createWorld(ARENA, ROSTER, (Date.now() & 0xffff) | 1);
+  world.useWaves = false; world.drops = false; world.protectAll = true;
+  player = spawnFighter(world, HEROES[heroIndex], 0, 4.5, 1.7);
+  const ctrl = model ? makePolicyController(b64ToF32(model.theta), model.layout) : makeScriptAI(0.8);
+  rival = spawnFighter(world, foeDef, 1, 9.5, 1.7, ctrl);
+  player.energy = 30; rival.energy = 30;
+  gfx.buildRoom(ARENA, 5);
+  hud.setPlayer(player);
+  closeOverlays();
+  rec = null; duel = true;
+  phase = 'play';
+  hud.flash(model ? `对手:${foeDef.name}(神经网络 · 第 ${model.generation} 代)` : `对手:${foeDef.name}(脚本 AI · 去训练场练一个模型再来)`);
+}
+
+/** 对战分出胜负 */
+function endDuel(win: boolean) {
+  phase = 'ending';
+  hud.banner(win ? '胜利' : '落败', `${win ? '你击败了' : '你输给了'} ${rival!.def.name}<br><br>按 <b>Enter</b> 回到标题`);
+  $('banner-title').style.fontSize = '';
+}
+
 // ---------- 练习场 ----------
 
 /** 选人确认后去哪:run 开始旅程 / practice 进练习场 */
-let selectMode: 'run' | 'practice' = 'run';
+let selectMode: 'run' | 'practice' | 'duel' = 'run';
 /** 是否在练习场(无限血木桩、能量常满、不会过关也不会死) */
 let practice = false;
 /** 练习场的木桩,以及本次练习打出的最高连击伤害 */
@@ -228,7 +271,7 @@ let dummy: Fighter | null = null;
 let bestComboDamage = 0;
 let lastPracticeMove: Fighter['move'] = null;
 
-function confirmSelect() { if (selectMode === 'practice') startPractice(); else newRun(); }
+function confirmSelect() { if (selectMode === 'practice') startPractice(); else if (selectMode === 'duel') startDuel(); else newRun(); }
 
 /** 进入练习场:一个不会还手的木桩,用来练连招、看帧数 */
 function startPractice() {
@@ -497,11 +540,11 @@ function ending() {
 /** 显示标题画面(有存档时多一个「继续」选项)。 */
 function showTitle() {
   phase = 'title';
-  practice = false; dummy = null;
+  practice = false; dummy = null; duel = false; rival = null;
   closeOverlays();
   const saved = loadRun();
   hud.banner('烬渊', `<em>ASHEN ABYSS</em><br><br>十位持名者,向无王之都进发。<br><br>按 <b>Enter</b> 开始新的旅程` +
-    `<br>按 <b>T</b> 进入练习场(木桩 + 帧数据)` +
+    `<br>按 <b>T</b> 练习场(木桩 + 帧数据) · 按 <b>V</b> 单挑 AI(训练场练出的神经网络)` +
     (loadReplay() ? `<br>按 <b>R</b> 观看上一场战斗的回放` : '') +
     (saved ? `<br>按 <b>C</b> 继续上次的旅程(${ROSTER[saved.hero].name} · ${CHAPTERS[saved.chapter].name})` : '') +
     (CHAPTERS.length > BUILTIN_CHAPTERS ? `<br>按 <b>M</b> 切换章节:<b>${CHAPTERS[startChapter].name}</b>` : ''));
@@ -524,6 +567,7 @@ input.onKey = code => {
     case 'title':
       if (ok) { selectMode = 'run'; openSelect(); }
       else if (code === 'KeyT') { selectMode = 'practice'; openSelect(); }
+      else if (code === 'KeyV') { selectMode = 'duel'; openSelect(); }
       else if (code === 'KeyR') startReplay();
       else if (code === 'KeyM' && CHAPTERS.length > BUILTIN_CHAPTERS) {
         // 在「第一章」和各个自制章节之间循环
@@ -619,11 +663,19 @@ function frame(now: number) {
     }
     hud.update(world, player, STEP);
     if (practice && phase === 'play') updatePractice();
+    if (duel && rival) {
+      // 对战时借用 Boss 血条的位置,常驻显示对手的生命
+      $('boss').classList.add('show');
+      $('boss-name').textContent = `${rival.def.name} · ${rival.def.title}`;
+      $('boss-hp').style.width = `${Math.max(0, (rival.hp / rival.def.stats.hp) * 100)}%`;
+      $('wave').textContent = '单挑';
+    }
     if (phase === 'play') {
       stats.frames++;
       stats.damageTaken += Math.max(0, hpBefore - player.hp);
       for (const e of world.events) if (e.type === 'hit' && e.attacker === player.id) stats.maxCombo = Math.max(stats.maxCombo, e.combo);
       if (practice) { /* 练习场没有过关与阵亡 */ }
+      else if (duel) { if (rival!.state === 'dead') endDuel(true); else if (player.state === 'dead') endDuel(false); }
       else if (world.cleared) { saveReplay(); onRoomCleared(); }
       else if (player.state === 'dead') {
         saveReplay();

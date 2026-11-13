@@ -22,6 +22,7 @@ run 练习场 node tests/e2e/practice.mjs
 run 触屏与设置 node tests/e2e/touch.mjs
 run 编辑器 node tests/e2e/editor.mjs http://localhost:4173/editor.html
 run 训练页 node tests/e2e/train.mjs http://localhost:4173/train.html test-results 25
+run 单挑AI node tests/e2e/duel.mjs
 kill $PID 2>/dev/null
 [ $FAIL -eq 0 ] && echo "全部通过" || echo "有测试失败,不要提交"
 exit $FAIL
