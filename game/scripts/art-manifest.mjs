@@ -19,3 +19,10 @@ walk(root);
 files.sort();
 writeFileSync(join(root, 'manifest.json'), JSON.stringify({ files }, null, 1));
 console.log(`public/art/manifest.json:${files.length} 张图片`);
+
+// 顺带生成内置 AI 模型的清单:public/models/index.json(游戏据此知道哪些角色有内置模型)
+const modelDir = fileURLToPath(new URL('../public/models', import.meta.url));
+let heroes = [];
+try { heroes = readdirSync(modelDir).filter(n => n.endsWith('.json') && n !== 'index.json').map(n => n.replace('.json', '')).sort(); } catch { /* 目录不存在 = 没有内置模型 */ }
+if (heroes.length) writeFileSync(join(modelDir, 'index.json'), JSON.stringify({ heroes }));
+console.log(`public/models/index.json:${heroes.length} 个内置模型`);

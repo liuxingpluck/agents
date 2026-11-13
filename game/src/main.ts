@@ -16,7 +16,7 @@ import { Music } from './render/music';
 import { loadPack } from './data/custom';
 import { ARENA } from './ml/env';
 import { makePolicyController } from './ml/policy';
-import { b64ToF32, loadModel } from './ml/trainer';
+import { b64ToF32, loadBuiltinModel, loadModel } from './ml/trainer';
 import { setupTouch, wantsTouch } from './ui/touch';
 import { isSettingsOpen, setupSettings } from './ui/settings';
 import { isHeroRole, validateChapter, validateCharacter, validateRoom } from './editor/validate';
@@ -245,18 +245,18 @@ let duel = false;
 /** 对战的对手 */
 let rival: Fighter | null = null;
 
+/** 已经打过几场单挑(用来轮换对手角色) */
+let duelCount = 0;
+
 /**
- * 开始一场单挑。对手优先用「AI 训练场」里练过的神经网络:
- * 从所选角色的下一位开始找,第一个存有模型的角色就是对手;都没练过则用脚本 AI。
+ * 开始一场单挑。对手每场换一个角色(从你所选角色的下一位开始轮)。
+ * 对手的「大脑」按优先级:你在训练场自己练的模型 → 随游戏发布的内置模型 → 脚本 AI。
  */
-function startDuel() {
-  let foeDef = HEROES[(heroIndex + 1) % HEROES.length];
-  let model = null as ReturnType<typeof loadModel>;
-  for (let i = 1; i <= HEROES.length && !model; i++) {
-    const h = HEROES[(heroIndex + i) % HEROES.length];
-    model = loadModel(h.id);
-    if (model) foeDef = h;
-  }
+async function startDuel() {
+  const foeDef = HEROES[(heroIndex + 1 + duelCount++) % HEROES.length];
+  const local = loadModel(foeDef.id);
+  const model = local ?? await loadBuiltinModel(foeDef.id);
+  if (phase !== 'select') return; // 等内置模型下载的工夫,玩家已经离开了选人界面
   world = createWorld(ARENA, ROSTER, (Date.now() & 0xffff) | 1);
   world.useWaves = false; world.drops = false; world.protectAll = true;
   player = spawnFighter(world, HEROES[heroIndex], 0, 4.5, 1.7);
@@ -268,7 +268,8 @@ function startDuel() {
   closeOverlays();
   rec = null; duel = true;
   phase = 'play';
-  hud.flash(model ? `对手:${foeDef.name}(神经网络 · 第 ${model.generation} 代)` : `对手:${foeDef.name}(脚本 AI · 去训练场练一个模型再来)`);
+  hud.flash(!model ? `对手:${foeDef.name}(脚本 AI)`
+    : `对手:${foeDef.name}(神经网络 · ${local ? '你训练的' : '内置'} · 第 ${model.generation} 代)`);
 }
 
 /** 对战分出胜负 */
@@ -291,7 +292,7 @@ let lastPracticeMove: Fighter['move'] = null;
 
 function confirmSelect() {
   if (selectMode === 'practice') startPractice();
-  else if (selectMode === 'duel') startDuel();
+  else if (selectMode === 'duel') void startDuel();
   else if (coop && selectStep === 1) { selectStep = 2; refreshSelect(); } // 双人:1P 选完轮到 2P
   else newRun();
 }

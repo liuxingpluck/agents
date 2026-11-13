@@ -38,6 +38,8 @@
   - [x] 陪练升级:脚本 AI + 连打机器人 + 自博弈三档;考试同时报告对连打机器人的胜率(实测 90 秒 0% → 100%)
   - [x] 面向用户的说明文档 `docs/AI.md`(输入、输出、训练方法、为什么暂时只用 CPU、局限)
   - [x] 联赛:训练时自动把本机其他角色的模型当对手(训练页可开关)
+  - [x] 内置模型:10 个角色各一个离线练好的模型(`public/models/`,`scripts/train-builtin.sh` 重新训练);
+    单挑 AI 开箱即用(对手每场轮换),训练页以内置模型为起点(`tests/e2e/builtin.mjs`)
   - [ ] 所有角色轮流训练的全自动联赛;战役精英怪用神经网络(要先练一对多);模型变大后接 WebGPU(为什么现在不做见 `docs/AI.md`)
 - [x] M5 编辑器(`editor.html`):角色 / 房间 / 章节 / 导入导出 + 校验(`src/editor/`)
 - [ ] M6 打磨
@@ -79,7 +81,7 @@
 
 - `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
 - `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
-- `npm run e2e:all` 构建并跑完全部 12 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 背景音乐 / 双人合作 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI),截图在 `test-results/`
+- `npm run e2e:all` 构建并跑完全部 13 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 背景音乐 / 双人合作 / 触屏与设置 / 编辑器 / 训练页 / 单挑 AI / 内置模型),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
 
 ## 待用户处理

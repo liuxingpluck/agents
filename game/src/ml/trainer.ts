@@ -78,6 +78,30 @@ export function loadModel(hero: string): SavedModel | null {
 }
 
 /** 训练调度器:开 Worker、循环训练、考试、存档 */
+/** 随游戏发布的内置模型(离线练好的,只含推理要用的参数) */
+export type BuiltinModel = Pick<SavedModel, 'format' | 'obsVersion' | 'hero' | 'layout' | 'generation' | 'theta'>;
+
+/** 哪些角色有内置模型(读取 public/models/index.json;读不到就当作没有) */
+let builtinIds: Promise<Set<string>> | null = null;
+function builtinIndex(): Promise<Set<string>> {
+  builtinIds ??= fetch('./models/index.json', { cache: 'no-cache' })
+    .then(r => (r.ok ? r.json() : { heroes: [] }))
+    .then((j: { heroes: string[] }) => new Set(j.heroes))
+    .catch(() => new Set<string>());
+  return builtinIds;
+}
+
+/** 读取某个角色的内置模型;没有或版本不符返回 null */
+export async function loadBuiltinModel(hero: string): Promise<BuiltinModel | null> {
+  if (!(await builtinIndex()).has(hero)) return null;
+  try {
+    const r = await fetch(`./models/${hero}.json`);
+    if (!r.ok) return null;
+    const m = (await r.json()) as BuiltinModel;
+    return m.format === 'ashen-abyss-ai' && m.obsVersion === OBS_VERSION ? m : null;
+  } catch { return null; }
+}
+
 export class Trainer {
   readonly cfg: EsConfig;
   readonly layout: Layout;
@@ -208,6 +232,14 @@ export class Trainer {
   /** 存到浏览器本地(下次打开页面自动接着练) */
   save() {
     try { localStorage.setItem(storageKey(this.opts.hero), JSON.stringify(this.export())); } catch { /* 存储不可用时忽略 */ }
+  }
+
+  /** 以内置模型为起点继续训练(只在还没有本机存档时使用) */
+  startFrom(m: BuiltinModel) {
+    if (m.layout.join() !== this.layout.join()) return;
+    this.state = newEsState(b64ToF32(m.theta));
+    this.state.generation = m.generation;
+    this.history = [];
   }
 
   /** 丢弃当前模型,从随机参数重新开始 */

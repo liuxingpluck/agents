@@ -7,7 +7,7 @@ import { createWorld, spawnFighter, step, World } from './sim/world';
 import { GameRenderer } from './render/renderer';
 import { ARENA, EPISODE_FRAMES } from './ml/env';
 import { makePolicyController } from './ml/policy';
-import { ExamPoint, Progress, SavedModel, Trainer } from './ml/trainer';
+import { ExamPoint, loadBuiltinModel, Progress, SavedModel, Trainer } from './ml/trainer';
 
 /** 按 id 取页面元素的简写。 */
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -28,6 +28,9 @@ workersIn.value = String(Math.max(1, Math.min(16, (navigator.hardwareConcurrency
 let trainer: Trainer | null = null;
 
 /** 按当前设置(重新)创建训练器。切换角色或线程数时调用。 */
+/** 重置后置为 true:这次从随机参数开始,不要再套用内置模型 */
+let skipBuiltin = false;
+
 function makeTrainer() {
   trainer?.dispose();
   trainer = new Trainer({ hero: heroSel.value, foe: foeSel.value, workers: Number(workersIn.value) || 1, selfPlay: selfPlayIn.checked,
@@ -39,6 +42,18 @@ function makeTrainer() {
   showHistory(trainer.history);
   statusEl.textContent = trainer.state.generation > 0 ? `已载入本机存档(第 ${trainer.state.generation} 代)` : '全新模型:一开始只会乱按';
   restartMatch();
+  // 没有本机存档时,以随游戏发布的内置模型为起点(重置之后除外)
+  const t = trainer;
+  if (t.state.generation === 0 && !skipBuiltin) {
+    void loadBuiltinModel(heroSel.value).then(m => {
+      if (!m || trainer !== t || t.running || t.state.generation !== 0) return;
+      t.startFrom(m);
+      $('s-gen').textContent = String(t.state.generation);
+      statusEl.textContent = `已载入内置模型(第 ${m.generation} 代),在它的基础上继续练;想从零开始请点「重置模型」`;
+      restartMatch();
+    });
+  }
+  skipBuiltin = false;
 }
 
 /** 把最近一次考试的结果填进表格并重画曲线 */
@@ -157,6 +172,7 @@ $('reset').addEventListener('click', () => {
   const was = trainer.running;
   trainer.stop(); trainer.reset();
   matches = 0; wins = 0;
+  skipBuiltin = true;
   makeTrainer();
   if (was) toggleBtn.click();
 });
