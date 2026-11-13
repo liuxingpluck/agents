@@ -370,6 +370,34 @@ function enterNode(id: string) {
 }
 
 /** 真正开始一场战斗:建世界、放玩家(继承上个房间剩下的血量)、搭场景。 */
+// ---------- 本地排行榜 ----------
+
+/** 一条成绩:哪个角色、多少分、打到第几章 */
+interface ScoreEntry { hero: string; score: number; chapter: number }
+const SCORES_KEY = 'ashen-abyss.scores.v1';
+
+function loadScores(): ScoreEntry[] {
+  try { const v = JSON.parse(localStorage.getItem(SCORES_KEY) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+
+/** 记录当前旅程的成绩:每个角色只保留最高分,榜单按分数从高到低排 */
+function submitScore() {
+  if (!run || !run.score) return;
+  const list = loadScores().filter(e => ROSTER[e.hero]);
+  const mine = list.find(e => e.hero === run!.hero);
+  if (mine) { if (run.score <= mine.score) return; mine.score = run.score; mine.chapter = run.chapter; }
+  else list.push({ hero: run.hero, score: run.score, chapter: run.chapter });
+  list.sort((a, b) => b.score - a.score);
+  try { localStorage.setItem(SCORES_KEY, JSON.stringify(list.slice(0, 20))); } catch { /* ignore */ }
+}
+
+/** 标题画面上显示的前三名 */
+function scoresHtml(): string {
+  const top = loadScores().filter(e => ROSTER[e.hero]).slice(0, 3);
+  if (!top.length) return '';
+  return '<br><br><em>最高得分</em><br>' + top.map((e, i) => `${i + 1}. ${ROSTER[e.hero].name} ${e.score}(第 ${e.chapter + 1} 章)`).join('　');
+}
+
 // ---------- 回放 ----------
 // 模拟是确定性的:同样的房间、角色、随机种子,加上同样的逐帧按键,结果一定一模一样。
 // 所以回放只需要记下「种子 + 每帧按键」,不用录画面。
@@ -496,6 +524,7 @@ function onRoomCleared() {
     const base = Math.max(50, Math.round(300 + stats.maxCombo * 25 - stats.damageTaken * 2 - secs * 2));
     const gained = Math.round(base * (node.kind === 'boss' ? 3 : node.kind === 'elite' ? 1.5 : 1));
     r.score = (r.score ?? 0) + gained;
+    submitScore();
     hud.result(rank(), [
       ['最高连击', String(stats.maxCombo)], ['受到伤害', String(Math.round(stats.damageTaken))],
       ['用时', `${secs.toFixed(1)} 秒`], ['得分', `+${gained}`], ['累计', String(r.score)],
@@ -547,7 +576,7 @@ function showTitle() {
     `<br>按 <b>T</b> 练习场(木桩 + 帧数据) · 按 <b>V</b> 单挑 AI(训练场练出的神经网络)` +
     (loadReplay() ? `<br>按 <b>R</b> 观看上一场战斗的回放` : '') +
     (saved ? `<br>按 <b>C</b> 继续上次的旅程(${ROSTER[saved.hero].name} · ${CHAPTERS[saved.chapter].name})` : '') +
-    (CHAPTERS.length > BUILTIN_CHAPTERS ? `<br>按 <b>M</b> 切换章节:<b>${CHAPTERS[startChapter].name}</b>` : ''));
+    (CHAPTERS.length > BUILTIN_CHAPTERS ? `<br>按 <b>M</b> 切换章节:<b>${CHAPTERS[startChapter].name}</b>` : '') + scoresHtml());
   $('banner-title').style.fontSize = '';
   const title = findArt('ui/title');
   $('banner').classList.toggle('art', !!title);

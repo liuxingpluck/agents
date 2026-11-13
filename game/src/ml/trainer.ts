@@ -11,7 +11,7 @@ import { DEFAULT_LAYOUT } from './policy';
 import type { WorkerRequest, WorkerResponse } from './worker';
 
 /** 一次考试的记录(用来画曲线) */
-export interface ExamPoint { generation: number; winRate: number; lossRate: number; dealt: number; taken: number; maxCombo: number }
+export interface ExamPoint { generation: number; winRate: number; lossRate: number; dealt: number; taken: number; maxCombo: number; /** 对连打机器人的胜率(旧存档没有) */ winRateHard?: number }
 
 /** 每代结束后通知界面的进度信息 */
 export interface Progress {
@@ -170,7 +170,7 @@ export class Trainer {
 
     const genMs = performance.now() - t0;
     const all = [...pos, ...neg];
-    const episodes = all.length * (spec.pool.length ? 4 : 2);
+    const episodes = all.length * (spec.pool.length ? 6 : 4);
     this.onProgress?.({
       generation: g,
       meanFitness: all.reduce((a, b) => a + b, 0) / all.length,

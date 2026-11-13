@@ -43,6 +43,7 @@ function makeTrainer() {
 function showHistory(hist: ExamPoint[]) {
   const last = hist[hist.length - 1];
   $('s-win').textContent = last ? `${Math.round(last.winRate * 100)}%` : '—';
+  $('s-hard').textContent = last && last.winRateHard !== undefined ? `${Math.round(last.winRateHard * 100)}%` : '—';
   $('s-dmg').textContent = last ? `${Math.round(last.dealt * 100)}% / ${Math.round(last.taken * 100)}%` : '—';
   $('s-combo').textContent = last ? String(last.maxCombo) : '—';
   drawChart(hist);
@@ -83,6 +84,7 @@ function drawChart(hist: ExamPoint[]) {
   // 白线 = 伤害差(打出的减去受到的);橙线 = 胜率
   line('#e8e2d6', p => Math.min(1, Math.max(0, (p.dealt - p.taken + 1) / 2)));
   line('#ff6a2a', p => p.winRate);
+  line('#7ad0ff', p => p.winRateHard ?? 0);
 }
 
 // ---------- 实时观战 ----------
