@@ -62,12 +62,10 @@
 
 ## 常用命令(在 game/ 下)
 
-- `npm test` 全部单测(含较慢的 AI 训练测试)
+- `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
+- `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
+- `npm run e2e:all` 构建并跑完全部 7 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 触屏与设置 / 编辑器 / 训练页),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
-- `npx vite preview --port 4173 &` 之后:
-  - `node tests/e2e/smoke.mjs` 冒烟 · `node tests/e2e/controls.mjs` 操作 · `node tests/e2e/campaign.mjs` 战役流程
-  - `node tests/e2e/train.mjs` 训练页 · `node tests/e2e/editor.mjs` 编辑器
-  - 截图在 `test-results/`
 
 ## 待用户处理
 
