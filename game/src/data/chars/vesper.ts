@@ -12,7 +12,7 @@ export const vesper: CharacterDef = {
   id: 'vesper', name: '薇丝', title: '无声之影', role: 'assassin',
   lore: '深根矿道里替人收债的杀手,遗物是女王名字里最轻的一个气音。她每次瞬身都会忘掉一张脸,如今已认不出自己的雇主,只记得刀该落在哪里。',
   stats: { hp: 170, speed: 0.085, jump: 0.38, weight: 0.85, energyMax: 100 },
-  look: { scale: 0.96, bulk: 0.85, skin: '#d9b8a0', primary: '#3a2a55', secondary: '#7a2f8f', accent: '#c8f06a', weapon: 'daggers', hood: true, cape: true },
+  look: { scale: 0.96, bulk: 0.85, skin: '#d9b8a0', primary: '#3a2a55', secondary: '#7a2f8f', accent: '#c8f06a', weapon: 'daggers', hood: false, cape: true, hair: 'short', hairColor: '#3a2a55', feminine: true, skirt: true, legColor: '#2b2533' },
   moves: toMap([
     // ---------- 轻拳链:三段快斩 ----------
     mv('lp1', '划刺', L, 'slash', [3, 3, 7], 4, box(0.2, 1.3, 0.8, 1.6), [15, 3, 0.04], { chain: { LP: 'lp2' } }),

@@ -13,7 +13,7 @@ export const nola: CharacterDef = {
   id: 'nola', name: '诺拉', title: '圣光祷者', role: 'support',
   lore: '泣骨修道院里唯一没有停止歌唱的修女。她的遗物是女王名字的第九个音节;每一次祈祷,她都会忘掉一位被自己治愈的人的脸,却仍记得要继续治愈下一个。',
   stats: { hp: 190, speed: 0.06, jump: 0.34, weight: 0.9, energyMax: 100 },
-  look: { scale: 0.98, bulk: 0.9, skin: '#ecc9a8', primary: '#f0ead6', secondary: '#c9a227', accent: '#fff3a8', weapon: 'mace', hood: true, cape: true, glow: '#fff3a8' },
+  look: { scale: 0.98, bulk: 0.9, skin: '#ecc9a8', primary: '#f0ead6', secondary: '#c9a227', accent: '#fff3a8', weapon: 'mace', hood: false, cape: true, hair: 'long', hairColor: '#efe6c8', feminine: true, skirt: true, legColor: '#f4efe2' },
   moves: toMap([
     // ---------- 轻攻击:权杖点打 ----------
     mv('lp1', '权杖点', L, 'punchL', [4, 3, 9], 5, box(0.2, 1.4, 0.8, 1.6, 0.8), [16, 4, 0.05], { chain: { LP: 'lp2' } }),

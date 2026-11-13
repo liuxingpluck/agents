@@ -12,7 +12,7 @@ export const rook: CharacterDef = {
   id: 'rook', name: '洛克', title: '无名拳士', role: 'brawler',
   lore: '灰雪路上的赏金拳手,遗物是女王名字里的一个鼻音——每挥出一拳,他就忘掉一场擂台上的败仗,却唯独记得疼。他不信神明,只信拳头能把名字砸回深渊。',
   stats: { hp: 200, speed: 0.075, jump: 0.35, weight: 1.05, energyMax: 100 },
-  look: { scale: 1.02, bulk: 1.1, skin: '#c58b66', primary: '#b8442a', secondary: '#2f3a4a', accent: '#f2c14e', weapon: 'none' },
+  look: { scale: 1.02, bulk: 1.1, skin: '#c58b66', primary: '#b8442a', secondary: '#2f3a4a', accent: '#f2c14e', weapon: 'none', hair: 'short', hairColor: '#e8e6e0' },
   moves: toMap([
     // ---------- 轻拳链:四连(起手 / 中继 / 收尾) ----------
     // 起手刺拳:最快的起手,可接 LP 或转抓

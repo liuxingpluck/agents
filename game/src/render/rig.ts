@@ -30,14 +30,14 @@ const mat = (c: string, emissive?: string) =>
   new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, metalness: 0.15, emissive: emissive ?? '#000000', emissiveIntensity: emissive ? 1.6 : 0, flatShading: true });
 
 /** 造一条四肢:上段 + 下段(肘/膝弯曲处),返回 pivot=肩/髋的转轴,lower=下半段的转轴。 */
-function limb(len: number, w: number, m: THREE.Material): { pivot: THREE.Group; lower: THREE.Group } {
+function limb(len: number, w: number, m: THREE.Material, mLower: THREE.Material = m): { pivot: THREE.Group; lower: THREE.Group } {
   const pivot = new THREE.Group();
   const up = new THREE.Mesh(new THREE.BoxGeometry(w, len, w), m);
   up.position.y = -len / 2;
   pivot.add(up);
   const lower = new THREE.Group();
   lower.position.y = -len;
-  const lo = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, len, w * 0.85), m);
+  const lo = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, len, w * 0.85), mLower);
   lo.position.y = -len / 2;
   lower.add(lo);
   pivot.add(lower);
@@ -83,32 +83,73 @@ export class Rig implements ActorView {
 
   constructor(public look: Look) {
     const s = look.scale, bk = look.bulk;
-    const legLen = 0.42 * s, armLen = 0.36 * s;
+    const fem = !!look.feminine;
+    // 女性体型:腿更长、躯干略短、肩与四肢更细
+    const legLen = (fem ? 0.47 : 0.42) * s, armLen = 0.36 * s;
+    const torsoH = (fem ? 0.54 : 0.62) * s, headY = torsoH + 0.18 * s;
+    const limbW = fem ? 0.78 : 1;
     this.hipY = legLen * 2;
     const mPrim = mat(look.primary), mSec = mat(look.secondary), mSkin = mat(look.skin);
-    this.mats.push(mPrim, mSec, mSkin);
+    const mLeg = look.legColor ? mat(look.legColor) : mSec;
+    this.mats.push(mPrim, mSec, mSkin, mLeg);
 
     this.root.add(this.body);
     this.body.position.y = this.hipY;
     this.body.add(this.torso);
 
-    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.3 * bk, 0.62 * s, 0.5 * bk), mPrim);
-    chest.position.y = 0.33 * s;
+    const chest = new THREE.Mesh(new THREE.BoxGeometry((fem ? 0.26 : 0.3) * bk, torsoH, (fem ? 0.42 : 0.5) * bk), mPrim);
+    chest.position.y = torsoH / 2 + 0.02 * s;
     this.torso.add(chest);
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.32 * bk, 0.12 * s, 0.52 * bk), mSec);
+    if (fem) {
+      // 胸甲 / 上衣的起伏,以及收窄的腰线
+      const bust = new THREE.Mesh(new THREE.BoxGeometry(0.1 * bk, 0.17 * s, 0.38 * bk), mPrim);
+      bust.position.set(0.14 * bk, torsoH * 0.68, 0);
+      const waist = new THREE.Mesh(new THREE.BoxGeometry(0.22 * bk, 0.12 * s, 0.34 * bk), mSec);
+      waist.position.y = 0.12 * s;
+      this.torso.add(bust, waist);
+    }
+    const belt = new THREE.Mesh(new THREE.BoxGeometry((fem ? 0.3 : 0.32) * bk, 0.12 * s, (fem ? 0.48 : 0.52) * bk), mSec);
     belt.position.y = 0.04 * s;
     this.torso.add(belt);
+    if (look.skirt) {
+      // 短裙:上窄下宽的一圈,挂在髋部,不随腿摆动
+      const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * bk, 0.34 * bk, 0.26 * s, 8), mPrim);
+      skirt.position.y = -0.1 * s;
+      this.body.add(skirt);
+    }
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.26 * s, 0.28 * s, 0.26 * s), look.hood ? mSec : mSkin);
-    head.position.y = 0.8 * s;
+    head.position.y = headY;
     this.torso.add(head);
+    if (!look.hood && !look.glow) {
+      // 眼睛:脸朝 +x 方向,两个小深色方块
+      for (const z of [-0.06, 0.06]) {
+        const eye = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.035 * s, 0.045 * s), mat('#1a1418'));
+        eye.position.set(0.131 * s, headY + 0.02 * s, z * s);
+        this.torso.add(eye);
+      }
+    }
+    if (look.hair && !look.hood) {
+      const mHair = mat(look.hairColor ?? '#2a2018');
+      const add = (w: number, h: number, d: number, x: number, y: number, z = 0, rz = 0) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w * s, h * s, d * s), mHair);
+        m.position.set(x * s, headY + y * s, z * s); m.rotation.z = rz;
+        this.torso.add(m);
+      };
+      add(0.29, 0.1, 0.29, -0.01, 0.13);              // 头顶
+      add(0.09, 0.2, 0.29, -0.11, 0.03);              // 后脑
+      add(0.06, 0.08, 0.29, 0.1, 0.11);               // 刘海
+      if (look.hair === 'long') add(0.07, 0.62, 0.27, -0.15, -0.32, 0, -0.08);          // 披到背后的长发
+      if (look.hair === 'ponytail') { add(0.1, 0.1, 0.1, -0.18, 0.12); add(0.06, 0.5, 0.08, -0.24, -0.16, 0, -0.25); } // 高马尾
+      if (look.hair === 'braid') add(0.07, 0.5, 0.07, 0.02, -0.3, 0.14, 0.1);           // 垂在肩前的麻花辫
+    }
     if (look.glow) {
       const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04 * s, 0.16 * s), mat(look.glow, look.glow));
-      eye.position.set(0.135 * s, 0.82 * s, 0);
+      eye.position.set(0.135 * s, headY + 0.02 * s, 0);
       this.torso.add(eye);
     }
     if (look.horns) for (const z of [-1, 1]) {
       const h = new THREE.Mesh(new THREE.ConeGeometry(0.05 * s, 0.25 * s, 4), mat(look.accent));
-      h.position.set(0, 1.02 * s, z * 0.12 * s); h.rotation.x = z * 0.4;
+      h.position.set(0, headY + 0.22 * s, z * 0.12 * s); h.rotation.x = z * 0.4;
       this.torso.add(h);
     }
     if (look.cape) {
@@ -117,10 +158,12 @@ export class Rig implements ActorView {
       this.torso.add(cape);
     }
 
-    this.aL = limb(armLen, 0.13 * bk, mPrim);
-    this.aR = limb(armLen, 0.13 * bk, mPrim);
-    this.aL.pivot.position.set(0, 0.58 * s, -0.32 * bk);
-    this.aR.pivot.position.set(0, 0.58 * s, 0.32 * bk);
+    // 女性角色露出前臂(下半截用肤色)
+    this.aL = limb(armLen, 0.13 * bk * limbW, mPrim, fem ? mSkin : mPrim);
+    this.aR = limb(armLen, 0.13 * bk * limbW, mPrim, fem ? mSkin : mPrim);
+    const shY = torsoH - 0.04 * s, shZ = (fem ? 0.27 : 0.32) * bk;
+    this.aL.pivot.position.set(0, shY, -shZ);
+    this.aR.pivot.position.set(0, shY, shZ);
     this.torso.add(this.aL.pivot, this.aR.pivot);
     const wpn = buildWeapon(look);
     if (wpn) { wpn.position.y = -armLen; this.aR.lower.add(wpn); }
@@ -132,8 +175,19 @@ export class Rig implements ActorView {
       sh.position.set(0.1, -armLen * 0.6, -0.08);
       this.aL.lower.add(sh);
     }
-    this.lL = limb(legLen, 0.16 * bk, mSec);
-    this.lR = limb(legLen, 0.16 * bk, mSec);
+    this.lL = limb(legLen, 0.16 * bk * limbW, mLeg);
+    this.lR = limb(legLen, 0.16 * bk * limbW, mLeg);
+    if (fem) {
+      for (const leg of [this.lL, this.lR]) {
+        // 裙摆与长袜之间露出的一小段大腿,以及脚上的鞋
+        const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.165 * bk * limbW, legLen * 0.24, 0.165 * bk * limbW), mSkin);
+        thigh.position.y = -legLen * 0.14;
+        leg.pivot.add(thigh);
+        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.2 * s, 0.07 * s, 0.11 * bk), mSec);
+        shoe.position.set(0.04 * s, -legLen + 0.03 * s, 0);
+        leg.lower.add(shoe);
+      }
+    }
     this.lL.pivot.position.set(0, 0, -0.14 * bk);
     this.lR.pivot.position.set(0, 0, 0.14 * bk);
     this.body.add(this.lL.pivot, this.lR.pivot);

@@ -12,7 +12,7 @@ export const sera: CharacterDef = {
   id: 'sera', name: '塞拉', title: '余烬歌者', role: 'mage',
   lore: '修道院里唯一没被烬渊带走的歌者。她的遗物是女王名字里的一段旋律,每唱一次火焰,就有一首童年的歌从她记忆里熄灭。',
   stats: { hp: 160, speed: 0.06, jump: 0.35, weight: 0.8, energyMax: 100 },
-  look: { scale: 0.98, bulk: 0.85, skin: '#d8b090', primary: '#b8341e', secondary: '#3a2a38', accent: '#ffb347', weapon: 'staff', hood: true, glow: '#ff7a2a' },
+  look: { scale: 0.98, bulk: 0.85, skin: '#d8b090', primary: '#b8341e', secondary: '#3a2a38', accent: '#ffb347', weapon: 'staff', hood: false, glow: '#ff7a2a', hair: 'long', hairColor: '#c2281c', feminine: true, skirt: true, legColor: '#15131a' },
   moves: toMap([
     // ===== 地面轻攻击:杖击链 =====
     // 起手:杖尖戳刺

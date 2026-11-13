@@ -12,7 +12,7 @@ export const morgan: CharacterDef = {
   id: 'morgan', name: '莫甘', title: '唤骨者', role: 'summoner',
   lore: '修道院地窖里的守墓人,遗物是女王名字里一个沉在泥土中的音节。每唤醒一具骸骨,她就忘掉一位亲人的名字——如今身边只剩死者还愿意回应她。',
   stats: { hp: 165, speed: 0.06, jump: 0.34, weight: 0.9, energyMax: 100 },
-  look: { scale: 1, bulk: 0.9, skin: '#b9b5a8', primary: '#2d4a3e', secondary: '#1c1c26', accent: '#7dffb0', weapon: 'staff', hood: true, cape: true, glow: '#7dffb0' },
+  look: { scale: 1, bulk: 0.9, skin: '#b9b5a8', primary: '#2d4a3e', secondary: '#1c1c26', accent: '#7dffb0', weapon: 'staff', hood: false, cape: true, glow: '#7dffb0', hair: 'long', hairColor: '#121016', feminine: true, skirt: true, legColor: '#18221e' },
   moves: toMap([
     // ---------- 轻拳链:法杖三连 ----------
     mv('lp1', '杖击', L, 'slash', [4, 3, 8], 5, box(0.2, 1.6, 0.8, 1.7), [16, 4, 0.05], { chain: { LP: 'lp2' } }),

@@ -12,7 +12,7 @@ export const brynn: CharacterDef = {
   id: 'brynn', name: '布琳', title: '不动之盾', role: 'tank',
   lore: '王都外城最后一道城门的守卫长。她的遗物是女王名字里「守」的那一笔——每挡下一击,她就忘掉一张曾被她守护过的脸。',
   stats: { hp: 320, speed: 0.055, jump: 0.33, weight: 1.5, energyMax: 100 },
-  look: { scale: 1.1, bulk: 1.4, skin: '#b88a6e', primary: '#3f6b8c', secondary: '#c8a24a', accent: '#e8e2d0', weapon: 'hammer', shield: true, horns: false, cape: false },
+  look: { scale: 1.1, bulk: 1.4, skin: '#b88a6e', primary: '#3f6b8c', secondary: '#c8a24a', accent: '#e8e2d0', weapon: 'hammer', shield: true, horns: false, cape: false, hair: 'braid', hairColor: '#e0b860', feminine: true, skirt: true, legColor: '#17171e' },
   moves: toMap([
     // ===== 地面轻攻击:盾拳链(起手 / 中继) =====
     // 起手:盾牌前顶,可接 LP

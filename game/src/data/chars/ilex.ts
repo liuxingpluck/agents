@@ -12,7 +12,7 @@ export const ilex: CharacterDef = {
   id: 'ilex', name: '伊莱', title: '追风之矢', role: 'archer',
   lore: '深根矿道里的斥候。他的遗物是女王名字的尾音,弓弦每响一次,他就忘掉一条曾走过的路,于是只能把每一箭都射向前方。',
   stats: { hp: 170, speed: 0.082, jump: 0.38, weight: 0.9, energyMax: 100 },
-  look: { scale: 1.02, bulk: 0.9, skin: '#c4a27e', primary: '#3f6a43', secondary: '#6b4a2e', accent: '#d9e6a0', weapon: 'bow', hood: true, cape: true },
+  look: { scale: 1.02, bulk: 0.9, skin: '#c4a27e', primary: '#3f6a43', secondary: '#6b4a2e', accent: '#d9e6a0', weapon: 'bow', hood: false, cape: true, hair: 'ponytail', hairColor: '#cdbf8e' },
   moves: toMap([
     // ===== 地面轻攻击:弓身近战链 =====
     // 起手:弓身快速击打

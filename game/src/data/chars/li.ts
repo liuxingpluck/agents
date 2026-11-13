@@ -13,7 +13,7 @@ export const li: CharacterDef = {
   id: 'li', name: '璃', title: '寒枪游龙', role: 'lancer',
   lore: '灰雪之路上的巡礼武僧,以一杆白枪护送难民。她的遗物是女王名字的第七个音节;每出一枪,她便忘掉一段曾走过的路,但枪势反而愈发清明。',
   stats: { hp: 200, speed: 0.078, jump: 0.37, weight: 0.95, energyMax: 100 },
-  look: { scale: 1.02, bulk: 0.9, skin: '#e0b896', primary: '#2f7f8c', secondary: '#e8e2d0', accent: '#6fd3e0', weapon: 'spear', hood: false, cape: true },
+  look: { scale: 1.02, bulk: 0.9, skin: '#e0b896', primary: '#2f7f8c', secondary: '#e8e2d0', accent: '#6fd3e0', weapon: 'spear', hood: false, cape: false, hair: 'ponytail', hairColor: '#17151c', feminine: true, skirt: true, legColor: '#ecebf2' },
   moves: toMap([
     // ---------- 轻攻击:长距离点刺 ----------
     // 点刺:起手,枪尖长判定

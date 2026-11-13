@@ -13,7 +13,7 @@ export const odran: CharacterDef = {
   id: 'odran', name: '奥丁', title: '狂怒巨斧', role: 'berserker',
   lore: '北境山地部族最后的战吼者。他的遗物是女王名字的第四个音节,每挥一次斧,他就忘掉一个曾被他保护的人——现在他只记得要不停地挥下去。',
   stats: { hp: 260, speed: 0.058, jump: 0.33, weight: 1.3, energyMax: 100 },
-  look: { scale: 1.1, bulk: 1.3, skin: '#b98b6a', primary: '#8a2f1e', secondary: '#4a3a2c', accent: '#e8b04a', weapon: 'axe', horns: true, cape: false },
+  look: { scale: 1.1, bulk: 1.3, skin: '#b98b6a', primary: '#8a2f1e', secondary: '#4a3a2c', accent: '#e8b04a', weapon: 'axe', horns: true, cape: false, hair: 'long', hairColor: '#a8431f' },
   moves: toMap([
     // ---------- 轻攻击:起手与短连段 ----------
     // 斧柄击:起手,快速打断

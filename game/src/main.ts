@@ -807,6 +807,15 @@ void boot();
     startNode(CHAPTERS[0].start[1]);
   },
   startNode,
+  /** 把十位主角排成一排站好(检查外观用) */
+  lineup() {
+    world = createWorld(ROOMS.outpost, ROSTER, 1);
+    world.useWaves = false;
+    HEROES.forEach((h, i) => { const f = spawnFighter(world, h, 0, 8 + i * 1.25, 1.2 + (i % 2) * 1.6); if (i === 4) player = f; });
+    gfx.buildRoom(ROOMS.outpost, 11);
+    hud.setPlayer(player); closeOverlays();
+    phase = 'ending';
+  },
   get player2() { return player2; },
   /** 双人合作:1P 用第 i 个角色、2P 用第 j 个角色,直接进入示例房间(测试用) */
   pick2(i: number, j: number) {

@@ -146,6 +146,14 @@ export interface Look {
   horns?: boolean;
   cape?: boolean;
   glow?: string;
+  /** 发型与发色(不写则不画头发) */
+  hair?: 'short' | 'long' | 'ponytail' | 'braid';
+  hairColor?: string;
+  /** 女性体型:腿更长、肩腰更窄,并可配短裙 */
+  feminine?: boolean;
+  skirt?: boolean;
+  /** 腿部颜色(长袜 / 护腿);不写则用 secondary */
+  legColor?: string;
 }
 
 /** 角色定义:纯数据。主角、敌人、Boss、召唤物、木桶都用这一种结构。 */

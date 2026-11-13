@@ -27,7 +27,7 @@ export const kael: CharacterDef = {
   id: 'kael', name: '凯尔', title: '持誓之刃', role: 'warrior',
   lore: '边境哨站最后的守卫。他的遗物是女王名字的第一个音节——他记得誓言,却已想不起是向谁立下的。',
   stats: { hp: 220, speed: 0.07, jump: 0.36, weight: 1, energyMax: 100 },
-  look: { scale: 1, bulk: 1, skin: '#c9a184', primary: '#5d6b85', secondary: '#a02a2a', accent: '#dfe3ea', weapon: 'sword', shield: true, cape: true },
+  look: { scale: 1, bulk: 1, skin: '#c9a184', primary: '#5d6b85', secondary: '#a02a2a', accent: '#dfe3ea', weapon: 'sword', shield: true, cape: true, hair: 'short', hairColor: '#2a2420' },
   moves: toMap([
     mv('lp1', '刺拳', L, 'punchL', [4, 3, 8], 6, box(0.2, 1.2, 0.9, 1.5), [16, 4, 0.05], { chain: { LP: 'lp2' } }),
     mv('lp2', '盾拳', L, 'punchR', [4, 3, 9], 6, box(0.2, 1.25, 0.9, 1.5), [17, 4, 0.05], { chain: { LP: 'lp3' } }),
