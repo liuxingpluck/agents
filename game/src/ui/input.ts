@@ -66,6 +66,10 @@ export class InputManager {
   /** 已松开但还没被读到过的虚拟按键:保证再快的轻点也至少生效一帧 */
   private pendingRelease = 0;
   private pendingSpecialRelease = false;
+  /** 使用第几个手柄(0 起) */
+  padIndex = 0;
+  /** 暂时不响应的键(双人时 1P 让出方向键给 2P) */
+  ignore = new Set<string>();
   /** 改键时使用:设置后,下一次按键只交给它,不传给游戏 */
   captureNext: ((code: string) => void) | null = null;
   /** 上一次 read 时 轻 / 重 / 特殊 三个键是否按着(用来检测「刚按下」) */
@@ -111,6 +115,21 @@ export class InputManager {
     if (bit === 'SPECIAL') this.pendingSpecialRelease = true; else this.pendingRelease |= bit;
   }
 
+  /**
+   * 把这个输入管理器改成 2P 专用:方向键移动,小键盘 1 轻 / 2 重 / 0 跳 / 3 特殊技 / . 闪避,使用第二个手柄。
+   * 2P 的键位是固定的,不读写本地存档。
+   */
+  useSecondPlayerLayout() {
+    this.bindings = {
+      UP: ['ArrowUp'], DOWN: ['ArrowDown'], LEFT: ['ArrowLeft'], RIGHT: ['ArrowRight'],
+      LP: ['Numpad1'], HP: ['Numpad2'], LK: [], HK: [], JUMP: ['Numpad0'], DODGE: ['NumpadDecimal'],
+      S1: [], S2: [], S3: [], S4: [], S5: [], S6: [], S7: [], S8: [],
+    };
+    this.specialCodes = ['Numpad3'];
+    this.padIndex = 1;
+    this.rebuild();
+  }
+
   /** 修改某个按钮的键位并保存 */
   setBinding(btn: BtnName, codes: string[]) {
     this.bindings[btn] = codes;
@@ -137,13 +156,13 @@ export class InputManager {
    */
   read(): number {
     let m = 0;
-    for (const code of this.down) m |= this.codeToBtn.get(code) ?? 0;
+    for (const code of this.down) if (!this.ignore.has(code)) m |= this.codeToBtn.get(code) ?? 0;
     m |= this.virtualMask;
     let special = this.virtualSpecial || this.specialCodes.some(c => this.down.has(c));
     // 处理「已松开」的虚拟按键:这一帧仍算按着,读完再真正放开
     this.virtualMask &= ~this.pendingRelease; this.pendingRelease = 0;
     if (this.pendingSpecialRelease) { this.virtualSpecial = false; this.pendingSpecialRelease = false; }
-    const pad = navigator.getGamepads?.()[0];
+    const pad = navigator.getGamepads?.()[this.padIndex];
     if (pad) {
       for (const [i, b] of PAD) if (pad.buttons[i]?.pressed) m |= Btn[b];
       if (pad.buttons[1]?.pressed) special = true; // 手柄 B 键 = 特殊技

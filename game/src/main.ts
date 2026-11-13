@@ -27,6 +27,9 @@ const $ = (id: string) => document.getElementById(id)!;
 const canvas = $('game') as HTMLCanvasElement;
 const gfx = new GameRenderer(canvas);
 const input = new InputManager();
+/** 2P 的输入(方向键 + 小键盘,或第二个手柄);只在双人合作时读取 */
+const input2 = new InputManager();
+input2.useSecondPlayerLayout();
 const hud = new Hud();
 const sfx = new Sfx();
 const music = new Music();
@@ -37,6 +40,10 @@ type Phase = 'title' | 'select' | 'story' | 'map' | 'play' | 'clear' | 'dead' | 
 let phase: Phase = 'title';
 let world: World;
 let player: Fighter;
+/** 双人合作时的第二名玩家(单人时为 null) */
+let player2: Fighter | null = null;
+/** 选人界面:是否开启双人合作、2P 选中的角色、现在轮到谁选(1 或 2) */
+let coop = false, heroIndex2 = 1, selectStep = 1;
 /** 选人界面当前选中的角色下标 */
 let heroIndex = 0;
 /** 本房间的战绩,用于结算评价 */
@@ -57,6 +64,9 @@ interface Run {
   hp: number;
   /** 本次旅程的累计得分(旧存档没有这一项,读取时按 0 处理) */
   score?: number;
+  /** 双人合作:2P 的角色与生命比例(单人时没有) */
+  hero2?: string;
+  hp2?: number;
 }
 let run: Run | null = null;
 const SAVE_KEY = 'ashen-abyss.save.v1';
@@ -158,8 +168,13 @@ function btnText(b: string): string {
 
 /** 根据当前选中项刷新高亮、详情与立绘 */
 function refreshSelect() {
-  [...cardsEl.children].forEach((c, i) => c.classList.toggle('on', i === heroIndex));
-  const h = HEROES[heroIndex];
+  [...cardsEl.children].forEach((c, i) => {
+    c.classList.toggle('on', i === heroIndex);
+    c.classList.toggle('on2', coop && selectStep === 2 && i === heroIndex2);
+  });
+  $('coop-tip').textContent = selectMode !== 'run' ? '' : selectStep === 2 ? '现在请 2P 选择角色' : `P 双人合作:${coop ? '开(2P 用方向键 + 小键盘 1 2 0 3)' : '关'}`;
+  // 详情显示当前正在选的那位玩家的角色
+  const h = HEROES[selectStep === 2 ? heroIndex2 : heroIndex];
   const cmds = h.commands.map(c => `${motionText(c.motion)}+${btnText(c.button)} ${h.moves[c.move]?.name ?? ''}`);
   const dirs = ['L', '→+L', '↓+L', '↑+L'];
   const skills = h.skills.slice(0, 4).map((id, i) => `${dirs[i]} ${h.moves[id]?.name ?? ''}`);
@@ -210,6 +225,7 @@ function toggleMoves(show: boolean) {
 
 function openSelect() {
   phase = 'select';
+  selectStep = 1;
   closeOverlays();
   $('select').classList.add('show');
   refreshSelect();
@@ -273,7 +289,12 @@ let dummy: Fighter | null = null;
 let bestComboDamage = 0;
 let lastPracticeMove: Fighter['move'] = null;
 
-function confirmSelect() { if (selectMode === 'practice') startPractice(); else if (selectMode === 'duel') startDuel(); else newRun(); }
+function confirmSelect() {
+  if (selectMode === 'practice') startPractice();
+  else if (selectMode === 'duel') startDuel();
+  else if (coop && selectStep === 1) { selectStep = 2; refreshSelect(); } // 双人:1P 选完轮到 2P
+  else newRun();
+}
 
 /** 进入练习场:一个不会还手的木桩,用来练连招、看帧数 */
 function startPractice() {
@@ -313,6 +334,7 @@ function updatePractice() {
 function newRun() {
   const ch = CHAPTERS[startChapter];
   run = { hero: HEROES[heroIndex].id, chapter: startChapter, node: null, avail: [...ch.start], cleared: [], hp: 1 };
+  if (coop) { run.hero2 = HEROES[heroIndex2].id; run.hp2 = 1; }
   saveRun();
   story(ch.name, ch.intro, openMap);
 }
@@ -453,6 +475,8 @@ function buildBattle(heroId: string, chapterIndex: number, nodeId: string, seed:
   world.summonAI = makeScriptAI(0.8);
   player = spawnFighter(world, hero, 0, 3, room.depth / 2);
   player.hp = hp;
+  player2 = null;
+  input.ignore.clear();
   gfx.buildRoom(room, 7 + chapterIndex * 13 + node.col * 5 + node.lane);
   hud.setPlayer(player);
   return room;
@@ -500,8 +524,20 @@ function startNode(id: string) {
   const seed = (Date.now() & 0xffff) | 1;
   const hp = Math.max(1, Math.round(ROSTER[r.hero].stats.hp * r.hp));
   const room = buildBattle(r.hero, r.chapter, id, seed, hp);
+  if (r.hero2 && ROSTER[r.hero2]) {
+    // 双人合作:2P 站在 1P 斜后方;上一间倒下的话以 30% 生命复活。敌人每波多一个,两人不能离得太远。
+    const h2 = ROSTER[r.hero2];
+    if ((r.hp2 ?? 1) <= 0) r.hp2 = 0.3;
+    if (node.kind === 'rest') r.hp2 = Math.min(1, (r.hp2 ?? 1) + 0.6);
+    player2 = spawnFighter(world, h2, 0, 2, Math.min(room.depth, room.depth / 2 + 0.9));
+    player2.hp = Math.max(1, Math.round(h2.stats.hp * (r.hp2 ?? 1)));
+    hud.setPlayer2(player2);
+    world.tether = 11; world.extraPerWave = 1;
+    for (const c of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) input.ignore.add(c); // 方向键让给 2P
+  }
   // 有敌人的房间才录像
-  rec = room.waves.length ? { hero: r.hero, chapter: r.chapter, node: id, seed, hp, inputs: [], end: { frame: 0, x: 0, hp: 0 } } : null;
+  // 有敌人的房间才录像;双人合作不录(录像只记了 1P 的按键)
+  rec = room.waves.length && !player2 ? { hero: r.hero, chapter: r.chapter, node: id, seed, hp, inputs: [], end: { frame: 0, x: 0, hp: 0 } } : null;
   closeOverlays();
   stats = { maxCombo: 0, damageTaken: 0, frames: 0 };
   phase = 'play';
@@ -520,7 +556,7 @@ function onRoomCleared() {
   phase = 'clear';
   if (!r.cleared.includes(node.id)) r.cleared.push(node.id);
   if (node.kind !== 'rest') {
-    player.hp = Math.min(player.def.stats.hp, player.hp + player.def.stats.hp * 0.15); // 清场奖励:回复 15%
+    for (const f of [player, player2]) if (f && f.hp > 0) f.hp = Math.min(f.def.stats.hp, f.hp + f.def.stats.hp * 0.15); // 清场奖励:回复 15%
     // 本房间得分:连击加分,受伤与拖时间扣分;精英房 ×1.5,Boss 房 ×3
     const secs = stats.frames / 60;
     const base = Math.max(50, Math.round(300 + stats.maxCombo * 25 - stats.damageTaken * 2 - secs * 2));
@@ -532,7 +568,9 @@ function onRoomCleared() {
       ['用时', `${secs.toFixed(1)} 秒`], ['得分', `+${gained}`], ['累计', String(r.score)],
     ]);
   }
-  r.hp = player.hp / player.def.stats.hp;
+  // 记下两人的生命带去下一间。1P 倒下而 2P 还在时,1P 下一间以 30% 生命复活
+  r.hp = player.hp > 0 ? player.hp / player.def.stats.hp : 0.3;
+  if (player2) r.hp2 = Math.max(0, player2.hp) / player2.def.stats.hp;
   r.avail = [...node.next];
   saveRun();
   hud.go(true);
@@ -572,6 +610,7 @@ function ending() {
 function showTitle() {
   phase = 'title';
   practice = false; dummy = null; duel = false; rival = null;
+  player2 = null; input.ignore.clear(); hud.setPlayer2(null);
   closeOverlays();
   const saved = loadRun();
   hud.banner('烬渊', `<em>ASHEN ABYSS</em><br><br>十位持名者,向无王之都进发。<br><br>按 <b>Enter</b> 开始新的旅程` +
@@ -610,10 +649,13 @@ input.onKey = code => {
       break;
     case 'select': {
       const n = HEROES.length;
-      if (code === 'KeyA' || code === 'ArrowLeft') heroIndex = (heroIndex + n - 1) % n;
-      else if (code === 'KeyD' || code === 'ArrowRight') heroIndex = (heroIndex + 1) % n;
-      else if (['KeyW', 'ArrowUp', 'KeyS', 'ArrowDown'].includes(code)) heroIndex = (heroIndex + 5) % n;
-      else if (ok) { confirmSelect(); return; }
+      // 轮到谁选,方向键就移动谁的光标
+      const move = (d: number) => { if (selectStep === 2) heroIndex2 = (heroIndex2 + d + n) % n; else heroIndex = (heroIndex + d + n) % n; };
+      if (code === 'KeyA' || code === 'ArrowLeft') move(-1);
+      else if (code === 'KeyD' || code === 'ArrowRight') move(1);
+      else if (['KeyW', 'ArrowUp', 'KeyS', 'ArrowDown'].includes(code)) move(5);
+      else if (code === 'KeyP' && selectMode === 'run' && selectStep === 1) coop = !coop;
+      else if (ok || (selectStep === 2 && code === 'Numpad1')) { confirmSelect(); return; }
       else if (code === 'Escape') { showTitle(); return; }
       refreshSelect();
       break;
@@ -630,7 +672,7 @@ input.onKey = code => {
     }
     case 'play': if (code === 'Escape') { if (run) run.node = null; showTitle(); } break;
     case 'clear': if (enter) leaveRoom(); break;
-    case 'dead': if (enter) { run!.hp = 1; enterNode(run!.node!); } break; // 原地续关,生命回满
+    case 'dead': if (enter) { run!.hp = 1; if (run!.hero2) run!.hp2 = 1; enterNode(run!.node!); } break; // 原地续关,生命回满
     case 'ending': if (enter) showTitle(); break;
     case 'replay': if (enter || code === 'Escape') { playing = null; showTitle(); } break;
   }
@@ -681,14 +723,15 @@ function frame(now: number) {
     }
     if (phase === 'play') recordInput(mask);
     inputs.set(player.id, mask);
-    const hpBefore = player.hp;
+    if (player2) inputs.set(player2.id, active ? input2.read() : 0);
+    const hpBefore = player.hp + (player2?.hp ?? 0);
     step(world, inputs);
     gfx.handleEvents(world.events, world);
     sfx.handle(world.events);
     for (const e of world.events) {
       if (e.type === 'hit') {
         const at = gfx.project(e.x, e.y + 0.4, e.z);
-        hud.damageNumber(at.x, at.y, e.damage, e.heavy || e.damage >= 14, e.victim === player.id);
+        hud.damageNumber(at.x, at.y, e.damage, e.heavy || e.damage >= 14, e.victim === player.id || e.victim === player2?.id);
       } else if (e.type === 'ko' && e.team !== player.team) {
         // 打倒 Boss,或打倒场上最后一个敌人:慢动作收尾
         const left = world.fighters.filter(f => f.team !== player.team && f.hp > 0).length;
@@ -696,7 +739,7 @@ function frame(now: number) {
         if (boss) slowmo = 1.2; else if (left === 0) slowmo = 0.45;
       }
     }
-    hud.update(world, player, STEP);
+    hud.update(world, player, STEP, player2);
     if (practice && phase === 'play') updatePractice();
     if (duel && rival) {
       // 对战时借用 Boss 血条的位置,常驻显示对手的生命
@@ -707,23 +750,23 @@ function frame(now: number) {
     }
     if (phase === 'play') {
       stats.frames++;
-      stats.damageTaken += Math.max(0, hpBefore - player.hp);
-      for (const e of world.events) if (e.type === 'hit' && e.attacker === player.id) stats.maxCombo = Math.max(stats.maxCombo, e.combo);
+      stats.damageTaken += Math.max(0, hpBefore - player.hp - (player2?.hp ?? 0));
+      for (const e of world.events) if (e.type === 'hit' && (e.attacker === player.id || e.attacker === player2?.id)) stats.maxCombo = Math.max(stats.maxCombo, e.combo);
       if (practice) { /* 练习场没有过关与阵亡 */ }
       else if (duel) { if (rival!.state === 'dead') endDuel(true); else if (player.state === 'dead') endDuel(false); }
       else if (world.cleared) { saveReplay(); onRoomCleared(); }
-      else if (player.state === 'dead') {
+      else if (player.state === 'dead' && (!player2 || player2.state === 'dead')) { // 双人时两人都倒下才算失败
         saveReplay();
         phase = 'dead';
         hud.banner('你被遗忘了', '余烬夺走了你的名字。<br><br>按 <b>Enter</b> 从这个房间重来');
         $('banner-title').style.fontSize = '';
       }
-    } else if (phase === 'clear' && player.x > world.room.width - 1.4) leaveRoom(); // 走到房间右端 → 过关
+    } else if (phase === 'clear' && [player, player2].some(f => f && f.hp > 0 && f.x > world.room.width - 1.4)) leaveRoom(); // 任一玩家走到房间右端 → 过关
     acc -= STEP; steps++;
   }
   if (steps === 5) acc = 0; // 掉帧太严重时丢弃积压,避免「死亡螺旋」
   perf.simMs += performance.now() - t0;
-  gfx.render(world, player.id, dt);
+  gfx.render(world, player.id, dt, player2?.id);
   requestAnimationFrame(frame);
 }
 
@@ -764,6 +807,13 @@ void boot();
     startNode(CHAPTERS[0].start[1]);
   },
   startNode,
+  get player2() { return player2; },
+  /** 双人合作:1P 用第 i 个角色、2P 用第 j 个角色,直接进入示例房间(测试用) */
+  pick2(i: number, j: number) {
+    heroIndex = i;
+    run = { hero: HEROES[i].id, hero2: HEROES[j].id, hp2: 1, chapter: 0, node: null, avail: [...CHAPTERS[0].start], cleared: [], hp: 1 };
+    startNode(CHAPTERS[0].start[1]);
+  },
   /** 直接跳到第 ci 章(0 起)的某个节点(测试用) */
   goto(ci: number, id: string) {
     run = { hero: HEROES[heroIndex].id, chapter: ci, node: null, avail: [...CHAPTERS[ci].start], cleared: [], hp: 1 };

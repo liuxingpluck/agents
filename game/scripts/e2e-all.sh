@@ -20,6 +20,7 @@ run 全流程速通 node tests/e2e/fullrun.mjs
 run 回放 node tests/e2e/replay.mjs
 run 练习场 node tests/e2e/practice.mjs
 run 背景音乐 node tests/e2e/music.mjs
+run 双人合作 node tests/e2e/coop.mjs
 run 触屏与设置 node tests/e2e/touch.mjs
 run 编辑器 node tests/e2e/editor.mjs http://localhost:4173/editor.html
 run 训练页 node tests/e2e/train.mjs http://localhost:4173/train.html test-results 25

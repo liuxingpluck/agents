@@ -40,6 +40,7 @@
     border: 1px solid #5b5560; background: linear-gradient(160deg, var(--c), #0b0a10 70%); position: relative; transition: transform .12s; }
   .card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--c2); }
   .card b { font-size: 20px; letter-spacing: .2em; } .card span { font-size: 12px; opacity: .7; letter-spacing: .2em; }
+  .card.on2 { border-color: #7ad0ff; box-shadow: 0 0 22px #7ad0ff66; }
   .card.on { border-color: var(--ember); transform: translateY(-6px); box-shadow: 0 0 22px #ff6a2a66; }
   #detail { width: min(708px, 90vw); min-height: 190px; margin-top: 22px; text-align: left; line-height: 1.8; font-size: 14px; }
   #detail h2 { margin: 0 0 6px; font-size: 26px; letter-spacing: .15em; } #detail h2 small { font-size: 14px; opacity: .65; margin-left: 10px; }
@@ -120,7 +121,8 @@
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
-  <div id="player" class="panel"><div class="name" id="p-name"></div><div class="bar"><i id="p-hp"></i></div><div class="bar en"><i id="p-en"></i></div></div>
+  <div id="player" class="panel"><div class="name" id="p-name"></div><div class="bar"><i id="p-hp"></i></div><div class="bar en"><i id="p-en"></i></div>
+    <div id="player2" style="display:none;margin-top:10px"><div class="name" id="p2-name" style="font-size:13px;color:#7ad0ff"></div><div class="bar" style="height:10px;width:80%"><i id="p2-hp" style="background:linear-gradient(#5aa8e0,#1f4a7a)"></i></div><div class="bar en" style="width:56%"><i id="p2-en"></i></div></div></div>
   <div id="enemy" class="panel"><div class="name" id="e-name"></div><div class="bar"><i id="e-hp"></i></div></div>
   <div id="wave"></div>
   <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
@@ -130,7 +132,7 @@
   <div id="result"></div>
   <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
   <div id="select"><h1>选择持名者</h1><div id="cards"></div><div id="select-row"><div id="detail"></div><img id="full" alt="" /></div>
-    <div class="tip">A / D 切换 · Enter 或 J 确认 · 战斗中按 Esc 返回这里</div></div>
+    <div class="tip">A / D 切换 · Enter 或 J 确认 · <b id="coop-tip">P 双人合作:关</b></div></div>
   <div id="boss"><div class="name" id="boss-name"></div><div class="bar"><i id="boss-hp"></i></div></div>
   <div id="go">GO →</div>
   <div id="map"><h1 id="map-title"></h1><svg id="map-svg" viewBox="0 0 820 400"></svg><div id="map-info"></div>
@@ -141,7 +143,8 @@
   <div id="help">
     WASD 移动 · →→ 冲刺(冲刺中攻击 = 突进技) · 空格 跳(被打飞时按 = 受身) · Shift 闪避<br>
     J 轻攻击(↓+J 踢技) · K 重攻击(↓+K 挑空) · J+K 抓投<br>
-    L 特殊技:L / →+L / ↓+L / ↑+L(奥义) · <b>Tab 招式表</b> · Esc 返回标题
+    L 特殊技:L / →+L / ↓+L / ↑+L(奥义) · <b>Tab 招式表</b> · Esc 返回标题<br>
+    双人:选人界面按 P 开启,2P 用方向键 + 小键盘 1 轻 / 2 重 / 0 跳 / 3 特殊技 / . 闪避
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

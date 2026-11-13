@@ -36,6 +36,10 @@ export interface World {
   pickups: Pickup[];
   /** 场景机关 */
   hazards: Hazard[];
+  /** 双人合作:两名玩家之间允许的最大横向距离(0 表示不限制),防止各跑各的跑出画面 */
+  tether: number;
+  /** 双人合作:每一波额外多出的敌人数量(Boss 波不加) */
+  extraPerWave: number;
   /** 是否允许敌人掉落道具(训练 / 对战模式关闭) */
   drops: boolean;
   events: SimEvent[];
@@ -63,7 +67,7 @@ const THEME_HAZARDS: Record<string, number> = { mine: 2, city: 1, abyss: 3 };
  */
 export function createWorld(room: RoomDef, roster: Record<string, CharacterDef>, seed = 1): World {
   const w: World = {
-    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], hazards: [], drops: true, events: [],
+    frame: 0, rng: new Rng(seed), room, roster, fighters: [], projectiles: [], pickups: [], hazards: [], tether: 0, extraPerWave: 0, drops: true, events: [],
     controllers: new Map(), nextId: 1, wave: 0, waveTimer: 30, cleared: false, useWaves: true,
     defaultEnemyAI: null, summonAI: null, protectAll: false,
   };
@@ -833,7 +837,9 @@ function updateWaves(w: World) {
       if (f.team === 0 && isAlive(f) && f.brain.owner === undefined) f.hp = Math.min(f.def.stats.hp, f.hp + f.def.stats.hp * SIM.WAVE_HEAL);
     }
   }
-  const ids = w.room.waves[w.wave++];
+  let ids = w.room.waves[w.wave++];
+  // 合作模式加人:把这一波的第一种敌人多放几个(有 Boss 的波次不加)
+  if (w.extraPerWave && !ids.some(id => w.roster[id]?.role === 'boss')) ids = [...ids, ...Array(w.extraPerWave).fill(ids[0])];
   w.waveTimer = 70;
   const hero = w.fighters.find(f => f.team === 0 && isAlive(f));
   const hx = hero?.x ?? w.room.width / 2;
@@ -887,6 +893,14 @@ export function step(w: World, inputs?: Map<number, number>) {
       continue;
     }
     updateFighter(w, f);
+  }
+  // 合作牵引:两名玩家离得太远时,把他们都拉回到彼此的可视范围内
+  if (w.tether > 0) {
+    const ps = w.fighters.filter(f => f.team === 0 && f.brain.owner === undefined && isAlive(f));
+    if (ps.length === 2 && Math.abs(ps[0].x - ps[1].x) > w.tether) {
+      const mid = (ps[0].x + ps[1].x) / 2, half = w.tether / 2;
+      for (const f of ps) f.x = Math.min(mid + half, Math.max(mid - half, f.x));
+    }
   }
   resolveHits(w);
   resolveThrownBodies(w);

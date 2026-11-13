@@ -243,10 +243,15 @@ export class GameRenderer {
    * 每帧调用:更新角色/飞行道具/特效/粒子,再移动镜头并真正画出画面。
    * focusId 是镜头跟随的角色(玩家)。
    */
-  render(w: World, focusId: number, dt: number) {
+  /**
+   * 画一帧。
+   * @param focusId  镜头跟随的角色
+   * @param focusId2 第二个要照顾的角色(双人合作);两人都在时镜头对准中点
+   */
+  render(w: World, focusId: number, dt: number, focusId2?: number) {
     this.time += dt;
     const seen = new Set<number>();
-    let focusX = this.camX;
+    let focusX = this.camX, sum = 0, cnt = 0;
     for (const f of w.fighters) {
       seen.add(f.id);
       let rig = this.rigs.get(f.id);
@@ -258,8 +263,9 @@ export class GameRenderer {
         this.scene.add(rig.root, rig.shadow);
       }
       rig.update(f, this.time, dt);
-      if (f.id === focusId) focusX = f.x;
+      if ((f.id === focusId || f.id === focusId2) && f.state !== 'dead') { sum += f.x; cnt++; }
     }
+    if (cnt) focusX = sum / cnt; // 跟随的角色都倒下时,镜头停在原地
     for (const [id, rig] of this.rigs) if (!seen.has(id)) { this.scene.remove(rig.root, rig.shadow); this.rigs.delete(id); }
 
     // 飞行道具:没有就新建模型,已消失的就移除

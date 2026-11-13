@@ -18,14 +18,26 @@ export class Hud {
   /** 设置玩家名字(显示在左上角血条旁)。 */
   setPlayer(f: Fighter) {
     $('p-name').textContent = `${f.def.name} · ${f.def.title}`;
+    this.setPlayer2(null);
+  }
+
+  /** 显示 / 隐藏 2P 的状态栏(双人合作) */
+  setPlayer2(f: Fighter | null) {
+    $('player2').style.display = f ? 'block' : 'none';
+    if (f) $('p2-name').textContent = `2P ${f.def.name}`;
   }
 
   /** 每帧刷新:玩家血/能量条、连击数、被打敌人血条、Boss 血条、波数。 */
-  update(w: World, player: Fighter, dt: number) {
+  /** @param ally 双人合作时的另一名玩家:他的命中也计入连击显示 */
+  update(w: World, player: Fighter, dt: number, ally?: Fighter | null) {
+    if (ally) {
+      $('p2-hp').style.width = `${Math.max(0, (ally.hp / ally.def.stats.hp) * 100)}%`;
+      $('p2-en').style.width = `${(ally.energy / ally.def.stats.energyMax) * 100}%`;
+    }
     $('p-hp').style.width = `${Math.max(0, (player.hp / player.def.stats.hp) * 100)}%`;
     $('p-en').style.width = `${(player.energy / player.def.stats.energyMax) * 100}%`;
     for (const e of w.events) {
-      if (e.type === 'hit' && e.attacker === player.id) {
+      if (e.type === 'hit' && (e.attacker === player.id || e.attacker === ally?.id)) {
         this.lastCombo = e.combo; this.comboTimer = 1.6;
         if (w.fighters.find(f => f.id === e.victim)?.def.role !== 'prop') { this.targetId = e.victim; this.targetTimer = 3; }
         const el = $('combo');
@@ -34,7 +46,7 @@ export class Hud {
       }
       if (e.type === 'comboBreak') this.flash('连击上限!');
       if (e.type === 'bossPhase') this.flash('狂暴');
-      if (e.type === 'pickup' && e.id === player.id) this.toast(e.kind === 'food' ? '生命恢复' : '能量恢复');
+      if (e.type === 'pickup' && (e.id === player.id || e.id === ally?.id)) this.toast(e.kind === 'food' ? '生命恢复' : '能量恢复');
     }
     this.comboTimer -= dt; this.targetTimer -= dt;
     const combo = $('combo');
