@@ -49,11 +49,11 @@
   - [x] 过关结算卡(评价 / 连击 / 受伤 / 用时 / 得分)与累计得分
   - [x] 回放:记录种子 + 逐帧按键,标题画面按 R 重放最近一场,结束时校验与原战斗一致(`tests/e2e/replay.mjs`)
   - [x] 注释:sim/(world.ts、types.ts)与 editor/ 已补全
-  - [ ] 训练模式显示帧数据(见 `docs/research-opensource.md`)
+  - [x] 练习场:标题按 T,无限血木桩、能量常满,实时显示招式帧数据与连击伤害(`tests/e2e/practice.mjs`)
 
 ## 下一步
 
-1. `docs/research-opensource.md` 里还没做的:训练模式(木桩 + 帧数据显示)、本地排行榜
+1. 本地排行榜(各角色最高得分)、双人同屏合作(第二套按键 / 第二个手柄)
 2. 平衡:第三章 Boss 巨像对「连打新手」机器人仍只有 2/10(真人可闪避 + 原地续关,暂时保留)
 3. 等美术图片到位后接入并逐张检查(脚底对齐、朝向、大小)
 5. 训练出的 AI 上场(用户说放最后)
@@ -68,7 +68,7 @@
 
 - `npm run test:fast` 单测(不含较慢的 AI 训练与平衡试玩);`npm test` 全部
 - `npx vitest run tests/balance.test.ts --disable-console-intercept` 平衡试玩报告
-- `npm run e2e:all` 构建并跑完全部 8 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 触屏与设置 / 编辑器 / 训练页),截图在 `test-results/`
+- `npm run e2e:all` 构建并跑完全部 9 个浏览器测试(冒烟 / 操作 / 战役 / 全流程速通 / 回放 / 练习场 / 触屏与设置 / 编辑器 / 训练页),截图在 `test-results/`
 - `npm run build:pages` 构建到仓库根 `docs/`(每次改动后都要跑并提交)
 
 ## 待用户处理

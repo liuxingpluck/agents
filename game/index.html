@@ -102,6 +102,9 @@
   #result h2 { margin: 0 0 6px; font-size: 15px; letter-spacing: .5em; font-weight: 400; opacity: .8; }
   #result .rows div { display: flex; justify-content: space-between; gap: 34px; font-size: 14px; line-height: 1.6; }
   #result .rows span { opacity: .65; } #result .rows b { font-family: ui-monospace, Menlo, monospace; font-weight: 400; }
+  #practice { position: absolute; left: 20px; top: 92px; display: none; flex-direction: column; gap: 3px;
+    padding: 10px 14px; border: 1px solid #5b5560; background: #0b0a10cc; font-size: 13px; font-family: ui-monospace, Menlo, monospace; }
+  #practice b { color: var(--ember); font-size: 17px; font-family: "Noto Serif SC", serif; letter-spacing: .15em; }
   #toast { position: absolute; left: 0; right: 0; bottom: 22vh; text-align: center; font-size: 18px; letter-spacing: .3em; color: #ffd27a; opacity: 0; }
   #toast.show { animation: toast 1.2s; } @keyframes toast { 0% { opacity: 0; transform: translateY(10px); } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
   .dmg { position: absolute; font: 900 italic 22px Georgia, serif; color: #fff1c9; -webkit-text-stroke: 1px #3a1a08; pointer-events: none;
@@ -123,6 +126,7 @@
   <div id="combo"><span id="combo-n">0</span><small>连击 HITS</small></div>
   <div id="flash"></div>
   <div id="toast"></div>
+  <div id="practice"></div>
   <div id="result"></div>
   <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
   <div id="select"><h1>选择持名者</h1><div id="cards"></div><div id="select-row"><div id="detail"></div><img id="full" alt="" /></div>

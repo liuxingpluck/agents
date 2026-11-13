@@ -137,7 +137,7 @@ function buildSelect() {
     const portrait = findArt(`portraits/${h.id}`);
     if (portrait) { card.classList.add('art'); card.style.backgroundImage = `linear-gradient(transparent 40%, #000c), url(${portrait})`; }
     card.innerHTML = `<b>${h.name}</b><span>${ROLE_NAME[h.role] ?? h.role}</span>`;
-    card.addEventListener('click', () => { if (heroIndex === i) newRun(); else { heroIndex = i; refreshSelect(); } });
+    card.addEventListener('click', () => { if (heroIndex === i) confirmSelect(); else { heroIndex = i; refreshSelect(); } });
     cardsEl.appendChild(card);
   });
 }
@@ -217,6 +217,54 @@ const chapter = (): ChapterDef => CHAPTERS[run!.chapter];
 const nodeOf = (id: string): MapNode => chapter().nodes.find(n => n.id === id)!;
 
 /** 用选中的角色开始一段新旅程 */
+// ---------- 练习场 ----------
+
+/** 选人确认后去哪:run 开始旅程 / practice 进练习场 */
+let selectMode: 'run' | 'practice' = 'run';
+/** 是否在练习场(无限血木桩、能量常满、不会过关也不会死) */
+let practice = false;
+/** 练习场的木桩,以及本次练习打出的最高连击伤害 */
+let dummy: Fighter | null = null;
+let bestComboDamage = 0;
+let lastPracticeMove: Fighter['move'] = null;
+
+function confirmSelect() { if (selectMode === 'practice') startPractice(); else newRun(); }
+
+/** 进入练习场:一个不会还手的木桩,用来练连招、看帧数 */
+function startPractice() {
+  const room = ROOMS.outpost;
+  world = createWorld(room, ROSTER, 1);
+  world.useWaves = false; world.drops = false;
+  player = spawnFighter(world, HEROES[heroIndex], 0, 8, room.depth / 2);
+  dummy = spawnFighter(world, ROSTER.husk, 1, 10, room.depth / 2);
+  gfx.buildRoom(room, 11);
+  hud.setPlayer(player);
+  closeOverlays();
+  rec = null; practice = true; bestComboDamage = 0; lastPracticeMove = null;
+  phase = 'play';
+  hud.flash('练习场 · Tab 招式表 · Esc 返回');
+}
+
+/** 练习场每帧的维护:木桩回满血、玩家能量与生命回满,并刷新帧数据面板 */
+function updatePractice() {
+  const d = dummy!;
+  bestComboDamage = Math.max(bestComboDamage, d.comboDamage);
+  if (d.comboCount === 0) { d.hp = d.def.stats.hp; }
+  else d.hp = Math.max(d.hp, 5);                      // 连击中也不让木桩被打死
+  player.energy = player.def.stats.energyMax;
+  player.hp = player.def.stats.hp;
+  // 木桩被打到版边就挪回场地中间,方便继续练
+  if (d.state === 'idle' && (d.x < 3 || d.x > world.room.width - 3)) d.x = world.room.width / 2 + 2;
+  if (player.move) lastPracticeMove = player.move; // 招式结束后继续显示上一招的数据
+  const m = lastPracticeMove;
+  $('wave').textContent = '练习场';
+  $('practice').innerHTML =
+    `<b>${m ? m.name : '—'}</b>` +
+    (m ? `<span>前摇 ${m.startup} · 判定 ${m.active} · 收招 ${m.recovery} 帧</span><span>伤害 ${m.damage}${m.rehit ? '(多段)' : ''} · 僵直 ${m.hitstun} 帧${m.launch ? ' · 挑空' : ''}${m.knockdown ? ' · 击倒' : ''}${m.armor ? ' · 霸体' : ''}</span>`
+       : `<span>出招后这里显示帧数据</span><span>&nbsp;</span>`) +
+    `<span>连击 ${d.comboCount} 下 · 本套伤害 ${d.comboDamage} · 最高 ${bestComboDamage}</span>`;
+}
+
 function newRun() {
   const ch = CHAPTERS[startChapter];
   run = { hero: HEROES[heroIndex].id, chapter: startChapter, node: null, avail: [...ch.start], cleared: [], hp: 1 };
@@ -449,9 +497,11 @@ function ending() {
 /** 显示标题画面(有存档时多一个「继续」选项)。 */
 function showTitle() {
   phase = 'title';
+  practice = false; dummy = null;
   closeOverlays();
   const saved = loadRun();
   hud.banner('烬渊', `<em>ASHEN ABYSS</em><br><br>十位持名者,向无王之都进发。<br><br>按 <b>Enter</b> 开始新的旅程` +
+    `<br>按 <b>T</b> 进入练习场(木桩 + 帧数据)` +
     (loadReplay() ? `<br>按 <b>R</b> 观看上一场战斗的回放` : '') +
     (saved ? `<br>按 <b>C</b> 继续上次的旅程(${ROSTER[saved.hero].name} · ${CHAPTERS[saved.chapter].name})` : '') +
     (CHAPTERS.length > BUILTIN_CHAPTERS ? `<br>按 <b>M</b> 切换章节:<b>${CHAPTERS[startChapter].name}</b>` : ''));
@@ -472,7 +522,8 @@ input.onKey = code => {
   const ok = enter || code === 'KeyJ';
   switch (phase) {
     case 'title':
-      if (ok) openSelect();
+      if (ok) { selectMode = 'run'; openSelect(); }
+      else if (code === 'KeyT') { selectMode = 'practice'; openSelect(); }
       else if (code === 'KeyR') startReplay();
       else if (code === 'KeyM' && CHAPTERS.length > BUILTIN_CHAPTERS) {
         // 在「第一章」和各个自制章节之间循环
@@ -486,7 +537,7 @@ input.onKey = code => {
       if (code === 'KeyA' || code === 'ArrowLeft') heroIndex = (heroIndex + n - 1) % n;
       else if (code === 'KeyD' || code === 'ArrowRight') heroIndex = (heroIndex + 1) % n;
       else if (['KeyW', 'ArrowUp', 'KeyS', 'ArrowDown'].includes(code)) heroIndex = (heroIndex + 5) % n;
-      else if (ok) { newRun(); return; }
+      else if (ok) { confirmSelect(); return; }
       else if (code === 'Escape') { showTitle(); return; }
       refreshSelect();
       break;
@@ -501,7 +552,7 @@ input.onKey = code => {
       drawMap();
       break;
     }
-    case 'play': if (code === 'Escape') { run!.node = null; showTitle(); } break;
+    case 'play': if (code === 'Escape') { if (run) run.node = null; showTitle(); } break;
     case 'clear': if (enter) leaveRoom(); break;
     case 'dead': if (enter) { run!.hp = 1; enterNode(run!.node!); } break; // 原地续关,生命回满
     case 'ending': if (enter) showTitle(); break;
@@ -539,6 +590,7 @@ function frame(now: number) {
   const t0 = performance.now();
   const active = phase === 'play' || phase === 'clear';
   document.body.classList.toggle('playing', active); // 触屏按键只在战斗中显示
+  $('practice').style.display = practice && active ? 'flex' : 'none';
   while (acc >= STEP && steps < 5) {
     // 本步的输入:玩家用键盘/手柄(回放时取录像里的按键),其他角色由 AI 自己决定
     const inputs = new Map<number, number>();
@@ -566,11 +618,13 @@ function frame(now: number) {
       }
     }
     hud.update(world, player, STEP);
+    if (practice && phase === 'play') updatePractice();
     if (phase === 'play') {
       stats.frames++;
       stats.damageTaken += Math.max(0, hpBefore - player.hp);
       for (const e of world.events) if (e.type === 'hit' && e.attacker === player.id) stats.maxCombo = Math.max(stats.maxCombo, e.combo);
-      if (world.cleared) { saveReplay(); onRoomCleared(); }
+      if (practice) { /* 练习场没有过关与阵亡 */ }
+      else if (world.cleared) { saveReplay(); onRoomCleared(); }
       else if (player.state === 'dead') {
         saveReplay();
         phase = 'dead';
