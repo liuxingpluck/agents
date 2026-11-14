@@ -1,0 +1,488 @@
+{
+  "date": "2026-11-15",
+  "requested": 17,
+  "delivered": 17,
+  "frames": 140,
+  "outputFiles": 34,
+  "assets": [
+    {
+      "path": "art/source/fx-anim/slash.gif",
+      "stripPath": "art/source/fx-anim/slash.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": false,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: game animation SPRITE SHEET containing exactly EIGHT consecutive animation frames, not one large effect.\nLayout: wide canvas 2048x1024, EXACTLY 4 equal columns by 2 equal rows, eight square cells with identical dimensions, ordered left-to-right then top-to-bottom. The grid fills the entire canvas. No grid lines, borders, gutters, text, labels or frame numbers. PURE BLACK background everywhere.\nPrimary request: frame-by-frame animated game visual effect, a crescent sword-slash arc sweeping from the upper left down to the lower right, the arc bulges toward the RIGHT, appears thin, flares to full brightness, then thins out and vanishes. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black\nDraw eight genuinely different TIME frames of ONE crescent sword-slash motion, all on the SAME fixed camera and registration, with safe black margin inside every cell. Never draw an effect crossing between cells.\nCell 1 (top-left): completely BLACK, empty pre-effect frame.\nCell 2: tiny thin curved white glint in the upper-left of the same action area.\nCell 3: growing crescent slash extending downward-right, arc bulges toward RIGHT.\nCell 4: strong bright sweeping crescent.\nCell 5 (bottom-left): PEAK bright broad crescent, arc bulges RIGHT.\nCell 6: narrow fading crescent at same registration.\nCell 7: sparse tiny white fragments almost vanished.\nCell 8 (bottom-right): completely BLACK, empty final frame.\nOnly WHITE and LIGHT GREY on opaque pure black, no color, scenery, character, camera move or zoom. Each cell shows a COMPLETE registered effect for that moment, never pieces sliced out of a single large illustration. Keep at least 12% black padding on every side of every cell.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/fx-anim/hit.gif",
+      "stripPath": "art/source/fx-anim/hit.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 6,
+      "encodedUniqueFrames": 6,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": false,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: GAME ANIMATION SPRITE ATLAS containing exactly 6 genuinely consecutive time frames, NOT one large illustration and NOT mechanical slices of one still.\nLayout: 1536x1024 canvas, EXACTLY 3 equal columns by 2 equal rows. Every cell is square, equal in size, ordered left-to-right then top-to-bottom. The equal grid fills the entire canvas. No grid lines, borders, gutters, text, frame numbers, labels, decorative panels or spacing.\nPrimary request: frame-by-frame animated game visual effect, a sharp impact spark burst at the exact center, spikes shoot outward and fade. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black\nOPAQUE PURE BLACK background throughout every cell; WHITE to LIGHT GREY effects only, absolutely no hue or colored glow.\nEvery frame must depict the COMPLETE subject at one consecutive moment of the SAME action. All movement must be real pose/limb/hair/effect changes across time. Keep camera angle, scale, and registration fixed. Never draw any part of a character, weapon or effect across a cell boundary. Leave at least 12% empty padding inside EACH cell, including above head, under feet and beyond all weapon tips. Do not zoom or independently enlarge/recenter a pose in a later frame.\nOne-shot effect: the first and final cells MUST be COMPLETELY PURE BLACK and empty, with the visible peak in the middle.\nExact time sequence:\nCell 1: Completely BLACK empty frame before impact.\nCell 2: Tiny sharp white spark appears precisely at the center.\nCell 3: PEAK impact flash: large bright radial starburst with white spikes reaching outward, still safely within cell.\nCell 4: Spikes stretch and thin as the central light rapidly fades.\nCell 5: Only a few tiny faint grey spark fragments remain near the same center.\nCell 6: Completely BLACK empty frame after all sparks vanish.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/fx-anim/explosion.gif",
+      "stripPath": "art/source/fx-anim/explosion.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 12,
+      "encodedUniqueFrames": 12,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": false,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: game VFX ANIMATION SPRITE ATLAS with EXACTLY TWELVE consecutive time frames.\nCanvas/layout: 2048x1536 canvas, exactly FOUR equal columns by THREE equal rows; TWELVE identical square cells fill the full image edge-to-edge. Read left-to-right then top-to-bottom. No visible grid lines, borders, text, labels, numbers or gutters. OPAQUE PURE BLACK everywhere behind each effect.\nPrimary request: frame-by-frame animated game visual effect, an explosion at the exact center: bright flash, expanding fireball with rolling turbulent edges, then breaking into fading smoke wisps. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black\nEvery cell is a COMPLETE independent frame of the SAME center-registered explosion, not a fragment of a large illustration. Fixed camera and registration. Keep 12% pure-black safe margin inside EVERY cell so no effect crosses a cell boundary.\nFRAME 1 (top-left): entirely pure BLACK, no light or smoke at all.\nFRAME 2: very tiny central white flash.\nFRAME 3: compact bright burst begins at the exact same center.\nFRAME 4: small expanding turbulent white fireball.\nFRAME 5: bright larger fireball with rolling grey edges.\nFRAME 6: PEAK brightness, broad turbulent explosion safely within margins.\nFRAME 7: expansion slows, ragged rolling edges and light-grey flame tongues.\nFRAME 8: fireball breaks into fading grey smoke wisps.\nFRAME 9: sparse curling smoke at the same registered center.\nFRAME 10: only very faint isolated grey smoke scraps.\nFRAME 11: almost entirely black, a few tiny dim specks.\nFRAME 12 (bottom-right): entirely pure BLACK, no light or smoke at all.\nWhite and light grey only, no colors, no character, no scenery. Each frame must show a genuine different temporal phase. No camera motion, scale drift or detached duplicate explosion. Never draw one large blast spanning cells.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1448,
+        1086
+      ],
+      "grid": [
+        4,
+        3
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/fx-anim/pillar.gif",
+      "stripPath": "art/source/fx-anim/pillar.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 12,
+      "encodedUniqueFrames": 12,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": false,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: genuine TIME-SEQUENTIAL animation SPRITE SHEET, not one large illustration and not a single pose.\nLayout: canvas 2048x1536; EXACTLY 4 equal columns by 3 equal rows, 12 square cells. Read LEFT to RIGHT then TOP to BOTTOM. The equal grid fills the whole image, no gutters, borders, gridlines, text, labels or frame numbers.\nPrimary request: frame-by-frame animated game visual effect, a pillar of flame erupting straight up from the bottom-center of the image, rising to nearly full height, then narrowing and dying down. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black\nTemporal sequence:\nCell 1: black empty.\nCell 2: tiny white ignition at bottom center.\nCell 3: low flame rising.\nCell 4: flame grows to quarter height.\nCell 5: half-height pillar.\nCell 6: three-quarter-height pillar.\nCell 7: maximum tall flame pillar.\nCell 8: slightly narrower tall pillar.\nCell 9: shrinking half-height flame.\nCell 10: low dying flame.\nCell 11: tiny fading wisps.\nCell 12: black empty.\nEach cell must contain ONE COMPLETE independently registered frame, not a cropped fragment of a large image. Draw genuinely different incremental action states. Fixed side camera, same subject size, viewpoint, proportions and position registration across ALL cells; no camera motion or per-cell zoom.\nOpaque PURE BLACK background across every cell, WHITE/LIGHT GREY effect ONLY, absolutely no color or character. Keep complete effect within each cell, with black margin and no crossing between cells. Pillar base fixed at bottom-center in every frame; fireball core stays fixed at center and tail points LEFT. For one-shot effects first and last cells are almost completely black.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1448,
+        1086
+      ],
+      "grid": [
+        4,
+        3
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/fx-anim/lightning.gif",
+      "stripPath": "art/source/fx-anim/lightning.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": false,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: GAME ANIMATION SPRITE ATLAS containing exactly 8 genuinely consecutive time frames, NOT one large illustration and NOT mechanical slices of one still.\nLayout: 2048x1024 canvas, EXACTLY 4 equal columns by 2 equal rows. Every cell is square, equal in size, ordered left-to-right then top-to-bottom. The equal grid fills the entire canvas. No grid lines, borders, gutters, text, frame numbers, labels, decorative panels or spacing.\nPrimary request: frame-by-frame animated game visual effect, a jagged lightning bolt striking from the top-center straight down to the bottom-center, with a bright flash at the ground on impact, then flickering out. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black\nOPAQUE PURE BLACK background throughout every cell; WHITE to LIGHT GREY effects only, absolutely no hue or colored glow.\nEvery frame must depict the COMPLETE subject at one consecutive moment of the SAME action. All movement must be real pose/limb/hair/effect changes across time. Keep camera angle, scale, and registration fixed. Never draw any part of a character, weapon or effect across a cell boundary. Leave at least 12% empty padding inside EACH cell, including above head, under feet and beyond all weapon tips. Do not zoom or independently enlarge/recenter a pose in a later frame.\nOne-shot effect: the first and final cells MUST be COMPLETELY PURE BLACK and empty, with the visible peak in the middle.\nExact time sequence:\nCell 1: Completely BLACK empty frame before lightning.\nCell 2: A tiny faint jagged glint appears at the TOP CENTER of the fixed action area.\nCell 3: The lightning leader grows straight DOWN through the upper half.\nCell 4: A bright jagged lightning bolt connects TOP CENTER to BOTTOM CENTER; small ground impact begins.\nCell 5: PEAK white bolt and a bright low ground-impact flash, registered in exactly the same place.\nCell 6: The bolt narrows and fades, with a few short flickering branches.\nCell 7: Only two or three tiny faint grey remnants; almost entirely black.\nCell 8: Completely BLACK empty frame after lightning disappears.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/fx-anim/shockwave.gif",
+      "stripPath": "art/source/fx-anim/shockwave.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 10,
+      "encodedUniqueFrames": 10,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": false,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: game VFX ANIMATION SPRITE ATLAS with EXACTLY TEN consecutive time frames.\nCanvas/layout: wide 2560x1024 canvas, exactly FIVE equal columns by TWO equal rows; TEN identical square cells fill the full canvas. Order left-to-right then top-to-bottom. No grid lines, borders, gaps, text, labels, or numbers. Fully opaque PURE BLACK background.\nPrimary request: frame-by-frame animated game visual effect, a ground dust shockwave seen from the side: a low wall of dust and debris bursting up at the bottom-center and spreading outward to both left and right along the bottom edge, then settling. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black\nEvery cell contains a complete registered side-view ground shockwave at the SAME bottom-center origin and baseline. This is ten genuinely different temporal stages, never pieces of one giant illustration. Fixed camera, fixed cell scale, at least 12% black safety margin within every cell; nothing crosses a cell boundary.\nFRAME 1 (top-left): completely BLACK and empty.\nFRAME 2: tiny bright dust spark at the fixed bottom-center origin.\nFRAME 3: small low mound of white dust begins to burst up.\nFRAME 4: two low curved walls of dust start spreading left and right.\nFRAME 5: expanding low broad white/grey dust wall and small debris fragments.\nFRAME 6 (bottom-left): peak widest low shockwave, spreading equally toward left and right, staying within cell margins.\nFRAME 7: separated softer dust walls continue outward and begin settling.\nFRAME 8: only faint low drifting dust wisps and a few small falling debris specks.\nFRAME 9: almost completely black, a tiny amount of very dim settled dust.\nFRAME 10 (bottom-right): completely BLACK and empty.\nWHITE and LIGHT GREY only on black; no color, text, scenery, character, camera movement, zoom or perspective change.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1983,
+        793
+      ],
+      "grid": [
+        5,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/fx-anim/flame.gif",
+      "stripPath": "art/source/fx-anim/flame.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 15,
+      "durationPerFrameMs": 70,
+      "loop": true,
+      "animationKind": "effects",
+      "prompt": "Use case: stylized-concept.\nAsset type: genuine TIME-SEQUENTIAL animation SPRITE SHEET, not one large illustration and not a single pose.\nLayout: canvas 2048x1024; EXACTLY 4 equal columns by 2 equal rows, 8 square cells. Read LEFT to RIGHT then TOP to BOTTOM. The equal grid fills the whole image, no gutters, borders, gridlines, text, labels or frame numbers.\nPrimary request: frame-by-frame animated game visual effect, a ball of fire with a flickering tail trailing to the LEFT, as if flying to the right, seamless loop. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames\nTemporal sequence:\nCell 1: bright core and short leftward tail.\nCell 2: tail flickers upward.\nCell 3: tail stretches left.\nCell 4: tail curl bends downward.\nCell 5: tail flickers down.\nCell 6: tail shortens.\nCell 7: tail curls upward again.\nCell 8: tail eases toward first frame.\nEach cell must contain ONE COMPLETE independently registered frame, not a cropped fragment of a large image. Draw genuinely different incremental action states. Fixed side camera, same subject size, viewpoint, proportions and position registration across ALL cells; no camera motion or per-cell zoom.\nOpaque PURE BLACK background across every cell, WHITE/LIGHT GREY effect ONLY, absolutely no color or character. Keep complete effect within each cell, with black margin and no crossing between cells. Pillar base fixed at bottom-center in every frame; fireball core stays fixed at center and tail points LEFT. For one-shot effects first and last cells are almost completely black.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom",
+      "referenceAssets": [],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": false,
+      "gifMatte": "grayscale on black",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/li/idle.gif",
+      "stripPath": "art/source/anim/li/idle.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 6,
+      "encodedUniqueFrames": 6,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": true,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: GAME ANIMATION SPRITE ATLAS containing exactly 6 genuinely consecutive time frames, NOT one large illustration and NOT mechanical slices of one still.\nLayout: 1536x1024 canvas, EXACTLY 3 equal columns by 2 equal rows. Every cell is square, equal in size, ordered left-to-right then top-to-bottom. The equal grid fills the entire canvas. No grid lines, borders, gutters, text, frame numbers, labels, decorative panels or spacing.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine transparent alpha background with no shadow, no visual effects, no text\nInput image 1 is an IDENTITY AND STYLE reference for a NEW animation atlas, not an edit target. Preserve exactly the same ADULT character's face, hair, body, clothing, palette and weapons. Every cell has real transparent alpha, no colored background or checkerboard.\nEvery frame must depict the COMPLETE subject at one consecutive moment of the SAME action. All movement must be real pose/limb/hair/effect changes across time. Keep camera angle, scale, and registration fixed. Never draw any part of a character, weapon or effect across a cell boundary. Leave at least 12% empty padding inside EACH cell, including above head, under feet and beyond all weapon tips. Do not zoom or independently enlarge/recenter a pose in a later frame.\nFull body side view facing RIGHT. One whole character per cell, same size and same ground line in all cells. No opponent, extra people, duplicate limbs, detached weapons, scenery, floor shadow, aura, magic, slash trails or any VFX. Preserve complete weapon shape within every cell.\nExact time sequence:\nCell 1: Ready stance, feet fixed, breathing neutral; ponytail resting slightly backward.\nCell 2: A small inhale lifts chest and shoulders very slightly; ponytail and ribbon begin to sway backward.\nCell 3: Top of gentle inhale; hair and fabric reach a small rearward sway.\nCell 4: Small exhale relaxes shoulders; hair and ribbon pass through neutral.\nCell 5: Bottom of gentle exhale; ponytail and dress fabric sway slightly forward.\nCell 6: Return toward the initial ready pose; hair and fabric smoothly approach their first-frame position.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/li/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/li/run.gif",
+      "stripPath": "art/source/anim/li/run.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": true,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: a NEW eight-frame in-place RUN ANIMATION SPRITE ATLAS, character identity/style referenced from input image 1.\nCanvas/layout: 2048x1024 canvas, EXACTLY FOUR equal columns and TWO equal rows, EIGHT equal square cells filling the entire canvas. Read left-to-right then top-to-bottom. NO grid lines, borders, gaps, labels, text or numbers.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine fully transparent alpha background with no ground shadow, no visual effects, no text\nInput image 1 is the identity and style reference only. Preserve this exact adult woman's face, ponytail, teal ribbon, white-and-teal martial dress, stockings, proportions and complete white-shafted spear.\nExactly ONE complete Li character per cell, strict SIDE VIEW FACING RIGHT. Fixed body scale, fixed torso registration and slight forward lean, same near-ground baseline at 88% cell height in every cell. Whole spear and hair remain within each cell; at least 12% safe transparent margin around each frame, no part crosses a cell boundary. She runs IN PLACE without translating horizontally. Hair and cloth stream left naturally.\nEight genuinely different sequential gait phases:\n1 top-left: left leg contacts forward, right leg stretched back.\n2: left supporting leg bends under weight, right heel rises.\n3: left leg supports while right knee passes beneath the hip.\n4: right knee rises forward, left leg begins to push back.\n5 bottom-left: right leg contacts forward, left leg stretched back.\n6: right supporting leg bends under weight, left heel rises.\n7: right leg supports while left knee passes beneath the hip.\n8 bottom-right: left knee rises forward, right leg begins to push back, ready to transition smoothly to frame 1.\nKeep torso lean, head height, face, weapon shape and spear grip consistent across all cells. Do not copy an identical pose eight times; this must be a real run cycle.\nREAL TRANSPARENT alpha background in all empty areas, no colored matte, no checkerboard pattern, no ground, no shadow, no glow or visual effects. Adult fully clothed character.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/li/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/li/light.gif",
+      "stripPath": "art/source/anim/li/light.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 6,
+      "encodedUniqueFrames": 6,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": false,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nGenerate a NEW SMALL-SPRITE animation atlas using the input ONLY as an identity and art-style reference. Do NOT copy its large framing.\nEXACT LAYOUT: 3 equal columns by 2 equal rows, 6 square cells, canvas 1536x1024, read left-to-right then top-to-bottom. No cell borders, gutters, text or labels.\nMOST IMPORTANT FRAMING RULE: every COMPLETE drawn pose including the ENTIRE weapon, shield, hair and cape must fit INSIDE the CENTRAL 60% of its cell. Leave at least 20% EMPTY TRANSPARENT MARGIN on ALL FOUR SIDES of EVERY cell. Make all characters substantially SMALLER than in the input reference. Select ONE common small body scale that fits the WIDEST weapon pose, and use that same scale for every frame. Do not zoom individual frames. Never let a spear, sword, shield, cape or limb touch or cross any cell edge.\nCharacter identity and style: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. \nAction:  one quick light attack: short wind-up, fast strike forward with the weapon, snap back to the ready stance. \nCell 1: ready spear stance.\nCell 2: small anticipation drawing the spear back.\nCell 3: fast forward spear thrust to RIGHT.\nCell 4: complete extended thrust follow-through.\nCell 5: recover the spear.\nCell 6: ready stance.\nAll 6 cells depict genuinely different successive time states of ONE action, same adult character, same face, hair, costume, palette, weapons, body proportions and fixed side-view camera. Face RIGHT throughout. Keep each figure at the same registration and feet on the same horizontal line inside the central safe rectangle. No opponent, visual effects, scenery, floor, shadow or camera motion.\nOUTPUT PNG MUST HAVE REAL TRANSPARENT ALPHA: all empty canvas pixels, including the four 20% margins in every cell, must have alpha exactly ZERO. Subject opaque with clean antialiased edges; no semi-transparent grey sheet or background plane. No drawn transparency checkerboard.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/li/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/li/heavy.gif",
+      "stripPath": "art/source/anim/li/heavy.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": false,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: GAME ANIMATION SPRITE ATLAS containing exactly 8 genuinely consecutive time frames, NOT one large illustration and NOT mechanical slices of one still.\nLayout: 2048x1024 canvas, EXACTLY 4 equal columns by 2 equal rows. Every cell is square, equal in size, ordered left-to-right then top-to-bottom. The equal grid fills the entire canvas. No grid lines, borders, gutters, text, frame numbers, labels, decorative panels or spacing.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: one powerful heavy attack: clear wind-up pulling the weapon back, big committed swing or thrust forward, follow-through, recover to the ready stance. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine transparent alpha background with no shadow, no visual effects, no text\nInput image 1 is an IDENTITY AND STYLE reference for a NEW animation atlas, not an edit target. Preserve exactly the same ADULT character's face, hair, body, clothing, palette and weapons. Every cell has real transparent alpha, no colored background or checkerboard.\nEvery frame must depict the COMPLETE subject at one consecutive moment of the SAME action. All movement must be real pose/limb/hair/effect changes across time. Keep camera angle, scale, and registration fixed. Never draw any part of a character, weapon or effect across a cell boundary. Leave at least 12% empty padding inside EACH cell, including above head, under feet and beyond all weapon tips. Do not zoom or independently enlarge/recenter a pose in a later frame.\nFull body side view facing RIGHT. One whole character per cell, same size and same ground line in all cells. No opponent, extra people, duplicate limbs, detached weapons, scenery, floor shadow, aura, magic, slash trails or any VFX. Preserve complete weapon shape within every cell.\nExact time sequence:\nCell 1: Ready spear combat stance facing RIGHT.\nCell 2: Begin deliberate heavy wind-up: brace legs, draw spear back.\nCell 3: Deep wind-up: hips turn slightly, spear hand fully pulled back, complete spear within cell.\nCell 4: Begin the powerful forward drive and thrust to RIGHT.\nCell 5: PEAK committed heavy spear thrust to RIGHT, body extended, entire weapon and blade visible.\nCell 6: Follow-through: retain extended spear but start settling the front leg.\nCell 7: Withdraw spear while returning torso toward the ready position.\nCell 8: Recover to the same registered ready stance.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/li/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/li/special.gif",
+      "stripPath": "art/source/anim/li/special.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 10,
+      "encodedUniqueFrames": 10,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": false,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: NEW TEN-frame game character animation atlas. Reference image 1 is adult Li identity/style only.\nExactly FIVE equal columns by TWO equal rows of equal SQUARE cells; whole canvas aspect 5:2, cells tile the entire canvas, no visible separators, grid lines, borders, gutters, labels or numbers. Order left-to-right then top-to-bottom.\ndark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: signature special technique: gather power, unleash a dramatic strike forward with the weapon, hold the finishing pose briefly, recover. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine transparent alpha background with no shadow, no visual effects, no text\nCRITICAL FRAMING: render each COMPLETE character deliberately SMALL within its own cell. In EVERY cell, head-to-feet body height is at most 40% of cell height; the complete full-length spear plus body must fit in the CENTRAL 65% of cell width. Keep all nontransparent pixels within x=17%..83% and y=15%..85% of THAT cell. Entire spear tip and rear shaft must remain far from the cell boundary even at maximum thrust. Keep at least 15% empty transparent space around the WHOLE character AND WEAPON in every frame. The image is ten separate COMPLETE small figures, never a polearm spanning neighboring cells.\nSame adult Li face, long black ponytail, teal ribbon, white/teal dress, white stockings, exact long white-shafted spear with silver blade. ONE Li per cell, side view facing RIGHT. Same fixed small body scale in all frames, feet at exactly 80% cell height, root registered at each cell center. Fixed camera, no zoom or character translation.\nSequential poses, one per cell:\n1 ready combat stance.\n2 knees lower slightly to prepare.\n3 draw spear backward and coil shoulders, full rear shaft stays inside cell.\n4 start rotating forward, front foot plants.\n5 arms push spear forward, whole blade visible inside central area.\n6 full forward thrust, complete spear remains within central 65% cell width; do not enlarge character.\n7 beginning recoil, small cape and ponytail follow-through.\n8 briefly held finishing posture with distinct cloth motion.\n9 withdraw spear toward ready.\n10 recover upright toward initial stance.\nAll ten poses must be genuine consecutive distinct animation time frames. Keep clothing, face, weapon and size exactly consistent. Native transparent alpha background, NO colored matte or checkerboard. No glow, slash trails, visual effects, floor, shadow, second person, text or extra weapons.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/li/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1983,
+        793
+      ],
+      "grid": [
+        5,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/kael/idle.gif",
+      "stripPath": "art/source/anim/kael/idle.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 6,
+      "encodedUniqueFrames": 6,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": true,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: genuine TIME-SEQUENTIAL animation SPRITE SHEET, not one large illustration and not a single pose.\nLayout: canvas 1536x1024; EXACTLY 3 equal columns by 2 equal rows, 6 square cells. Read LEFT to RIGHT then TOP to BOTTOM. The equal grid fills the whole image, no gutters, borders, gridlines, text, labels or frame numbers.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuinely transparent alpha background with no shadow, no visual effects, no text\nTemporal sequence:\nCell 1: neutral ready stance.\nCell 2: subtle inhale and small cape sway.\nCell 3: chest rises slightly, hair shifts.\nCell 4: gentle exhale and cape sway reverses.\nCell 5: chest lowers, cape settles.\nCell 6: ease toward the initial ready stance.\nEach cell must contain ONE COMPLETE independently registered frame, not a cropped fragment of a large image. Draw genuinely different incremental action states. Fixed side camera, same subject size, viewpoint, proportions and position registration across ALL cells; no camera motion or per-cell zoom.\nInput image 1 is an IDENTITY AND STYLE reference for the exact same adult character, not an edit target and not the target pose. Preserve the exact face, hair, armor/clothing colors, proportions, complete weapons and shield in EVERY frame. All frames face RIGHT, show the whole single character and all equipment fully inside each cell with safe margins. The feet share the same fixed ground line at 94% of each cell's height; head/body scale stays consistent. No scenery, floor, ground shadow, text, duplicate body, opponent, glows or effects. REAL TRANSPARENT ALPHA background for the entire PNG sheet, not magenta and not a painted checkerboard. The animation is in place; displacement is handled by game code.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/kael/run.gif",
+      "stripPath": "art/source/anim/kael/run.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": true,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: GAME ANIMATION SPRITE ATLAS containing exactly 8 genuinely consecutive time frames, NOT one large illustration and NOT mechanical slices of one still.\nLayout: 2048x1024 canvas, EXACTLY 4 equal columns by 2 equal rows. Every cell is square, equal in size, ordered left-to-right then top-to-bottom. The equal grid fills the entire canvas. No grid lines, borders, gutters, text, frame numbers, labels, decorative panels or spacing.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine transparent alpha background with no shadow, no visual effects, no text\nInput image 1 is an IDENTITY AND STYLE reference for a NEW animation atlas, not an edit target. Preserve exactly the same ADULT character's face, hair, body, clothing, palette and weapons. Every cell has real transparent alpha, no colored background or checkerboard.\nEvery frame must depict the COMPLETE subject at one consecutive moment of the SAME action. All movement must be real pose/limb/hair/effect changes across time. Keep camera angle, scale, and registration fixed. Never draw any part of a character, weapon or effect across a cell boundary. Leave at least 12% empty padding inside EACH cell, including above head, under feet and beyond all weapon tips. Do not zoom or independently enlarge/recenter a pose in a later frame.\nFull body side view facing RIGHT. One whole character per cell, same size and same ground line in all cells. No opponent, extra people, duplicate limbs, detached weapons, scenery, floor shadow, aura, magic, slash trails or any VFX. Preserve complete weapon shape within every cell.\nExact time sequence:\nCell 1: Running in place facing RIGHT: left leg fully forward, right leg extended backward.\nCell 2: Left foot contacts fixed ground line, right heel lifts and bends behind.\nCell 3: Left leg supports body, right knee travels forward past left knee.\nCell 4: Right leg extends forward preparing landing, left leg lifts backward.\nCell 5: Running opposite full stride: right leg fully forward, left leg extended backward.\nCell 6: Right foot contacts fixed ground line, left heel lifts and bends behind.\nCell 7: Right leg supports body, left knee travels forward past right knee.\nCell 8: Left leg extends toward the first-frame stride, right leg lifts backward; seamless return.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/kael/light.gif",
+      "stripPath": "art/source/anim/kael/light.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 6,
+      "encodedUniqueFrames": 6,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": false,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: NEW SIX-frame quick sword attack game animation atlas.\nCanvas/layout: 1536x1024 canvas, exactly THREE equal columns by TWO equal rows of equal SQUARE cells, cells fill the whole canvas. Read left-to-right then top-to-bottom. No visible grid lines, borders, gaps, labels, numbers or text.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: one quick light attack: short wind-up, fast strike forward with the weapon, snap back to the ready stance. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine transparent alpha background with no shadow, no visual effects, no text\nReference image 1 is adult Kael's identity/style only. Keep exact face, short dark hair, steel armor, crimson cape, longsword in right hand and kite shield on left arm.\nCRITICAL FRAMING: render every COMPLETE Kael figure SMALL within its OWN cell. Body head-to-feet height must be at most 55% of cell height, identical in all six frames. Entire character, cape, shield AND COMPLETE SWORD must fit within the CENTRAL 70% of each cell width and height, with all visible pixels within x=15%..85%, y=15%..85% in that cell. Sword tip must stay comfortably inside its own cell even at the strongest strike. Keep at least 15% transparent padding around the FULL sword and FULL body. Never let any weapon or body part cross a cell boundary. Do not crop or enlarge the attack frame.\nStrict side view facing RIGHT, fixed small character scale, same fixed root in each cell, feet at 80% of cell height. Fixed camera and no translation.\nSix different genuine time phases of one quick light slash:\n1 top-left ready sword/shield stance.\n2 top-middle short wind-up, right arm draws sword back.\n3 top-right initiate the forward cut, knees flex slightly.\n4 bottom-left peak forward slash toward RIGHT; COMPLETE sword visibly ends well inside the cell's central 70% area.\n5 bottom-middle follow-through and short recoil; complete sword still stays inside this same cell, no edge crossing.\n6 bottom-right recover toward ready, cape settling.\nUse the same correct body proportions, face, armor and weapon design in every frame; do not duplicate the still pose. No target, victim, opponent, magic, slash trail, glow or extra weapon.\nReal transparent alpha background everywhere outside each small character. No colored matte, checkerboard pattern, floor or shadow. Fully clothed adult knight.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/kael/heavy.gif",
+      "stripPath": "art/source/anim/kael/heavy.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 8,
+      "encodedUniqueFrames": 8,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": false,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nGenerate a NEW SMALL-SPRITE animation atlas using the input ONLY as an identity and art-style reference. Do NOT copy its large framing.\nEXACT LAYOUT: 4 equal columns by 2 equal rows, 8 square cells, canvas 2048x1024, read left-to-right then top-to-bottom. No cell borders, gutters, text or labels.\nMOST IMPORTANT FRAMING RULE: every COMPLETE drawn pose including the ENTIRE weapon, shield, hair and cape must fit INSIDE the CENTRAL 60% of its cell. Leave at least 20% EMPTY TRANSPARENT MARGIN on ALL FOUR SIDES of EVERY cell. Make all characters substantially SMALLER than in the input reference. Select ONE common small body scale that fits the WIDEST weapon pose, and use that same scale for every frame. Do not zoom individual frames. Never let a spear, sword, shield, cape or limb touch or cross any cell edge.\nCharacter identity and style: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. \nAction:  one powerful heavy attack: clear wind-up pulling the weapon back, big committed swing or thrust forward, follow-through, recover to the ready stance. \nCell 1: ready sword-and-shield stance.\nCell 2: draw sword back.\nCell 3: deeper wind-up.\nCell 4: powerful sword swing toward RIGHT.\nCell 5: full swing follow-through.\nCell 6: decelerate sword.\nCell 7: recover balance.\nCell 8: ready stance.\nAll 8 cells depict genuinely different successive time states of ONE action, same adult character, same face, hair, costume, palette, weapons, body proportions and fixed side-view camera. Face RIGHT throughout. Keep each figure at the same registration and feet on the same horizontal line inside the central safe rectangle. No opponent, visual effects, scenery, floor, shadow or camera motion.\nOUTPUT PNG MUST HAVE REAL TRANSPARENT ALPHA: all empty canvas pixels, including the four 20% margins in every cell, must have alpha exactly ZERO. Subject opaque with clean antialiased edges; no semi-transparent grey sheet or background plane. No drawn transparency checkerboard.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1774,
+        887
+      ],
+      "grid": [
+        4,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    },
+    {
+      "path": "art/source/anim/kael/special.gif",
+      "stripPath": "art/source/anim/kael/special.png",
+      "width": 512,
+      "height": 512,
+      "frameCount": 10,
+      "encodedUniqueFrames": 10,
+      "requestedFps": 12,
+      "durationPerFrameMs": 80,
+      "loop": false,
+      "animationKind": "characters",
+      "prompt": "Use case: stylized-concept.\nAsset type: production animation ATLAS of TEN genuinely consecutive frames of one knight's special sword attack.\nCanvas: 2560x1024, EXACTLY FIVE equal square columns and TWO equal rows, TEN equal cells ordered left to right then top to bottom. Grid covers the entire canvas. No borders, lines, gutters, labels, text or frame numbers.\nInput image 1 is identity and costume reference for a NEW atlas: preserve the same adult Kael, face, hair, blue-grey armor, red cape, longsword in RIGHT hand and kite shield on LEFT arm. No extra people.\nPrimary animation: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: signature special technique: gather power, unleash a dramatic strike forward with the weapon, hold the finishing pose briefly, recover. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, genuine transparent alpha background with no shadow, no visual effects, no text\nCRITICAL FRAMING: in EACH cell, fit the ENTIRE KNIGHT plus ENTIRE SWORD BLADE plus ENTIRE SHIELD plus ENTIRE CAPE within the CENTRAL SIXTY PERCENT of the cell. At least TWENTY PERCENT EMPTY TRANSPARENT PADDING on ALL FOUR sides of EVERY cell, including at the peak strike and the follow-through. Draw the knight SMALL ENOUGH to leave room for his full horizontal sword swing. Head-to-foot body height at most 55% of the cell, fixed in every frame; never enlarge the character to fill a cell. Weapon tips, cape and fingers must never touch or cross cell boundaries.\nNo motion trails or slash effects. No power aura. Fixed side camera, face RIGHT, identical body size and consistent baseline across all frames. The body may pose naturally but does not travel into the next cell. Genuine transparent alpha, no magenta, checkerboard, floor, ground shadow, scenery or colored background.\nActual time sequence:\nCell1: centered ready stance.\nCell2: small bracing crouch, sword drawn back, fully within central area.\nCell3: deepen wind-up, sword behind shoulder, full blade visible.\nCell4: maximum wind-up, shield in front, no weapon overlap with neighboring cell.\nCell5: begin strong sword strike to RIGHT, blade still entirely within central area.\nCell6: peak dramatic strike, entire sword TIP and knight retained inside central sixty percent, keep 20% transparent margin to RIGHT edge.\nCell7: follow-through, complete cape and sword retained inside central sixty percent, keep 20% transparent margin to LEFT edge.\nCell8: finishing pose, fixed scale, natural cape settling.\nCell9: withdraw sword and begin recovery.\nCell10: ready stance similar to Cell1.\nEach cell is a complete distinct moment of the SAME action and character, never segments cut from one large picture.\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects",
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ],
+      "method": "AI-generated temporal atlas; fixed-grid slicing and encoding",
+      "sourceAtlasSize": [
+        1983,
+        793
+      ],
+      "grid": [
+        5,
+        2
+      ],
+      "registration": "shared fixed grid and scale; no per-frame bounds fitting",
+      "pngAlpha": true,
+      "gifMatte": "#FF00FF",
+      "visualAcceptance": "not user accepted"
+    }
+  ]
+}
