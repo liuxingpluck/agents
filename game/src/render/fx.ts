@@ -3,7 +3,7 @@
 // 贴图默认用程序现画(下面的 DRAW 表);如果美术交了同名图片 art/fx/<名字>,就改用图片。
 import * as THREE from 'three';
 import { Fighter, MoveDef, Tier } from '../sim/types';
-import { findArt } from './art';
+import { AnimMeta, animMeta, findArt } from './art';
 
 export type FxTex = 'glow' | 'star' | 'crescent' | 'streak' | 'ring' | 'burst' | 'pillar' | 'circle' | 'crack' | 'smoke' | 'lines';
 
@@ -137,12 +137,45 @@ export function fxTexture(name: FxTex): THREE.Texture {
   return t;
 }
 
+/** 把贴图对准网格图里的第 i 帧(靠调整贴图的缩放和偏移实现,不用切图) */
+export function setAnimFrame(tex: THREE.Texture, a: AnimMeta, i: number) {
+  tex.repeat.set(1 / a.cols, 1 / a.rows);
+  tex.offset.set((i % a.cols) / a.cols, 1 - (Math.floor(i / a.cols) + 1) / a.rows);
+}
+
+const animBase = new Map<string, THREE.Texture>();
+/**
+ * 取一段逐帧动画的贴图副本(每个使用者一份,各播各的;图片数据是共用的)。
+ * 动画不存在或图片还没加载完时返回 null,调用方应退回到不带动画的画法。
+ */
+export function animTexture(key: string): { tex: THREE.Texture; meta: AnimMeta } | null {
+  const meta = animMeta(key);
+  if (!meta) return null;
+  let base = animBase.get(key);
+  if (!base) {
+    base = new THREE.TextureLoader().load(`./art/anim/${key}.webp`);
+    base.colorSpace = THREE.SRGBColorSpace;
+    animBase.set(key, base);
+  }
+  if (!base.image) return null;
+  const tex = base.clone();
+  tex.needsUpdate = true;
+  setAnimFrame(tex, meta, 0);
+  return { tex, meta };
+}
+/** 提前加载所有特效动画,免得第一次用到时还没加载好 */
+export function preloadFxAnims() {
+  for (const n of ['slash', 'hit', 'explosion', 'pillar', 'lightning', 'shockwave', 'flame']) animTexture(`fx/${n}`);
+}
+
 /** 各主角的特效配色:[亮芯, 外晕]。没列出的角色(敌人)用它外观里的发光色。 */
 const TINT: Record<string, [string, string]> = {
   kael: ['#fff0d0', '#ff8a3a'], brynn: ['#eef4ff', '#7fa8ff'], sera: ['#ffd27a', '#ff4a1a'], ilex: ['#e6ffc9', '#6ad86a'],
   rook: ['#fff1c9', '#ff5a2a'], vesper: ['#ecd9ff', '#9a4aff'], morgan: ['#d9ffe9', '#4dffa0'], odran: ['#ffd9c0', '#ff3a1a'],
   li: ['#f0fdff', '#5ad8e8'], nola: ['#fffbe0', '#ffd24a'],
 };
+/** 火系角色:范围法术喷火柱而不是落雷 */
+const FIRE = new Set(['sera', 'queenshade', 'ashling', 'emberbow']);
 const tintOf = (f: Fighter): [string, string] => TINT[f.def.id] ?? ['#ffe9d0', f.def.look.glow ?? f.def.look.accent];
 
 /** 一个特效小平面的参数。位置单位是米;rot / spin 按「角色朝右」来写,朝左时自动镜像。 */
@@ -175,6 +208,8 @@ interface Part {
   life: number; max: number; delay: number;
   w: number; h: number; gx: number; gy: number; dir: number;
   spin: number; vx: number; vy: number; peak: number;
+  /** 逐帧动画特效:自己的贴图副本 + 动画说明(普通特效没有) */
+  anim?: { tex: THREE.Texture; meta: AnimMeta };
 }
 
 const UNIT = new THREE.PlaneGeometry(1, 1); // 所有特效共用一块 1×1 的平面,靠缩放决定大小
@@ -188,10 +223,26 @@ export class FxLayer {
 
   constructor(private scene: THREE.Scene) {}
 
+  /** 美术清单读完后调用一次:提前加载特效动画 */
+  preload() { preloadFxAnims(); }
+
   /** 放一个特效小平面 */
-  add(tex: FxTex, o: PartOpts) {
+  add(tex: FxTex, o: PartOpts) { this.spawn(fxTexture(tex), o); }
+
+  /**
+   * 放一个「逐帧动画」特效:在 life 秒内把整段动画播完(循环动画则按它自己的速度循环)。
+   * @returns 动画不存在或还没加载好时返回 false,调用方可以改用普通特效
+   */
+  flip(name: string, o: PartOpts): boolean {
+    const a = animTexture(`fx/${name}`);
+    if (!a) return false;
+    this.spawn(a.tex, { grow: 1, ...o }, a);
+    return true;
+  }
+
+  private spawn(map: THREE.Texture, o: PartOpts, anim?: { tex: THREE.Texture; meta: AnimMeta }) {
     const mat = new THREE.MeshBasicMaterial({
-      map: fxTexture(tex), color: o.color, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide,
+      map, color: o.color, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide,
       blending: o.solid ? THREE.NormalBlending : THREE.AdditiveBlending,
       depthTest: !!o.flat, // 竖着的特效不做遮挡测试,否则伸到地面以下的部分会被地面齐刷刷切掉
     });
@@ -206,7 +257,7 @@ export class FxLayer {
     this.parts.push({
       mesh, mat, life: o.life, max: o.life, delay: o.delay ?? 0, w: o.w, h: o.h, dir,
       gx: o.growX ?? o.grow ?? 1.3, gy: o.growY ?? o.grow ?? 1.3,
-      spin: o.spin ?? 0, vx: o.vx ?? 0, vy: o.vy ?? 0, peak: o.peak ?? 1,
+      spin: o.spin ?? 0, vx: o.vx ?? 0, vy: o.vy ?? 0, peak: o.peak ?? 1, anim,
     });
   }
 
@@ -220,18 +271,23 @@ export class FxLayer {
       p.mesh.scale.set(p.dir * p.w * (1 + (p.gx - 1) * ease), p.h * (1 + (p.gy - 1) * ease), 1);
       p.mesh.position.x += p.vx * dt; p.mesh.position.y += p.vy * dt;
       p.mesh.rotation.z += p.dir * p.spin * dt;
-      p.mat.opacity = p.peak * (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85); // 迅速亮起,慢慢淡出
+      if (p.anim) {
+        // 逐帧动画:亮度不变(淡入淡出已经画在帧里了),只负责翻页
+        const a = p.anim.meta;
+        setAnimFrame(p.anim.tex, a, a.loop ? Math.floor((p.max - p.life) * a.fps) % a.frames : Math.min(a.frames - 1, Math.floor(k * a.frames)));
+        p.mat.opacity = p.peak;
+      } else p.mat.opacity = p.peak * (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85); // 迅速亮起,慢慢淡出
     }
     this.parts = this.parts.filter(p => {
       if (p.life > 0) return true;
-      this.scene.remove(p.mesh); p.mat.dispose();
+      this.scene.remove(p.mesh); p.mat.dispose(); p.anim?.tex.dispose();
       return false;
     });
   }
 
   /** 清空(换房间时用) */
   clear() {
-    for (const p of this.parts) { this.scene.remove(p.mesh); p.mat.dispose(); }
+    for (const p of this.parts) { this.scene.remove(p.mesh); p.mat.dispose(); p.anim?.tex.dispose(); }
     this.parts = [];
   }
 
@@ -269,7 +325,9 @@ export class FxLayer {
     const tipX = f.x + d * reach;
     /** 一道月牙:亮芯 + 稍大一圈的外晕 */
     const crescent = (x: number, y: number, w: number, h: number, rot: number, spin: number, life = T) => {
-      this.add('crescent', { x, y, z, w, h, color: core, life, dir: d, rot, spin, grow: 1.2 });
+      // 有手绘的「刀光挥过」动画就播动画(由细变粗再消散),没有就用一张静态月牙放大淡出
+      if (!this.flip('slash', { x: x - d * w * 0.12, y, z, w: w * 1.25, h: h * 1.25, color: core, life: life + 0.1, dir: d, rot, spin: spin * 0.4 }))
+        this.add('crescent', { x, y, z, w, h, color: core, life, dir: d, rot, spin, grow: 1.2 });
       this.add('crescent', { x, y, z: z - 0.02, w: w * 1.18, h: h * 1.12, color: tint, life: life + 0.07, dir: d, rot, spin: spin * 0.8, grow: 1.3, peak: 0.7 });
     };
     /** 一道枪芒 */
@@ -295,7 +353,8 @@ export class FxLayer {
       case 'upper': {
         // 上挑:月牙从下往上撩,带一股上升气流
         crescent(f.x + d * reach * 0.4, midY, reach * 1.2 * P, reach * 1.6 * P, -0.8, 5.5);
-        this.add('pillar', { x: f.x + d * reach * 0.55, y: f.y + 1.3, z, w: 0.7 * P, h: 2.6 * P, color: tint, life: 0.3, growX: 0.5, growY: 1.3, vy: 2, peak: 0.6 });
+        if (!(heavy && this.flip('pillar', { x: f.x + d * reach * 0.55, y: f.y + 1.25 * P, z, w: 1.6 * P, h: 2.6 * P, color: tint, life: 0.4, peak: 0.8 })))
+          this.add('pillar', { x: f.x + d * reach * 0.55, y: f.y + 1.3, z, w: 0.7 * P, h: 2.6 * P, color: tint, life: 0.3, growX: 0.5, growY: 1.3, vy: 2, peak: 0.6 });
         if (f.y <= 0) this.dust(f.x + d * 0.5, f.z, 3, 0.35);
         break;
       }
@@ -339,6 +398,9 @@ export class FxLayer {
         this.add('burst', { x: ix, y: size * 0.36, z, w: size * 0.9, h: size * 0.9, color: core, life: 0.22, rot: n, grow: 1.5 });
         this.add('pillar', { x: ix, y: 1.1 * P, z: z - 0.02, w: size * 0.5, h: 2.2 * P, color: tint, life: 0.32, growX: 1.5, growY: 1.2, peak: 0.7 });
         this.dust(ix, f.z, 5, size * 0.35);
+        // 手绘动画:贴地向两侧炸开的尘浪;技能级的砸地再加一团翻滚的爆炸
+        this.flip('shockwave', { x: ix, y: size * 0.62, z, w: size * 1.5, h: size * 1.3, color: '#e8dccb', life: 0.45, peak: 0.9 });
+        if (big) this.flip('explosion', { x: ix, y: size * 0.4, z, w: size * 1.3, h: size * 1.3, color: tint, life: 0.5 });
         break;
       }
       case 'cast': {
@@ -346,6 +408,15 @@ export class FxLayer {
         if (!again) this.add('circle', { x: f.x, y: 0.05, z: f.z, w: 2.3 * P, h: 2.3 * P, color: tint, life: 0.6, flat: true, spin: 2.5, grow: 1.12, peak: 0.9 });
         this.add('glow', { x: f.x + d * 0.55, y: f.y + 1.25, z, w: 0.9 * P, h: 0.9 * P, color: core, life: 0.25, grow: 1.8 });
         this.motes(f.x, f.y + 0.3, f.z, tint, again ? 2 : 5);
+        // 不是飞行道具的范围法术:在判定范围里依次落下几道雷(火系角色则是喷起火柱)
+        if (!m.projectile && big && hb.x1 - hb.x0 > 1) {
+          const fire = FIRE.has(f.def.id), n3 = again ? 1 : 3;
+          for (let i = 0; i < n3; i++) {
+            const t = n3 === 1 ? Math.random() : (i + 0.5) / n3;
+            const sx = f.x + d * (hb.x0 + (hb.x1 - hb.x0) * t);
+            this.flip(fire ? 'pillar' : 'lightning', { x: sx, y: 1.9, z, w: fire ? 2 : 2.6, h: 3.8, color: fire ? tint : core, life: fire ? 0.5 : 0.35, delay: i * 0.07 });
+          }
+        }
         break;
       }
       case 'shoot': {
@@ -377,7 +448,9 @@ export class FxLayer {
 
   /** 命中瞬间:受击点炸一朵尖刺光;重击再划一道贯穿的斩痕 */
   hitFx(x: number, y: number, z: number, heavy: boolean, tint: string, dir: number) {
-    this.add('burst', { x, y, z: z + 0.3, w: heavy ? 1.15 : 0.7, h: heavy ? 1.15 : 0.7, color: heavy ? '#ffd9a0' : '#fff1c9', life: heavy ? 0.18 : 0.13, rot: Math.random() * 6, grow: 1.6 });
+    const size = heavy ? 1.5 : 0.95, color = heavy ? '#ffd9a0' : '#fff1c9';
+    if (!this.flip('hit', { x, y, z: z + 0.3, w: size, h: size, color, life: heavy ? 0.26 : 0.2, rot: Math.random() * 6 }))
+      this.add('burst', { x, y, z: z + 0.3, w: size * 0.75, h: size * 0.75, color, life: heavy ? 0.18 : 0.13, rot: Math.random() * 6, grow: 1.6 });
     if (heavy) {
       this.add('streak', { x, y, z: z + 0.32, w: 2.6, h: 0.16, color: '#ffffff', life: 0.13, dir, rot: (Math.random() - 0.5) * 0.9, growX: 1.5, growY: 0.4 });
       this.add('glow', { x, y, z: z + 0.28, w: 1.4, h: 1.4, color: tint, life: 0.2, grow: 1.6, peak: 0.6 });

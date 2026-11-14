@@ -783,6 +783,7 @@ function frame(now: number) {
 /** 读取美术清单后再搭界面(清单为空也没关系) */
 async function boot() {
   await loadArtManifest();
+  gfx.preloadArt();
   loadCustomContent();
   setupSettings(input, sfx, music, $('open-settings'));
   if (wantsTouch()) setupTouch(input);

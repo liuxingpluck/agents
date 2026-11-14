@@ -15,6 +15,18 @@ export function spriteMeta(id: string, pose: string): SpriteMeta {
 }
 
 /**
+ * 一段逐帧动画的说明:所有帧排在一张网格图里(cols 列 × rows 行,从左到右、从上到下)。
+ * 角色动画另带校正值:k 放大倍数、cx 重心横向位置、fy 脚底纵向位置(0 顶 ~ 1 底)、hit「打出去」的那一帧。
+ */
+export interface AnimMeta { frames: number; cols: number; rows: number; fps: number; loop: boolean; k?: number; cx?: number; fy?: number; hit?: number }
+let anims: Record<string, AnimMeta> = {};
+
+/** 取一段逐帧动画(key 形如 "fx/slash"、"kael/run");没有这段动画返回 null */
+export function animMeta(key: string): AnimMeta | null {
+  return files.has(`anim/${key}.webp`) ? anims[key] ?? null : null;
+}
+
+/**
  * 读取清单。读取失败(文件不存在、离线)时当作没有任何图片。
  * @returns 可用图片的相对路径集合(相对 public/art/)
  */
@@ -25,6 +37,9 @@ export async function loadArtManifest(): Promise<Set<string>> {
     // 姿势图的校正表(由 scripts/art-build.py 测量生成);没有也不要紧
     const m = await fetch('./art/sprites/meta.json', { cache: 'no-cache' });
     if (m.ok) sprites = await m.json();
+    // 逐帧动画的说明表(同样由 art-build.py 生成)
+    const a = await fetch('./art/anim/meta.json', { cache: 'no-cache' });
+    if (a.ok) anims = await a.json();
   } catch { /* 没有清单就全部用方块 */ }
   return files;
 }

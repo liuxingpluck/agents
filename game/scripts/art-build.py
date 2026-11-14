@@ -98,3 +98,98 @@ os.makedirs(os.path.join(OUT, 'sprites'), exist_ok=True)
 with open(os.path.join(OUT, 'sprites', 'meta.json'), 'w') as f:
     json.dump(meta, f, separators=(',', ':'))
 print(f'姿势校正表:{sum(len(v) for v in meta.values())} 张')
+
+# ---- 逐帧动画:把横排的序列帧重排成网格,输出 public/art/anim/ 和 anim/meta.json ----
+# 源文件是「所有帧从左到右排成一行」的 PNG(每帧 512×512)。一行太宽(最多 6144 像素),有些显卡放不下,
+# 所以改排成每行 4 帧的网格。特效缩到每帧 256(本来就是模糊的光,不需要更大);角色保持 512。
+# 帧数 / 速度 / 是否循环 取自 art/prompts-anim.json。
+SPEC = {}
+spec_path = os.path.join(ROOT, 'art', 'prompts-anim.json')
+if os.path.exists(spec_path):
+    d = json.load(open(spec_path))
+    for e in d['effects'] + d['characters']:
+        SPEC[os.path.splitext(e['path'].replace('art/source/', ''))[0]] = e
+# 不采用的动画(试做后觉得不如静态姿势图:人物画得太小、动作幅度也小)
+ANIM_SKIP = {'anim/li/light', 'anim/li/special'}
+# 攻击动画里「打出去」的是第几帧(0 起);游戏会把这一帧对准招式真正出判定的时刻
+ANIM_HIT = {'anim/kael/light': 3, 'anim/kael/heavy': 4, 'anim/kael/special': 5, 'anim/li/heavy': 4}
+COLS = 4
+
+def frames_of(path):
+    im = Image.open(path)
+    return [im.crop((i * 512, 0, i * 512 + 512, 512)) for i in range(im.width // 512)]
+
+def pack(frames, cell, mode):
+    rows = (len(frames) + COLS - 1) // COLS
+    sheet = Image.new(mode, (COLS * cell, rows * cell))
+    for i, f in enumerate(frames):
+        f = f.convert(mode)
+        if cell != 512:
+            f = f.resize((cell, cell), Image.LANCZOS)
+        sheet.paste(f, ((i % COLS) * cell, (i // COLS) * cell))
+    return sheet, rows
+
+def shape(frame):
+    """一帧里人物的外框高度、底边位置、横向重心、不透明面积"""
+    a = frame.convert('RGBA').split()[3]
+    bb = a.point(lambda v: 255 if v > 16 else 0).getbbox()
+    small = a.resize((128, 128))
+    px = small.load()
+    cols = [sum(px[x, y] for y in range(128)) for x in range(128)]
+    total = sum(cols) or 1
+    return bb[3] - bb[1], bb[3], sum((x + 0.5) * c for x, c in enumerate(cols)) / total / 128, total
+
+anim_meta = {}
+n_anim = 0
+for group in ('fx-anim', 'anim'):
+    for d, _, files in os.walk(os.path.join(SRC, group)):
+        for name in sorted(files):
+            if not name.lower().endswith('.png'):
+                continue
+            key = os.path.splitext(os.path.relpath(os.path.join(d, name), SRC))[0].replace(os.sep, '/')
+            if key in ANIM_SKIP:
+                continue
+            frames = frames_of(os.path.join(d, name))
+            fx = group == 'fx-anim'
+            out_key = key.replace('fx-anim/', 'anim/fx/')
+            dst = os.path.join(OUT, out_key + '.webp')
+            sheet, rows = pack(frames, 256 if fx else 512, 'RGB' if fx else 'RGBA')
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if force or not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(os.path.join(d, name)):
+                sheet.save(dst, 'WEBP', quality=86, method=4)
+            spec = SPEC.get(key, {})
+            m = {'frames': len(frames), 'cols': COLS, 'rows': rows, 'fps': spec.get('fps', 12), 'loop': bool(spec.get('loop', False))}
+            if not fx:
+                hero, anim = key.split('/')[1:]
+                shapes = [shape(f) for f in frames]
+                # 大小:让动画第一帧(都是站立预备姿势)和静态 idle 图在游戏里一样高;跑步没有站立帧,按不透明面积折算
+                idle_src = os.path.join(sp_dir, hero, 'idle.png')
+                a = Image.open(idle_src).convert('RGBA').split()[3]
+                bb = a.point(lambda v: 255 if v > 16 else 0).getbbox()
+                target = (bb[3] - bb[1]) * meta.get(hero, {}).get('idle', {}).get('k', 1.0)
+                m['k'] = round(target / shapes[0][0], 3)
+                m['cx'] = round(shapes[0][2] if not m['loop'] else sum(s[2] for s in shapes) / len(shapes), 3)
+                m['fy'] = round(max(s[1] for s in shapes) / 512, 3)   # 脚底在画布里的纵向位置
+                m['area'] = sum(s[3] for s in shapes) / len(shapes)
+                if key in ANIM_HIT:
+                    m['hit'] = ANIM_HIT[key]
+            anim_meta[out_key.replace('anim/', '', 1)] = m
+            n_anim += 1
+# 跑步:用「和待机动画的面积比」推算大小
+for key, m in anim_meta.items():
+    if key.endswith('/run'):
+        idle = anim_meta.get(key.replace('/run', '/idle'))
+        if idle:
+            m['k'] = round(idle['k'] * (idle['area'] / m['area']) ** 0.5, 3)
+for m in anim_meta.values():
+    m.pop('area', None)
+# 人工微调:art/source/anim/overrides.json,写法同姿势图的 overrides,例如 { "kael/run": { "k": 1.2 } }
+ov_path = os.path.join(SRC, 'anim', 'overrides.json')
+if os.path.exists(ov_path):
+    for key, v in json.load(open(ov_path)).items():
+        if key in anim_meta:
+            anim_meta[key].update(v)
+if anim_meta:
+    with open(os.path.join(OUT, 'anim', 'meta.json'), 'w') as f:
+        json.dump(anim_meta, f, separators=(',', ':'))
+print(f'逐帧动画:{n_anim} 段')

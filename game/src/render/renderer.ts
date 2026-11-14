@@ -80,6 +80,9 @@ export class GameRenderer {
   }
 
   /** 搭建房间场景(程序化) */
+  /** 美术清单读完后调用:提前加载特效动画 */
+  preloadArt() { this.fx.preload(); }
+
   buildRoom(room: RoomDef, seed = 1) {
     this.room = room;
     this.stage.clear();

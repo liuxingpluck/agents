@@ -14,6 +14,16 @@
 
 生图协作方已完成 `art/prompts-v2.json` 优先级 0 的 90 张，并导出 WebP、同步静态发布素材；见 `art/DELIVERY-V2.md`。本轮没有启动浏览器、游戏或测试。动图试做清单已发现，实际动画输出待验证。
 
+## 2026-11-15 第二批全部 268 张 + 动画试做 17 段已接入(开发方)
+
+- 静态图:逐角色看过全部新姿势(格挡 / 闪避 / 空中 / 抓取 / 被打飞 / 起身 / 指令技 / 技能 2·3 / 终极技,敌人 walk2 / attack2 / launched,Boss special)、障碍物与掉落物、6 张特效贴图,都已自动生效。
+  个别图人物画得偏小,用 `art/source/sprites/overrides.json` 放大(凯尔 super、洛克 command / special3)
+- 逐帧动画:`art-build.py` 把横排序列帧重排成 4 列网格 → `public/art/anim/`,并写 `anim/meta.json`(帧数、速度、大小 / 重心 / 脚底校正、出手帧 `hit`)
+  - 特效动画(`fx.ts` 的 `FxLayer.flip`):刀光 slash、命中 hit、砸地 shockwave、技能级砸地加 explosion、重上挑加 pillar、范围法术落雷 lightning(火系角色改喷火柱)
+  - 角色动画(`SpriteRig.playAnim`):待机按时间循环、跑步按距离翻页、连段第一下轻 / 重和第一个技能按招式帧数播放,出手帧对准判定开始;其余连段仍用静态图
+  - 不采用璃的 light / special 动画(人物画得太小、幅度太小),在 `art-build.py` 的 `ANIM_SKIP` 里;flame 动画暂未接(飞行道具仍用星芒)
+- 下一步:等用户试玩反馈;动画效果如果认可,可以按同样格式给其余 8 个主角各做 idle / run / light / heavy / special
+
 ## 2026-11-14 第二批前 94 张已接入并验收(开发方)
 
 - 逐角色核对了 90 张优先级 0(跑步四帧、轻 / 重第 2、3 下、蓄力)和凯尔的 guard / dodge / airlight / airheavy:朝向、形象一致性没问题

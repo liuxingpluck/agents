@@ -3,7 +3,8 @@
 // 不参与任何战斗判定。模型朝 +x 方向搭建。
 import * as THREE from 'three';
 import { CharacterDef, Fighter, Look, SIM, Tier } from '../sim/types';
-import { findArt, spriteMeta } from './art';
+import { AnimMeta, findArt, spriteMeta } from './art';
+import { animTexture, setAnimFrame } from './fx';
 import { chainIds } from '../data/tuning';
 
 /** 一个姿势 = 一组关节角度。每帧算出「目标姿势」,再平滑过渡过去,动作才不会生硬。 */
@@ -380,6 +381,11 @@ export class SpriteRig implements ActorView {
   private lastZ = 0;
   /** 身体动作的当前值(逐帧向目标值平滑过渡):前后位移、上下位移、倾斜、横向 / 纵向拉伸 */
   private mo = { x: 0, y: 0, rot: 0, sx: 1, sy: 1 };
+  /** 当前姿势图里脚底离画布底边的距离(占画布高度的比例);静态图统一是 6.25% */
+  private footY = 0.0625;
+  /** 已加载好的逐帧动画(动画名 → 本角色专用的贴图副本);正在播放的是哪一段 */
+  private anims = new Map<string, { tex: THREE.Texture; meta: AnimMeta }>();
+  private animNow = '';
 
   constructor(private id: string, look: Look) {
     this.size = (SIM.BODY_H * look.scale) / 0.85 * 1.05;
@@ -392,6 +398,7 @@ export class SpriteRig implements ActorView {
     );
     this.shadow.rotation.x = -Math.PI / 2;
     this.setPose('idle');
+    for (const a of ANIMS) this.anim(a); // 先触发加载,用到时多半已经好了
   }
 
   /** 在候选姿势里挑第一张存在的图(新美术没到位时自动退回旧图) */
@@ -416,7 +423,56 @@ export class SpriteRig implements ActorView {
     this.mat.needsUpdate = true;
     // 每张图里人物的大小和位置不完全一样(武器伸得远的图,人会被画得小一些、偏后一些),这里读取校正值
     const meta = spriteMeta(this.id, pose);
-    this.poseK = meta.k; this.poseCx = meta.cx;
+    this.poseK = meta.k; this.poseCx = meta.cx; this.footY = 0.0625;
+    this.animNow = '';
+  }
+
+  /** 取本角色的一段逐帧动画(没有这段、或还没加载好时返回 null) */
+  private anim(name: string) {
+    let a = this.anims.get(name);
+    if (!a) {
+      const got = animTexture(`${this.id}/${name}`);
+      if (!got) return null;
+      this.anims.set(name, a = got);
+    }
+    return a;
+  }
+
+  /**
+   * 有逐帧动画时用动画代替静态姿势图:待机按时间循环,跑步按跑过的距离翻页(脚不打滑),
+   * 出招时把动画里「打出去」的那一帧对准招式真正出判定的那一刻。
+   * 只给连段的第一下(轻 / 重)和第一个技能配动画,后面几下仍用各自的静态图,保证每一下都不一样。
+   * @returns 是否正在播放动画
+   */
+  private playAnim(f: Fighter, time: number): boolean {
+    let name = '', frame = 0;
+    const m = f.move;
+    if (f.state === 'idle') name = 'idle';
+    else if (f.state === 'run' && f.y <= 0) name = 'run';
+    else if (f.state === 'attack' && m && f.y <= 0 && !m.chargeable && !m.grab) {
+      if (m.id === f.def.normals.LP) name = 'light';
+      else if (m.id === f.def.normals.HP) name = 'heavy';
+      else if (m.id === f.def.skills[0]) name = 'special';
+    }
+    const a = name ? this.anim(name) : null;
+    if (!a) return false;
+    const am = a.meta;
+    if (name === 'idle') frame = Math.floor(time * am.fps) % am.frames;
+    else if (name === 'run') frame = Math.floor(this.dist / RUN_CYCLE * am.frames) % am.frames;
+    else {
+      // 前摇段:0 → 出手帧;判定 + 收招段:出手帧 → 最后一帧
+      const hit = am.hit ?? Math.floor(am.frames / 2), mf = f.moveFrame, end = m!.startup + m!.active + m!.recovery;
+      frame = mf < m!.startup ? Math.floor(mf / m!.startup * hit)
+        : hit + Math.floor((mf - m!.startup) / Math.max(1, end - m!.startup) * (am.frames - hit));
+      frame = Math.min(am.frames - 1, Math.max(0, frame));
+    }
+    if (this.animNow !== name) {
+      this.animNow = name; this.current = '';
+      this.mat.map = a.tex; this.mat.needsUpdate = true;
+      this.poseK = am.k ?? 1; this.poseCx = am.cx ?? 0.5; this.footY = 1 - (am.fy ?? 0.9375);
+    }
+    setAnimFrame(a.tex, am, frame);
+    return true;
   }
 
   /** 被打中时调用:触发一次闪白。 */
@@ -527,20 +583,22 @@ export class SpriteRig implements ActorView {
     if (!Number.isNaN(this.lastX)) { const d = Math.hypot(f.x - this.lastX, f.z - this.lastZ); if (d < 0.6) this.dist += d; }
     this.lastX = f.x; this.lastZ = f.z;
 
-    this.setPose(this.poseOf(f));
-    const tgt = this.motionTarget(f, time), mo = this.mo;
+    const animated = this.playAnim(f, time);
+    if (!animated) this.setPose(this.poseOf(f));
+    // 播放手绘动画时不再叠加程序做的起伏 / 前冲,动作已经画在帧里了
+    const tgt = animated ? { x: 0, y: 0, rot: 0, sx: 1, sy: 1 } : this.motionTarget(f, time), mo = this.mo;
     const ease = Math.min(1, dt * (f.state === 'attack' ? 34 : 18));
     for (const key of ['x', 'y', 'rot', 'sx', 'sy'] as const) mo[key] += (tgt[key] - mo[key]) * ease;
 
     const hurt = f.state === 'hitstun' || f.state === 'launched' || f.state === 'grabbed';
     const jitter = f.hitstop > 0 && hurt ? Math.sin(time * 90) * 0.06 : 0;
     this.root.position.set(f.x + jitter, f.y, f.z);
-    // 画布按校正倍数放大;脚底(画布底部往上 6.25%)对齐地面;人物重心对齐角色所在位置
+    // 画布按校正倍数放大;脚底(静态图在画布底部往上 6.25%,动画按测量值)对齐地面;人物重心对齐角色所在位置
     const k = this.poseK, S = this.size;
     this.plane.scale.set(f.facing * k * mo.sx, k * mo.sy, 1);
     this.plane.position.set(
       f.facing * (mo.x - (this.poseCx - 0.5) * S * k),
-      S * k * mo.sy * (0.5 - 0.0625) + mo.y,
+      S * k * mo.sy * (0.5 - this.footY) + mo.y,
       0,
     );
     this.plane.rotation.z = -f.facing * mo.rot; // 正值 = 向后仰
@@ -556,6 +614,11 @@ export class SpriteRig implements ActorView {
     this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
   }
 }
+
+/** 角色可能有的逐帧动画(文件在 art/anim/<角色id>/<动画名>.webp) */
+const ANIMS = ['idle', 'run', 'light', 'heavy', 'special'];
+/** 跑步动画播完一整轮对应跑过的距离(米) */
+const RUN_CYCLE = 2.2;
 
 /** 每个角色「招式 id → 它是所在连段里的第几下」的缓存 */
 const chainIndexCache = new Map<CharacterDef, Map<string, number>>();

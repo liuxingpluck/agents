@@ -1,0 +1,4 @@
+{
+  "kael": { "super": { "k": 1.45 } },
+  "rook": { "command": { "k": 1.2 }, "special3": { "k": 1.2 } }
+}
