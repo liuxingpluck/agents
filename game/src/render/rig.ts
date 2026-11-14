@@ -3,7 +3,7 @@
 // 不参与任何战斗判定。模型朝 +x 方向搭建。
 import * as THREE from 'three';
 import { CharacterDef, Fighter, Look, SIM, Tier } from '../sim/types';
-import { AnimMeta, findArt, spriteMeta } from './art';
+import { AnimMeta, artUnder, findArt, spriteMeta } from './art';
 import { animTexture, setAnimFrame } from './fx';
 import { chainIds } from '../data/tuning';
 
@@ -356,6 +356,19 @@ export function hasSprites(id: string): boolean {
 }
 
 const texLoader = new THREE.TextureLoader();
+/** 所有角色共用的姿势图缓存(同一张图只下载、上传显卡一次) */
+const spriteTex = new Map<string, THREE.Texture>();
+function spriteTexture(url: string): THREE.Texture {
+  let t = spriteTex.get(url);
+  if (!t) {
+    t = texLoader.load(url);
+    t.colorSpace = THREE.SRGBColorSpace;
+    spriteTex.set(url, t);
+  }
+  return t;
+}
+/** 一张图是否已经下载好(没下载好就贴上去,那几帧人物会是透明的) */
+const ready = (t: THREE.Texture) => !!t.image;
 
 /**
  * 贴图角色:一块始终面向镜头的平面,根据状态切换姿势图。
@@ -366,8 +379,6 @@ export class SpriteRig implements ActorView {
   shadow: THREE.Mesh;
   private plane: THREE.Mesh;
   private mat: THREE.MeshBasicMaterial;
-  /** 已加载的姿势贴图 */
-  private tex = new Map<string, THREE.Texture>();
   private current = '';
   private flash = 0;
   /** 平面边长(米):画布里角色约占 85% 高度 */
@@ -397,8 +408,11 @@ export class SpriteRig implements ActorView {
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45, depthWrite: false }),
     );
     this.shadow.rotation.x = -Math.PI / 2;
+    // 一出场就把这个角色的所有姿势图和动画都开始下载。
+    // 以前是第一次用到某个姿势时才下载,网速慢时跳跃、跑步的那几帧人物会「隐身」
+    for (const path of artUnder(`sprites/${id}`)) { const url = findArt(path); if (url) spriteTexture(url); }
     this.setPose('idle');
-    for (const a of ANIMS) this.anim(a); // 先触发加载,用到时多半已经好了
+    for (const a of ANIMS) this.anim(a);
   }
 
   /** 在候选姿势里挑第一张存在的图(新美术没到位时自动退回旧图) */
@@ -412,13 +426,10 @@ export class SpriteRig implements ActorView {
     if (pose === this.current) return;
     const url = findArt(`sprites/${this.id}/${pose}`) ?? findArt(`sprites/${this.id}/idle`);
     if (!url) return;
+    const t = spriteTexture(url);
+    // 新姿势的图还没下载好:先保持上一张图(下一帧再试),免得人物突然消失。只有一张图都还没有时才直接贴上
+    if (!ready(t) && this.mat.map) return;
     this.current = pose;
-    let t = this.tex.get(url);
-    if (!t) {
-      t = texLoader.load(url);
-      t.colorSpace = THREE.SRGBColorSpace;
-      this.tex.set(url, t);
-    }
     this.mat.map = t;
     this.mat.needsUpdate = true;
     // 每张图里人物的大小和位置不完全一样(武器伸得远的图,人会被画得小一些、偏后一些),这里读取校正值
@@ -610,8 +621,10 @@ export class SpriteRig implements ActorView {
     const chg = f.charge > 0 ? (f.charge / SIM.CHARGE_MAX) * (0.5 + 0.3 * Math.sin(time * 40)) : 0;
     const grd = f.state === 'guard' ? 0.25 : 0;
     this.mat.color.setRGB(0.9 + this.flash * 3 + warn + chg - grd, 0.9 + this.flash * 3 - warn * 0.3 + chg * 0.7 - grd * 0.3, 0.9 + this.flash * 3 - warn * 0.8 + chg * 0.2 + grd);
+    // 无敌时(起身、受身之后)半透明闪烁,提示「现在打不到」;以前是整个人一闪一闪地消失,容易看成「隐身」
     const blink = f.invuln > 0 && f.state !== 'dodge' && f.hp > 0 && Math.floor(time * 20) % 2 === 0;
-    this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0) && !blink;
+    this.mat.opacity = blink ? 0.45 : 1;
+    this.root.visible = !(f.state === 'dead' && Math.floor(time * 12) % 2 === 0);
   }
 }
 

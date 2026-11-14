@@ -44,6 +44,13 @@ export async function loadArtManifest(): Promise<Set<string>> {
   return files;
 }
 
+/** 列出某个目录下的所有图片(返回不带扩展名的相对路径,例如 "sprites/kael/run1") */
+export function artUnder(dir: string): string[] {
+  const out = new Set<string>();
+  for (const f of files) if (f.startsWith(dir + '/')) out.add(f.replace(/\.(webp|png|jpg)$/, ''));
+  return [...out];
+}
+
 /** 某张图是否存在(path 相对 public/art/,不带扩展名;优先用压缩好的 webp,其次 png) */
 export function findArt(pathNoExt: string): string | null {
   for (const ext of ['webp', 'png', 'jpg']) if (files.has(`${pathNoExt}.${ext}`)) return `./art/${pathNoExt}.${ext}`;
