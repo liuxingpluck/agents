@@ -76,7 +76,9 @@ for hero in sorted(os.listdir(sp_dir)) if os.path.isdir(sp_dir) else []:
         if pose in LYING or (pose not in LOW and (bbox[2] - bbox[0]) > h * 2.2):
             k = 1.0
         elif pose in LOW:
-            k = min(1.32, max(0.6, FULL_H * LOW[pose] / h))
+            # 蓄力 / 格挡有的画成下蹲、有的画成站直,从外框分不出来,所以只放大不缩小;闪避、起身、跑步才允许缩小
+            floor = 1.0 if pose in ('charge', 'guard') else 0.6
+            k = min(1.32, max(floor, FULL_H * LOW[pose] / h))
         else:
             k = 1.0 if h >= FULL_H - 8 else min(1.32, max(1.0, FULL_H * UPRIGHT / h))
         # 重心:每一列不透明像素的总量加权平均

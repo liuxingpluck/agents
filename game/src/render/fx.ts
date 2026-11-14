@@ -258,7 +258,8 @@ export class FxLayer {
   moveFx(f: Fighter, m: MoveDef, again = false) {
     const d = f.facing, [core, tint] = tintOf(f);
     const hb = m.hitbox;
-    const reach = clamp(hb.x1, 0.7, 3.4);
+    // 特效大小跟着判定范围走,但封个顶:普通招最多按 2.3 米算,技能按 3 米,免得一道刀光盖住半个屏幕
+    const reach = clamp(hb.x1, 0.7, m.tier >= Tier.SKILL ? 3 : 2.3);
     const midY = f.y + (hb.y0 + hb.y1) / 2, z = f.z + 0.25;
     const heavy = m.tier >= Tier.HEAVY, big = m.tier >= Tier.SKILL;
     const P = (big ? 1.35 : heavy ? 1.15 : 1) * (again ? 0.85 : 1);
