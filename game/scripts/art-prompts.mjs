@@ -329,3 +329,48 @@ for (const id of ['li', 'kael']) {
 }
 writeFileSync(new URL('../art/prompts-anim.json', import.meta.url), JSON.stringify({ effects: fxAnim, characters: charAnim }, null, 2));
 console.log(`写入 art/prompts-anim.json:动图试做批,特效 ${fxAnim.length} 个 + 角色动画 ${charAnim.length} 段`);
+
+// =====================================================================================
+// 动画第二批:其余 8 个主角各 5 段逐帧动画,外加重做璃的 light / special(试做版人物画得太小)。
+// 吸取试做批的经验:人物必须和参考图一样大(不能为了让武器不出框就把人缩小),出手帧位置固定。
+// 输出 art/prompts-anim-v2.json。
+// =====================================================================================
+/** 每段动画:[帧数, 是否循环, 出手帧(第几帧打到最远,0 起;循环动画为 null)] */
+const ANIM_SHAPE = { idle: [6, true, null], run: [8, true, null], light: [6, false, 3], heavy: [8, false, 4], special: [10, false, 5] };
+/** 各主角的 light(连段第一下)、heavy(重攻击第一下)、special(第一个技能)动作 */
+const ANIM_MOVES = {
+  brynn: { light: 'a short shield bash, shoving the tower shield edge forward', heavy: 'a heavy overhead war-hammer chop brought down in front of her', special: 'a defiant war cry: plants the tower shield, raises the hammer high and shouts, a brief golden glow close around her body' },
+  sera: { light: 'a quick poke forward with the tip of her staff', heavy: 'thrusts the staff forward with both hands, a small burst of ember fire at the staff tip', special: 'gathers a ball of fire at the staff crystal and hurls it forward, the fireball leaving the staff at the strike frame' },
+  ilex: { light: 'a fast strike forward with the bow limb', heavy: 'nocks, draws and looses one quick arrow forward', special: 'draws the bow to full, holds briefly, then looses a glowing wind arrow with a strong recoil' },
+  rook: { light: 'a snappy lead-hand jab, then back to guard', heavy: 'a heavy rear-hand straight punch with the whole body rotating into it', special: 'a rapid barrage of punches, fists blurred with a few afterimages close in front of him, ending on a big straight punch' },
+  vesper: { light: 'a quick forward slash-stab with one dagger', heavy: 'a lunging throat-height thrust with both daggers', special: 'a blinding dash forward with crossed daggers then an X-slash, cloak whipping, ending back in her stance' },
+  morgan: { light: 'a short strike forward with the bone staff', heavy: 'a heavy two-handed overhead staff smash', special: 'raises the lantern staff and calls forth the dead: green soul light swirls up from the ground in front of her' },
+  odran: { light: 'a short brutal jab with the great-axe haft', heavy: 'a huge chop with the great axe from over the shoulder down in front of him', special: 'a decapitating horizontal great-axe swing at neck height with the whole body spinning into it' },
+  li: { light: 'a quick spear thrust forward, rear hand sliding along the shaft', special: 'a flurry of rapid spear thrusts, several afterimage spear points close in front of her, ending on a long lunge' },
+  nola: { light: 'a light tap forward with the golden mace', heavy: 'a two-handed overhead mace smash of judgement', special: 'a healing prayer: holds the mace to her chest, eyes closed, soft golden light gathers and blooms around her, halo brightening' },
+};
+const ANIM_GENERIC = {
+  idle: 'standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted, seamless loop',
+  run: 'running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop',
+};
+const animV2 = [];
+for (const [id, moves] of Object.entries(ANIM_MOVES)) {
+  const h = HEROES.find(x => x.id === id);
+  for (const [name, [frames, loop, hit]] of Object.entries(ANIM_SHAPE)) {
+    const act = ANIM_GENERIC[name] ?? moves[name];
+    if (!act) continue; // 璃只重做 light 和 special
+    const timing = hit === null ? '' : ` Frame 1 is the same ready stance as the reference image; the strike reaches full extension exactly at frame ${hit + 1} of ${frames}; the last frame is back in the ready stance.`;
+    animV2.push({
+      path: `art/source/anim/${id}/${name}.png`, width: 512 * frames, height: 512, frames, fps: 12, loop, hit,
+      reference: `art/source/sprites/${id}/idle.png`, note: `${h.name} 角色动画:${name}${id === 'li' ? '(重做:试做版人物太小)' : ''}`,
+      prompt: `${STYLE}. Frame-by-frame animation sprite strip of ${h.look}. Animation: ${act}.${timing} ` +
+        'All frames side by side in ONE horizontal row, each frame 512x512, full body, side view facing right, single character. ' +
+        'The character is exactly as large as in the reference image in EVERY frame: about 85% of the frame height, feet on the same ground line about 32 px above the bottom edge. ' +
+        'Never shrink the character to fit the weapon; if the weapon would leave the frame, angle it instead. The camera does not move or zoom. ' +
+        'Transparent background, no ground shadow, no visual effects beyond a small glow close to the body, no text',
+      negative: NEGATIVE + ', camera movement, zoom, small character, inconsistent size, background scenery, ground shadow',
+    });
+  }
+}
+writeFileSync(new URL('../art/prompts-anim-v2.json', import.meta.url), JSON.stringify({ characters: animV2 }, null, 2));
+console.log(`写入 art/prompts-anim-v2.json:角色动画 ${animV2.length} 段`);

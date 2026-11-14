@@ -22,7 +22,8 @@
   - 特效动画(`fx.ts` 的 `FxLayer.flip`):刀光 slash、命中 hit、砸地 shockwave、技能级砸地加 explosion、重上挑加 pillar、范围法术落雷 lightning(火系角色改喷火柱)
   - 角色动画(`SpriteRig.playAnim`):待机按时间循环、跑步按距离翻页、连段第一下轻 / 重和第一个技能按招式帧数播放,出手帧对准判定开始;其余连段仍用静态图
   - 不采用璃的 light / special 动画(人物画得太小、幅度太小),在 `art-build.py` 的 `ANIM_SKIP` 里;flame 动画暂未接(飞行道具仍用星芒)
-- 下一步:等用户试玩反馈;动画效果如果认可,可以按同样格式给其余 8 个主角各做 idle / run / light / heavy / special
+- 动画第二批需求已发:`art/prompts-anim-v2.json`(8 个主角 × 5 段 + 璃 light / special 重做,共 42 段)。到货后:跑 `art-build.py`(出手帧读清单里的 `hit`),
+  璃的两段到了就删掉 `art-build.py` 的 `ANIM_SKIP`;`rig.ts` 不用改,有动画自动播放。逐个角色用定格截图核对大小、脚底和出手帧
 
 ## 2026-11-14 第二批前 94 张已接入并验收(开发方)
 

@@ -104,12 +104,13 @@ print(f'姿势校正表:{sum(len(v) for v in meta.values())} 张')
 # 所以改排成每行 4 帧的网格。特效缩到每帧 256(本来就是模糊的光,不需要更大);角色保持 512。
 # 帧数 / 速度 / 是否循环 取自 art/prompts-anim.json。
 SPEC = {}
-spec_path = os.path.join(ROOT, 'art', 'prompts-anim.json')
-if os.path.exists(spec_path):
-    d = json.load(open(spec_path))
-    for e in d['effects'] + d['characters']:
-        SPEC[os.path.splitext(e['path'].replace('art/source/', ''))[0]] = e
-# 不采用的动画(试做后觉得不如静态姿势图:人物画得太小、动作幅度也小)
+for spec_name in ('prompts-anim.json', 'prompts-anim-v2.json'):   # 后读的(第二批)覆盖先读的
+    spec_path = os.path.join(ROOT, 'art', spec_name)
+    if os.path.exists(spec_path):
+        d = json.load(open(spec_path))
+        for e in d.get('effects', []) + d.get('characters', []):
+            SPEC[os.path.splitext(e['path'].replace('art/source/', ''))[0]] = e
+# 不采用的动画(试做后觉得不如静态姿势图:人物画得太小、动作幅度也小)。第二批重做的版本到了就从这里删掉
 ANIM_SKIP = {'anim/li/light', 'anim/li/special'}
 # 攻击动画里「打出去」的是第几帧(0 起);游戏会把这一帧对准招式真正出判定的时刻
 ANIM_HIT = {'anim/kael/light': 3, 'anim/kael/heavy': 4, 'anim/kael/special': 5, 'anim/li/heavy': 4}
@@ -171,8 +172,9 @@ for group in ('fx-anim', 'anim'):
                 m['cx'] = round(shapes[0][2] if not m['loop'] else sum(s[2] for s in shapes) / len(shapes), 3)
                 m['fy'] = round(max(s[1] for s in shapes) / 512, 3)   # 脚底在画布里的纵向位置
                 m['area'] = sum(s[3] for s in shapes) / len(shapes)
-                if key in ANIM_HIT:
-                    m['hit'] = ANIM_HIT[key]
+                hit = spec.get('hit', ANIM_HIT.get(key))
+                if hit is not None:
+                    m['hit'] = hit
             anim_meta[out_key.replace('anim/', '', 1)] = m
             n_anim += 1
 # 跑步:用「和待机动画的面积比」推算大小
