@@ -5,6 +5,7 @@ import { hazardState, World } from '../sim/world';
 import { RoomDef, SimEvent } from '../sim/types';
 import { ActorView, hasSprites, PropRig, Rig, SpriteRig } from './rig';
 import { findArt } from './art';
+import { FxLayer, fxTexture } from './fx';
 
 /** 场景主题配色:天空、雾、地面、石墙、飘落粒子、火光 */
 interface Palette { sky: string; fog: string; ground: string; road: string; slab: string; stone: string; ash: string; fire: string }
@@ -18,26 +19,6 @@ const PALETTES: Record<string, Palette> = {
 
 /** 一个短命的小特效(火花/尘土):life 是剩余寿命,grow 是它变大的倍数。 */
 interface Spark { mesh: THREE.Mesh; life: number; max: number; grow: number }
-
-let sparkTex: THREE.Texture | null = null;
-/** 火花贴图:中心亮、向外淡出的光团,加一个四角星芒。只画一次,所有火花共用。 */
-function sparkTexture(): THREE.Texture {
-  if (sparkTex) return sparkTex;
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const g = c.getContext('2d')!;
-  const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(0.25, 'rgba(255,255,255,0.55)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = glow; g.fillRect(0, 0, 64, 64);
-  // 星芒:横竖两道细长的亮条,两头渐隐
-  for (const horizontal of [true, false]) {
-    const ray = horizontal ? g.createLinearGradient(0, 0, 64, 0) : g.createLinearGradient(0, 0, 0, 64);
-    ray.addColorStop(0, 'rgba(255,255,255,0)'); ray.addColorStop(0.5, 'rgba(255,255,255,0.95)'); ray.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = ray;
-    if (horizontal) g.fillRect(0, 30, 64, 4); else g.fillRect(30, 0, 4, 64);
-  }
-  sparkTex = new THREE.CanvasTexture(c);
-  return sparkTex;
-}
 
 /** 渲染器总管:每帧把模拟世界画到画布上,并处理镜头跟随、震屏等效果。 */
 export class GameRenderer {
@@ -56,6 +37,8 @@ export class GameRenderer {
   /** 地上的道具 id → 模型 */
   private pickupMeshes = new Map<number, THREE.Mesh>();
   private sparks: Spark[] = [];
+  /** 招式特效层(刀光、枪芒、法阵……见 fx.ts) */
+  private fx = new FxLayer(this.scene);
   // 飘落的灰雪/余烬粒子及其下落速度
   private embers!: THREE.Points;
   private emberVel!: Float32Array;
@@ -101,6 +84,7 @@ export class GameRenderer {
     this.room = room;
     this.stage.clear();
     this.hazardMeshes.clear();
+    this.fx.clear();
     for (const r of this.rigs.values()) { this.scene.remove(r.root, r.shadow); }
     this.rigs.clear();
     // 简易伪随机:同一个 seed 总是搭出同样的布景,避免每次进房间都不一样
@@ -281,7 +265,7 @@ export class GameRenderer {
   /** 生成一个火花:在指定位置放个发光小方块,逐渐放大并淡出。 */
   private spark(x: number, y: number, z: number, color: string, size: number, life: number, grow: number) {
     // 一块贴着「光团 + 星芒」贴图的小平面,随机转个角度,看起来就是一朵迸开的火花
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 3.2, size * 3.2), new THREE.MeshBasicMaterial({ map: sparkTexture(), color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 3.2, size * 3.2), new THREE.MeshBasicMaterial({ map: fxTexture('star'), color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
     mesh.position.set(x, y, z + 0.3); mesh.rotation.z = Math.random() * Math.PI;
     this.scene.add(mesh);
     this.sparks.push({ mesh, life, max: life, grow });
@@ -300,28 +284,6 @@ export class GameRenderer {
   }
 
   /**
-   * 刀光 / 拳风:出招瞬间在角色身前画一道弧线,迅速放大并淡出。
-   * 弧线大小取自招式判定框的长度,所以长枪的刀光比拳头的大。
-   */
-  private slash(w: World, id: number, heavy: boolean) {
-    const f = w.fighters.find(x => x.id === id);
-    const m = f?.move;
-    if (!f || !m) return;
-    const reach = Math.max(0.6, Math.min(2.8, m.hitbox.x1));
-    const midY = f.y + (m.hitbox.y0 + m.hitbox.y1) / 2;
-    // 半个圆环,开口朝向角色;上挑类招式竖着画
-    const vertical = m.anim === 'upper' || m.anim === 'overhead' || m.anim === 'slam';
-    const geo = new THREE.RingGeometry(reach * 0.55, reach * 0.72, 16, 1, -Math.PI / 2.4, Math.PI / 1.2);
-    const color = f.def.look.glow ?? (f.team === 0 ? '#fff1c9' : '#ff8a5a');
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: heavy ? 0.9 : 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-    mesh.position.set(f.x + f.facing * reach * 0.25, midY, f.z + 0.2);
-    mesh.scale.x = f.facing;
-    if (vertical) mesh.rotation.z = f.facing * 0.9;
-    this.scene.add(mesh);
-    this.sparks.push({ mesh, life: heavy ? 0.16 : 0.11, max: heavy ? 0.16 : 0.11, grow: 0.25 });
-  }
-
-  /**
    * 把模拟层这一帧的事件变成画面反馈:火花、震屏、镜头冲击、尘土。
    * @param w 传入世界以便查到角色位置(落地尘土用);不传则跳过需要位置的效果
    */
@@ -333,13 +295,27 @@ export class GameRenderer {
         this.spark(e.x, e.y, e.z, e.heavy ? '#ffb347' : '#fff1c9', e.heavy ? 0.32 : 0.2, 0.18, e.heavy ? 7 : 5);
         this.spark(e.x, e.y, e.z, tint, 0.12, 0.3, 9);
         if (e.heavy) this.ring(e.x, e.y, e.z, tint, 0.25, 0.2, 7);
+        const atk = w?.fighters.find(x => x.id === e.attacker);
+        this.fx.hitFx(e.x, e.y, e.z, e.heavy, tint, atk?.facing ?? 1);
         if (e.combo >= 5) for (let i = 0; i < Math.min(4, e.combo / 5); i++) this.spark(e.x + (Math.random() - 0.5) * 0.8, e.y + (Math.random() - 0.5) * 0.8, e.z, '#ffe9c0', 0.07, 0.3, 6);
         this.shake = Math.max(this.shake, e.heavy ? 0.16 : 0.06);
         if (e.heavy) this.punch = Math.max(this.punch, 0.5);
         this.rigs.get(e.victim)?.hitFlash();
       } else if (e.type === 'ko') { this.shake = Math.max(this.shake, 0.28); this.punch = 1; }
       else if (e.type === 'comboBreak') this.shake = Math.max(this.shake, 0.2);
-      else if (e.type === 'whiff' && w) this.slash(w, e.id, e.heavy);
+      else if (e.type === 'whiff' && w) {
+        // 出招(以及多段招式的每一段):按招式类型画刀光 / 枪芒 / 冲击波……
+        const f = w.fighters.find(x => x.id === e.id);
+        if (f?.move) this.fx.moveFx(f, f.move, e.again);
+      } else if (e.type === 'cast' && w) {
+        // 飞行道具类招式不走上面那条路,出手时单独画一次
+        const f = w.fighters.find(x => x.id === e.id);
+        if (f?.move?.projectile) this.fx.moveFx(f, f.move);
+      } else if (e.type === 'dashCancel' && w) {
+        // 冲刺取消:脚下一圈气浪 + 扬尘
+        const f = w.fighters.find(x => x.id === e.id);
+        if (f) { this.ring(f.x, 0.06, f.z, '#ffffff', 0.4, 0.25, 4, true); this.fx.dust(f.x - f.facing * 0.3, f.z, 3, 0.3); }
+      }
       else if (e.type === 'block') {
         // 格挡:蓝白色的小火花
         this.spark(e.x, e.y, e.z, '#9fd0ff', 0.16, 0.16, 4);
@@ -475,6 +451,11 @@ export class GameRenderer {
         this.lastDustFrame.set(f.id, w.frame);
         this.spark(f.x - f.facing * 0.35, 0.12, f.z - 0.3, '#8a8490', 0.1, 0.35, 3);
       }
+      // 格挡中:身前撑着一道淡蓝色的弧光
+      if (f.state === 'guard' && w.frame % 9 === 0 && w.frame !== this.lastDustFrame.get(-f.id)) {
+        this.lastDustFrame.set(-f.id, w.frame);
+        this.fx.add('crescent', { x: f.x + f.facing * 0.35, y: f.y + 1, z: f.z + 0.25, w: 1.1, h: 2, color: '#9fd0ff', life: 0.3, dir: f.facing, grow: 1.08, peak: 0.6 });
+      }
       // 蓄力中:脚下聚起一圈光
       if (f.charge > 4 && w.frame % 6 === 0) this.ring(f.x, 0.05, f.z, '#ffd27a', 0.9 - (f.charge / 45) * 0.5, 0.25, -0.4, true);
       if ((f.id === focusId || f.id === focusId2) && f.state !== 'dead') { sum += f.x; cnt++; }
@@ -488,11 +469,14 @@ export class GameRenderer {
       pSeen.add(p.id);
       let m = this.projMeshes.get(p.id);
       if (!m) {
-        m = new THREE.Mesh(new THREE.OctahedronGeometry(p.def.radius), new THREE.MeshBasicMaterial({ color: p.def.color, blending: THREE.AdditiveBlending, transparent: true }));
+        // 一朵旋转的星芒当弹体,身后拖一串光团
+        const side = Math.max(0.7, p.def.radius * 5);
+        m = new THREE.Mesh(new THREE.PlaneGeometry(side, side), new THREE.MeshBasicMaterial({ map: fxTexture('star'), color: p.def.color, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
         this.projMeshes.set(p.id, m); this.scene.add(m);
       }
-      m.position.set(p.x, p.y, p.z); m.rotation.x += 0.4; m.scale.set(1.8, 1, 1);
-      if (Math.random() < 0.5) this.spark(p.x, p.y, p.z - 0.3, p.def.color, 0.08, 0.25, 2);
+      m.position.set(p.x, p.y, p.z + 0.25); m.rotation.z += dt * 9;
+      const tail = Math.max(0.45, p.def.radius * 3.2);
+      this.fx.add('glow', { x: p.x - p.dir * 0.15, y: p.y, z: p.z + 0.2, w: tail * 1.6, h: tail, color: p.def.color, life: 0.22, grow: 0.3, peak: 0.7 });
     }
     for (const [id, m] of this.projMeshes) if (!pSeen.has(id)) { this.scene.remove(m); this.projMeshes.delete(id); }
 
@@ -537,6 +521,7 @@ export class GameRenderer {
     }
     for (const [id, m] of this.pickupMeshes) if (!kSeen.has(id)) { this.scene.remove(m); this.pickupMeshes.delete(id); }
 
+    this.fx.update(dt);
     for (const s of this.sparks) {
       s.life -= dt;
       const k = 1 - s.life / s.max;

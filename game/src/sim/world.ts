@@ -104,7 +104,7 @@ export function spawnFighter(w: World, def: CharacterDef, team: number, x: numbe
     hp: def.stats.hp, energy: 0,
     move: null, moveFrame: 0, moveHit: false, hitIds: [], lastRehitFrame: 0,
     stun: 0, hitstop: 0, comboCount: 0, comboValue: 0, comboDamage: 0, comboMoveUses: {}, juggle: 0, invuln: 0,
-    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, charge: 0, heavyHeld: 0, walkFrames: 0, guard: SIM.GUARD_MAX, spiked: false, bounced: false, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
+    input: 0, prevInput: 0, dirHist: [], buffer: {}, airActions: 0, charge: 0, heavyHeld: 0, walkFrames: 0, guard: SIM.GUARD_MAX, guardHold: Btn.DODGE, spiked: false, bounced: false, wallBounced: false, thrownBy: 0, grabTarget: 0, grabTimer: 0, brain: {}, deadFrame: 0,
   };
   w.fighters.push(f);
   if (ctrl) w.controllers.set(f.id, ctrl);
@@ -319,13 +319,20 @@ function tryGroundAction(w: World, f: Fighter): boolean {
       if (dash && buffered(w, f, b) && canUse(f, dash, false)) { consume(f, b); startMove(w, f, dash); return true; }
     }
   }
+  // ↓↓ + 重 = 格挡(按住重键保持,松开收起);和按住闪避键格挡是同一个状态
+  for (const b of ['HK', 'HP'] as const) {
+    if (buffered(w, f, b) && hasMotion(f, 'DD', w.frame)) {
+      consume(f, b); setState(f, 'guard'); f.guardHold = Btn.HP | Btn.HK; f.vx = 0; f.vz = 0;
+      return true;
+    }
+  }
   const m = pickMove(w, f, -1);
   if (m) { startMove(w, f, m); return true; }
   if (buffered(w, f, 'JUMP')) { consume(f, 'JUMP'); startJump(f); return true; }
   if (buffered(w, f, 'DODGE')) {
     consume(f, 'DODGE');
     // 不按方向 = 原地格挡(按住保持);按着方向 = 朝那个方向闪避翻滚
-    if (!(f.input & DIR_MASK)) { setState(f, 'guard'); f.vx = 0; f.vz = 0; return true; }
+    if (!(f.input & DIR_MASK)) { setState(f, 'guard'); f.guardHold = Btn.DODGE; f.vx = 0; f.vz = 0; return true; }
     turnToInput(f);
     setState(f, 'dodge');
     f.invuln = Math.max(f.invuln, SIM.DODGE_INVULN);
@@ -474,6 +481,15 @@ function updateFighter(w: World, f: Fighter) {
         if (!next) next = pickMove(w, f, m.tier);
         if (next) { if (air) f.airActions++; startMove(w, f, next); break; }
         if (m.jumpCancel && !air && buffered(w, f, 'JUMP')) { consume(f, 'JUMP'); startJump(f); break; }
+        // 冲刺取消:普通招式打中后快速按两下前,直接取消收招跑起来(可以接「奔跑攻击」再打一轮)
+        if (f.moveHit && !air && m.tier <= Tier.HEAVY && !m.grab
+          && (f.input & ~f.prevInput & (Btn.LEFT | Btn.RIGHT)) !== 0 && hasMotion(f, 'FF', w.frame, 14)) {
+          const dir = f.input & Btn.RIGHT ? 1 : -1;
+          setState(f, 'run');
+          f.facing = dir; f.walkFrames = 1; f.brain.lastDx = dir; // 让下一帧继续保持奔跑
+          w.events.push({ type: 'dashCancel', id: f.id });
+          break;
+        }
       }
       if (f.moveFrame >= m.startup + m.active + m.recovery) {
         setState(f, f.y > 0 ? 'jump' : 'idle');
@@ -481,13 +497,13 @@ function updateFighter(w: World, f: Fighter) {
       break;
     }
     case 'guard': {
-      // 格挡:按住闪避键保持(至少 8 帧);期间不能移动,但可以直接出招反击
+      // 格挡:按住进入时用的那个键保持(至少 8 帧);期间不能移动,但可以直接出招反击
       f.vx *= 0.7; f.vz = 0;
       if (f.stateFrame > 3) {
         const m = pickMove(w, f, -1);
         if (m) { startMove(w, f, m); break; }
       }
-      if (!(f.input & Btn.DODGE) && f.stateFrame >= 8) setState(f, 'idle');
+      if (!(f.input & f.guardHold) && f.stateFrame >= 8) setState(f, 'idle');
       break;
     }
     case 'dodge': {
@@ -838,7 +854,10 @@ function resolveHits(w: World) {
     const m = a.move;
     if (a.state !== 'attack' || !m || m.projectile || a.hitstop > 0) continue;
     if (a.moveFrame < m.startup || a.moveFrame >= m.startup + m.active) continue;
-    if (m.rehit && a.moveFrame - a.lastRehitFrame >= m.rehit) { a.hitIds = []; a.lastRehitFrame = a.moveFrame; }
+    if (m.rehit && a.moveFrame - a.lastRehitFrame >= m.rehit) {
+      a.hitIds = []; a.lastRehitFrame = a.moveFrame;
+      w.events.push({ type: 'whiff', id: a.id, heavy: m.tier >= Tier.HEAVY, again: true });
+    }
     const b = m.hitbox;
     const ax0 = a.x + (a.facing === 1 ? b.x0 : -b.x1), ax1 = a.x + (a.facing === 1 ? b.x1 : -b.x0);
     const ay0 = a.y + b.y0, ay1 = a.y + b.y1;

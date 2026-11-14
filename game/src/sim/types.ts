@@ -243,6 +243,8 @@ export interface Fighter {
   walkFrames: number;
   /** 防御值:格挡会消耗它,耗尽则被破防;不格挡时慢慢恢复 */
   guard: number;
+  /** 正在用哪个键维持格挡(闪避键,或 ↓↓+重 进入时的重键);松开就收起 */
+  guardHold: number;
   /** 正被砸向地面(落地时弹起);本套连击是否已经砸地反弹过 */
   spiked: boolean;
   bounced: boolean;
@@ -293,7 +295,8 @@ export interface Pickup {
 export type SimEvent =
   | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; attacker: number; victim: number; damage: number; combo: number }
   | { type: 'ko'; id: number; team: number }
-  | { type: 'whiff'; id: number; heavy: boolean }
+  | { type: 'whiff'; id: number; heavy: boolean; again?: boolean } // again = 多段招式的后续几段(只画特效,不重复出声)
+  | { type: 'dashCancel'; id: number }
   | { type: 'land'; id: number }
   | { type: 'comboBreak'; victim: number }
   /** 格挡住了一次攻击 / 完美格挡(弹反) / 被破防 */

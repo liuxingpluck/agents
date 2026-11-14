@@ -218,7 +218,7 @@ function movesHtml(h: CharacterDef): string {
     cmds.map(c => row(`${motionText(c.motion)} + ${btnText(c.button) === '轻' ? 'J' : 'K'}`, h.moves[c.move]?.name ?? '')).join('') +
     h.skills.slice(0, 4).map((id, i) => row(dirs[i], `${h.moves[id]?.name ?? ''} <small>能量 ${h.moves[id]?.cost ?? 0}</small>`)).join('') +
     row('奔跑中按 J', '冲刺攻击(按住方向一会儿自动跑,或 →→ 立刻跑)') + row('被打飞时按 空格', '空中受身') +
-    row('按住 Shift', '格挡(只挡正面;刚按下的瞬间挡住 = 弹反,对手硬直)') + row('方向 + Shift', '闪避(短暂无敌)') +
+    row('↓↓ + K(按住)', '格挡(按住 Shift 也行;只挡正面;刚举起的瞬间挡住 = 弹反,对手硬直)') + row('打中后 →→', '冲刺取消:取消收招直接跑起来,可接奔跑攻击再打一轮') + row('方向 + Shift', '闪避(短暂无敌)') +
     `</table><p>连段规则:轻 → 重 → 指令技 → 特殊技,只能往后接。同一招反复用,对手会越来越快恢复。<br>按 <b>Tab</b> 关闭</p>`;
 }
 

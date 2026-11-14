@@ -2877,6 +2877,66 @@
       "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
       "note": "Boss 战斗姿势:special(放技能)",
       "reference": "art/source/sprites/nameless/idle.png"
+    },
+    {
+      "priority": 3,
+      "path": "art/source/fx/crescent.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false,
+      "prompt": "game visual effect texture, a single crescent-moon shaped sword slash arc, the arc bulges toward the RIGHT side of the image and its two sharp tips point to the top-left and bottom-left, bright sharp outer edge fading softly toward the inside, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background",
+      "note": "招式特效贴图(可选):crescent。纯黑背景、白色图案,方向必须和描述一致"
+    },
+    {
+      "priority": 3,
+      "path": "art/source/fx/streak.png",
+      "width": 1024,
+      "height": 256,
+      "transparent": false,
+      "prompt": "game visual effect texture, a single horizontal spear-thrust energy streak pointing to the RIGHT, thin faint tail on the left growing into a bright sharp tip on the right, perfectly horizontal and vertically centered, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background",
+      "note": "招式特效贴图(可选):streak。纯黑背景、白色图案,方向必须和描述一致"
+    },
+    {
+      "priority": 3,
+      "path": "art/source/fx/burst.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false,
+      "prompt": "game visual effect texture, a radial impact burst centered in the image, many sharp spikes of uneven length radiating outward from a bright core, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background",
+      "note": "招式特效贴图(可选):burst。纯黑背景、白色图案,方向必须和描述一致"
+    },
+    {
+      "priority": 3,
+      "path": "art/source/fx/circle.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false,
+      "prompt": "game visual effect texture, a flat magic circle seen straight from above, perfectly round and centered, two concentric rings with tick marks and a hexagram inside, thin glowing lines, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background",
+      "note": "招式特效贴图(可选):circle。纯黑背景、白色图案,方向必须和描述一致"
+    },
+    {
+      "priority": 3,
+      "path": "art/source/fx/crack.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false,
+      "prompt": "game visual effect texture, ground fracture cracks seen straight from above, jagged glowing lines radiating outward from the center of the image, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background",
+      "note": "招式特效贴图(可选):crack。纯黑背景、白色图案,方向必须和描述一致"
+    },
+    {
+      "priority": 3,
+      "path": "art/source/fx/pillar.png",
+      "width": 512,
+      "height": 1024,
+      "transparent": false,
+      "prompt": "game visual effect texture, a vertical pillar of light, brightest along the vertical center line, fading softly to the left and right edges, solid at the bottom and fading out at the top, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background",
+      "note": "招式特效贴图(可选):pillar。纯黑背景、白色图案,方向必须和描述一致"
     }
   ]
 }

@@ -255,6 +255,38 @@ describe('combat sim', () => {
     expect(p.hp).toBeLessThan(hp - 3);
   });
 
+  it('↓↓ + 重 = 格挡:按住重键保持,松开收起;只按一次下 + 重仍是挑空技', () => {
+    const { w, p } = duel();
+    run(w, p.id, [[Btn.DOWN, 3], [0, 3], [Btn.DOWN, 3], [Btn.DOWN | Btn.HK, 2]]);
+    expect(p.state).toBe('guard');
+    run(w, p.id, [[Btn.HK, 30]]);
+    expect(p.state).toBe('guard'); // 一直按着重键 → 一直挡着,不会自己出招
+    run(w, p.id, [[0, 3]]);
+    expect(p.state).toBe('idle');
+    const d2 = duel();
+    run(d2.w, d2.p.id, [[Btn.DOWN, 3], [Btn.DOWN | Btn.HK, 2]]);
+    expect(d2.p.move?.id).toBe(d2.p.def.normals.HK);
+  });
+
+  it('冲刺取消:普通招式打中后快速按两下前,取消收招直接跑起来;打空则不行', () => {
+    const { w, p, e } = duel();
+    e.x = p.x + 1.1;
+    run(w, p.id, [[Btn.LP, 2]]);
+    for (let i = 0; i < 12 && !p.moveHit; i++) step(w, new Map([[p.id, 0]]));
+    expect(p.moveHit).toBe(true);
+    let cancelled = 0;
+    for (const mask of [Btn.RIGHT, Btn.RIGHT, 0, 0, Btn.RIGHT, Btn.RIGHT]) { step(w, new Map([[p.id, mask]])); cancelled += w.events.filter(ev => ev.type === 'dashCancel').length; }
+    expect(cancelled).toBe(1);
+    expect(p.state).toBe('run');
+    run(w, p.id, [[Btn.RIGHT, 5]]);
+    expect(p.state).toBe('run'); // 按住前会一直跑
+
+    const d2 = duel();
+    d2.e.x = d2.p.x + 6; // 够不着
+    run(d2.w, d2.p.id, [[Btn.LP, 2], [0, 4], [Btn.RIGHT, 2], [0, 2], [Btn.RIGHT, 2]]);
+    expect(d2.p.state).toBe('attack');
+  });
+
   it('完美格挡(弹反):刚举盾的瞬间挡下攻击,不掉血且对手陷入硬直', () => {
     const { w, p, e } = duel();
     e.facing = -1;

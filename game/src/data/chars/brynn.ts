@@ -46,7 +46,7 @@ export const brynn: CharacterDef = {
     // ===== 指令技 =====
     // 盾冲(↓→+LP):霸体前冲撞飞,起手 / 突进用,击倒
     mv('charge', '盾冲', C, 'thrust', [8, 8, 18], 14, box(0.2, 1.9, 0.3, 1.9, 1.0), [24, 8, 0.2], { armor: true, moveX: 0.16, knockdown: true }),
-    // 震地(↓↓+HP):战锤砸地,近身挑空,中继 / 挑空起手
+    // 震地(↓↑+HP;↓↓+重 已经是通用的格挡指令):战锤砸地,近身挑空,中继 / 挑空起手
     mv('pound', '震地锤', C, 'slam', [11, 5, 22], 15, box(0, 2.2, 0, 1.2, 1.2), [24, 9, 0.04], { armor: true, launch: 0.34 }),
     // 反击(↓←+HP):霸体回旋锤,吃一下打一下,击倒
     mv('counter', '铁壁反击', C, 'spin', [9, 6, 20], 14, box(-1.5, 1.7, 0.2, 1.9, 1.1), [24, 9, 0.18], { armor: true, knockdown: true }),
@@ -66,7 +66,7 @@ export const brynn: CharacterDef = {
   commands: [
     { motion: 'DF', button: 'LP', move: 'charge' },
     { motion: 'DF', button: 'HP', move: 'charge' },
-    { motion: 'DD', button: 'HP', move: 'pound' },
+    { motion: 'DU', button: 'HP', move: 'pound' },
     { motion: 'DB', button: 'HP', move: 'counter' },
   ],
   skills: ['roar', 'quake', 'bulwark', 'bastion'],

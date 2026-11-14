@@ -73,9 +73,12 @@
   - [x] 2026-11-13 按第二次反馈改手感:重攻击点按立刻出、按住才转蓄力、出手加快并向前踏步;按住方向自动奔跑;
     贴图大小 / 位置自动校正(`scripts/art-build.py` 生成 `public/art/sprites/meta.json`,可用 `art/source/sprites/overrides.json` 人工微调);
     按移动距离切换迈步图、出招时的身体动作、跑步扬尘、星芒火花
-  - [x] 第二批美术需求已备好:`art/prompts-v2.json`(262 张),说明在 `docs/ART-GUIDE.md`「第二批」。
+  - [x] 第二批美术需求已备好:`art/prompts-v2.json`(268 张,含 6 张可选特效贴图),说明在 `docs/ART-GUIDE.md`「第二批」。
     `SpriteRig.poseOf` 已映射好新姿势(run1-4 / light2-3 / heavy2-3 / charge / guard / dodge / airlight / airheavy / grab / launched / getup / command / special2-3 / super;
     敌人 walk2 / attack2 / launched),障碍物与掉落物读 `props/<id>`;图没到就退回旧图
+  - [x] 2026-11-14 招式特效系统 `src/render/fx.ts`(`FxLayer`):按 `MoveDef.anim` 自动配刀光 / 枪芒 / 拳风 / 砸地 / 法阵等,
+    贴图用 canvas 现画,`art/fx/<名字>` 有图则替换;`whiff` 事件驱动(多段招式每段带 `again`)。
+    另加 ↓↓+重 = 格挡(`Fighter.guardHold`)、冲刺取消(命中后 →→,事件 `dashCancel`)、星芒弹体
   - [ ] 真正的高低地形(高台 / 斜坡)——等用户看过障碍物后再定
   - [x] 双人同屏合作:选人界面按 P 开启;2P 用方向键 + 小键盘 1(轻)2(重)0(跳)3(特殊技).(闪避)或第二个手柄;
     每波多一个敌人,两人不能离太远,一人倒下继续、下一间以 30% 生命复活(`tests/e2e/coop.mjs`)

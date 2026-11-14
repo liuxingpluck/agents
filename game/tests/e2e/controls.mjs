@@ -1,4 +1,4 @@
-// 四键制操作验证:检查 轻 / ↓+轻 / 重 / ↓+重 / 轻+重 / 特殊技各方向 分别触发了正确的招式。
+// 四键制操作验证:检查 轻 / ↓+轻 / 重 / ↓+重 / 轻+重 / 特殊技各方向 分别触发了正确的招式,以及 ↓↓+重 = 格挡。
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 const url = process.argv[2] ?? 'http://localhost:4173/';
@@ -27,7 +27,17 @@ const got = {
   grab: await probe(['KeyJ', 'KeyK']),
   sp: await probe(['KeyL']), spSide: await probe(['KeyL'], ['KeyD']), spDown: await probe(['KeyL'], ['KeyS']), spUp: await probe(['KeyL'], ['KeyW']),
 };
-const want = { light: 'lp1', downLight: 'lk1', heavy: 'hp1', downHeavy: 'hk1', grab: 'grab', sp: 'wave', spSide: 'whirl', spDown: 'quake', spUp: 'oath' };
+// ↓↓ + 重 = 格挡:点一下「下」松开,再按住「下」并按住重键,应进入格挡;松开重键后收起
+await page.waitForFunction(() => window.__game.player.state === 'idle', null, { timeout: 8000 }); // 等上一招(奥义)完全收招
+await page.waitForTimeout(300);
+await page.keyboard.down('KeyS'); await page.waitForTimeout(50); await page.keyboard.up('KeyS'); await page.waitForTimeout(50);
+await page.keyboard.down('KeyS'); await page.waitForTimeout(50); await page.keyboard.down('KeyK');
+await page.waitForTimeout(400);
+got.guard = await page.evaluate(() => window.__game.player.state);
+await page.keyboard.up('KeyK'); await page.keyboard.up('KeyS');
+await page.waitForTimeout(400);
+got.guardEnd = await page.evaluate(() => window.__game.player.state);
+const want = { guard: 'guard', guardEnd: 'idle',  light: 'lp1', downLight: 'lk1', heavy: 'hp1', downHeavy: 'hk1', grab: 'grab', sp: 'wave', spSide: 'whirl', spDown: 'quake', spUp: 'oath' };
 const bad = Object.keys(want).filter(k => got[k] !== want[k]);
 console.log(JSON.stringify({ got, bad, errors }));
 await browser.close();

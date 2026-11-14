@@ -81,7 +81,7 @@ export class Sfx {
           if (e.heavy) { this.burst(0.14, 900, 0.9, 'bandpass', 0.7); this.tone(150, 45, 0.18, 0.9); }
           else { this.burst(0.07, 1800, 0.7, 'bandpass', 0.8); this.tone(220, 110, 0.06, 0.35); }
           break;
-        case 'whiff': this.burst(e.heavy ? 0.16 : 0.09, e.heavy ? 500 : 1100, 0.16, 'bandpass', 2.5); break;
+        case 'whiff': if (e.again) break; this.burst(e.heavy ? 0.16 : 0.09, e.heavy ? 500 : 1100, 0.16, 'bandpass', 2.5); break;
         case 'ko': this.tone(320, 40, 0.5, 0.8, 'sawtooth'); this.burst(0.35, 400, 0.6, 'lowpass'); break;
         case 'comboBreak': this.tone(90, 400, 0.25, 0.6, 'square'); this.burst(0.3, 2500, 0.4, 'highpass'); break;
         case 'land': this.burst(0.08, 180, 0.35, 'lowpass'); break;

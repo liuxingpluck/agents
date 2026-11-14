@@ -262,5 +262,23 @@ for (const b of BOSSES) {
   add2(3, `sprites/${b.id}/special.png`, 512, `${b.look}. ${BOSS_SPECIAL[b.id]}. ${SPRITE_RULES_V2}`, 'Boss 战斗姿势:special(放技能)', `art/source/sprites/${b.id}/idle.png`);
 }
 
+// 可选:招式特效贴图。游戏现在用程序画这些特效;交了同名图片就会改用图片。
+// 游戏用「叠加发光」的方式显示它们,所以必须是纯黑背景(黑色 = 看不见)、图案本身是白色到浅灰(颜色由游戏按角色染)。
+const FX = {
+  crescent: [512, 512, 'a single crescent-moon shaped sword slash arc, the arc bulges toward the RIGHT side of the image and its two sharp tips point to the top-left and bottom-left, bright sharp outer edge fading softly toward the inside'],
+  streak: [1024, 256, 'a single horizontal spear-thrust energy streak pointing to the RIGHT, thin faint tail on the left growing into a bright sharp tip on the right, perfectly horizontal and vertically centered'],
+  burst: [512, 512, 'a radial impact burst centered in the image, many sharp spikes of uneven length radiating outward from a bright core'],
+  circle: [512, 512, 'a flat magic circle seen straight from above, perfectly round and centered, two concentric rings with tick marks and a hexagram inside, thin glowing lines'],
+  crack: [512, 512, 'ground fracture cracks seen straight from above, jagged glowing lines radiating outward from the center of the image'],
+  pillar: [512, 1024, 'a vertical pillar of light, brightest along the vertical center line, fading softly to the left and right edges, solid at the bottom and fading out at the top'],
+};
+for (const [id, [w, h, desc]] of Object.entries(FX)) {
+  v2.push({
+    priority: 3, path: `art/source/fx/${id}.png`, width: w, height: h, transparent: false,
+    prompt: `game visual effect texture, ${desc}, pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, high contrast`,
+    negative: NEGATIVE + ', color, colored background, grey background', note: `招式特效贴图(可选):${id}。纯黑背景、白色图案,方向必须和描述一致`,
+  });
+}
+
 writeFileSync(new URL('../art/prompts-v2.json', import.meta.url), JSON.stringify({ style: STYLE, negative: NEGATIVE, images: v2 }, null, 2));
 console.log(`写入 art/prompts-v2.json:共 ${v2.length} 张(` + [0, 1, 2, 3].map(p => `P${p} ${v2.filter(i => i.priority === p).length}`).join(' / ') + ')');
