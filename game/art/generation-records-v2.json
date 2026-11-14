@@ -1,7 +1,7 @@
 {
   "date": "2026-11-14",
   "batch": 2,
-  "delivered": 90,
+  "delivered": 94,
   "requested": 268,
   "assets": [
     {
@@ -1022,6 +1022,50 @@
       "priority": 0,
       "referenceAssets": [
         "art/source/sprites/nola/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/guard.png",
+      "prompt": "Use case: stylized-concept. Production new action pose for the SAME adult character in reference image.\ndark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. bracing in a firm defensive guard stance, knees bent, weapon or forearms raised in front of the body to block an incoming blow, eyes locked forward. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nReference is IDENTITY AND STYLE only, not the target pose. Preserve exact same face/helmet, hair, build, costume, colors and weapon design. Produce the new requested action clearly. Strict side view; face and torso toward RIGHT unless the launched orientation below applies. ONE complete character, entire head, feet, cape, hair and full weapons inside square frame with generous margins. REAL transparent alpha background, no ground, floor, scenery, shadow or text. No duplicate body or motion echo. Opaque clean readable anatomy and outline. Effects only tiny, local and attached to hands/weapon; no giant aura or detached blast or ring. Actual target file 512x512, shared export content bounds max440 wide by435 high, lower edge near y480.\n\n Avoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/dodge.png",
+      "prompt": "Use case: stylized-concept. Production new action pose for the SAME adult character in reference image.\ndark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. evasive low forward dash roll, body curled low to the ground, moving fast, hair and cloth trailing. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nReference is IDENTITY AND STYLE only, not the target pose. Preserve exact same face/helmet, hair, build, costume, colors and weapon design. Produce the new requested action clearly. Strict side view; face and torso toward RIGHT unless the launched orientation below applies. ONE complete character, entire head, feet, cape, hair and full weapons inside square frame with generous margins. REAL transparent alpha background, no ground, floor, scenery, shadow or text. No duplicate body or motion echo. Opaque clean readable anatomy and outline. Effects only tiny, local and attached to hands/weapon; no giant aura or detached blast or ring. Actual target file 512x512, shared export content bounds max440 wide by435 high, lower edge near y480.\nCompact low evasive forward dash/roll to RIGHT with head to RIGHT.\n Avoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/airlight.png",
+      "prompt": "Use case: stylized-concept. Production new action pose for the SAME adult character in reference image.\ndark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. in mid-air slashing the sword diagonally downward. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nReference is IDENTITY AND STYLE only, not the target pose. Preserve exact same face/helmet, hair, build, costume, colors and weapon design. Produce the new requested action clearly. Strict side view; face and torso toward RIGHT unless the launched orientation below applies. ONE complete character, entire head, feet, cape, hair and full weapons inside square frame with generous margins. REAL transparent alpha background, no ground, floor, scenery, shadow or text. No duplicate body or motion echo. Opaque clean readable anatomy and outline. Effects only tiny, local and attached to hands/weapon; no giant aura or detached blast or ring. Actual target file 512x512, shared export content bounds max440 wide by435 high, lower edge near y480.\n\n Avoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/airheavy.png",
+      "prompt": "Use case: stylized-concept. Production new action pose for the SAME adult character in reference image.\ndark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. in mid-air plunging the sword straight down with both hands. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nReference is IDENTITY AND STYLE only, not the target pose. Preserve exact same face/helmet, hair, build, costume, colors and weapon design. Produce the new requested action clearly. Strict side view; face and torso toward RIGHT unless the launched orientation below applies. ONE complete character, entire head, feet, cape, hair and full weapons inside square frame with generous margins. REAL transparent alpha background, no ground, floor, scenery, shadow or text. No duplicate body or motion echo. Opaque clean readable anatomy and outline. Effects only tiny, local and attached to hands/weapon; no giant aura or detached blast or ring. Actual target file 512x512, shared export content bounds max440 wide by435 high, lower edge near y480.\n\n Avoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
       ]
     }
   ]
