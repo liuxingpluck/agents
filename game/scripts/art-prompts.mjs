@@ -282,3 +282,26 @@ for (const [id, [w, h, desc]] of Object.entries(FX)) {
 
 writeFileSync(new URL('../art/prompts-v2.json', import.meta.url), JSON.stringify({ style: STYLE, negative: NEGATIVE, images: v2 }, null, 2));
 console.log(`写入 art/prompts-v2.json:共 ${v2.length} 张(` + [0, 1, 2, 3].map(p => `P${p} ${v2.filter(i => i.priority === p).length}`).join(' / ') + ')');
+
+// =====================================================================================
+// 动图特效(试做批):让生图方直接出「逐帧动画」的 GIF,游戏把它拆成帧来播放。
+// 先做 7 个看效果,好用再扩充。输出到 art/prompts-fx-anim.json。
+// 统一要求:纯黑背景、白到浅灰的图案(游戏按角色染色)、画面不移动不缩放、一次性特效首尾两帧接近全黑。
+// =====================================================================================
+const FX_ANIM = [
+  { id: 'slash', frames: 8, loop: false, desc: 'a crescent sword-slash arc sweeping from the upper left down to the lower right, the arc bulges toward the RIGHT, appears thin, flares to full brightness, then thins out and vanishes', note: '刀光挥过(横斩 / 下劈用)' },
+  { id: 'hit', frames: 6, loop: false, desc: 'a sharp impact spark burst at the exact center, spikes shoot outward and fade', note: '命中火花' },
+  { id: 'explosion', frames: 12, loop: false, desc: 'an explosion at the exact center: bright flash, expanding fireball with rolling turbulent edges, then breaking into fading smoke wisps', note: '爆炸(爆裂箭、烬爆、木桶)' },
+  { id: 'pillar', frames: 12, loop: false, desc: 'a pillar of flame erupting straight up from the bottom-center of the image, rising to nearly full height, then narrowing and dying down', note: '地面喷出的火柱 / 光柱(升焰、光柱、喷火口)' },
+  { id: 'lightning', frames: 8, loop: false, desc: 'a jagged lightning bolt striking from the top-center straight down to the bottom-center, with a bright flash at the ground on impact, then flickering out', note: '落雷(审判、万卷坠落)' },
+  { id: 'shockwave', frames: 10, loop: false, desc: 'a ground dust shockwave seen from the side: a low wall of dust and debris bursting up at the bottom-center and spreading outward to both left and right along the bottom edge, then settling', note: '砸地冲击波(裂地、震地锤)' },
+  { id: 'flame', frames: 8, loop: true, desc: 'a ball of fire with a flickering tail trailing to the LEFT, as if flying to the right, seamless loop', note: '飞行的火球(循环播放)' },
+];
+const fxAnim = FX_ANIM.map(f => ({
+  path: `art/source/fx-anim/${f.id}.gif`, width: 512, height: 512, frames: f.frames, fps: 15, loop: f.loop, note: f.note,
+  prompt: `frame-by-frame animated game visual effect, ${f.desc}. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames` +
+    (f.loop ? '' : ', the first frame and the last frame are almost completely black'),
+  negative: NEGATIVE + ', color, colored background, grey background, camera shake, zoom',
+}));
+writeFileSync(new URL('../art/prompts-fx-anim.json', import.meta.url), JSON.stringify({ images: fxAnim }, null, 2));
+console.log(`写入 art/prompts-fx-anim.json:共 ${fxAnim.length} 个动图特效(试做批)`);

@@ -88,6 +88,9 @@
 
 ## 下一步
 
+0. **动图特效试做批**(用户提议用 Codex 的 GIF 生成能力):需求在 `art/prompts-fx-anim.json` 与 `docs/ART-GUIDE.md`「动图特效」。
+   图到了(`art/source/fx-anim/*.gif` 或横排序列帧 PNG)要做:`art-build.py` 用 Pillow 拆帧拼成一行的序列帧 WebP + 记录帧数;
+   `fx.ts` 加「翻页播放」的特效(按 UV 偏移切帧),再把 slash / hit / explosion / pillar / lightning / shockwave / flame 接到对应招式上
 1. 等 Codex 交第二批图(`art/source/` 下出现新文件):跑 `python3 scripts/art-build.py` → `npm run build:pages`,
    然后逐个角色截图检查新姿势的大小和位置(蓄力 / 闪避 / 起身这类「矮」姿势的估算比例在 `art-build.py` 的 `LOW` 表里,不准就调表或写 overrides)
 2. 等用户对这次手感修改(K 键、跑动)的试玩反馈
