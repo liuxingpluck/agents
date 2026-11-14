@@ -303,5 +303,29 @@ const fxAnim = FX_ANIM.map(f => ({
     (f.loop ? '' : ', the first frame and the last frame are almost completely black'),
   negative: NEGATIVE + ', color, colored background, grey background, camera shake, zoom',
 }));
-writeFileSync(new URL('../art/prompts-fx-anim.json', import.meta.url), JSON.stringify({ images: fxAnim }, null, 2));
-console.log(`写入 art/prompts-fx-anim.json:共 ${fxAnim.length} 个动图特效(试做批)`);
+
+/**
+ * 角色动画(试做批):用「参考图生成 GIF」让已有角色真正动起来。先拿两个主角各做 5 段,效果好再铺开到全部角色。
+ * 每段动画都以该角色第一批的 idle.png 为参考图,保证长相、服装、武器不变。
+ */
+const CHAR_ANIM = {
+  idle: [6, true, 'standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted'],
+  run: [8, true, 'running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop'],
+  light: [6, false, 'one quick light attack: short wind-up, fast strike forward with the weapon, snap back to the ready stance'],
+  heavy: [8, false, 'one powerful heavy attack: clear wind-up pulling the weapon back, big committed swing or thrust forward, follow-through, recover to the ready stance'],
+  special: [10, false, 'signature special technique: gather power, unleash a dramatic strike forward with the weapon, hold the finishing pose briefly, recover'],
+};
+const charAnim = [];
+for (const id of ['li', 'kael']) {
+  const h = HEROES.find(x => x.id === id);
+  for (const [name, [frames, loop, desc]] of Object.entries(CHAR_ANIM)) {
+    charAnim.push({
+      path: `art/source/anim/${id}/${name}.gif`, width: 512, height: 512, frames, fps: 12, loop, reference: `art/source/sprites/${id}/idle.png`,
+      note: `${h.name} 角色动画:${name}`,
+      prompt: `${STYLE}. Frame-by-frame animated game sprite of ${h.look}. Animation: ${desc}. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text`,
+      negative: NEGATIVE + ', camera movement, zoom, background scenery, ground shadow, glow effects',
+    });
+  }
+}
+writeFileSync(new URL('../art/prompts-anim.json', import.meta.url), JSON.stringify({ effects: fxAnim, characters: charAnim }, null, 2));
+console.log(`写入 art/prompts-anim.json:动图试做批,特效 ${fxAnim.length} 个 + 角色动画 ${charAnim.length} 段`);

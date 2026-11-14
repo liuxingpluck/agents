@@ -88,9 +88,10 @@
 
 ## 下一步
 
-0. **动图特效试做批**(用户提议用 Codex 的 GIF 生成能力):需求在 `art/prompts-fx-anim.json` 与 `docs/ART-GUIDE.md`「动图特效」。
-   图到了(`art/source/fx-anim/*.gif` 或横排序列帧 PNG)要做:`art-build.py` 用 Pillow 拆帧拼成一行的序列帧 WebP + 记录帧数;
-   `fx.ts` 加「翻页播放」的特效(按 UV 偏移切帧),再把 slash / hit / explosion / pillar / lightning / shockwave / flame 接到对应招式上
+0. **动图(GIF)试做批**(用户提议;Images 2.6 于 2026-11-04 起支持在 Codex 里生成 GIF):需求在 `art/prompts-anim.json` 与 `docs/ART-GUIDE.md`「动图(GIF)试做批」。
+   - 特效:`art/source/fx-anim/*.gif`(黑底)。到了要做:`art-build.py` 用 Pillow 拆帧拼成横排序列帧 WebP + 记录帧数;`fx.ts` 加按 UV 偏移切帧的「翻页」特效,接到对应招式
+   - 角色动画:`art/source/anim/<id>/{idle,run,light,heavy,special}.gif`(洋红底,先做 li、kael)。到了要做:拆帧 + 抠洋红 + 边缘去色边;
+     `SpriteRig` 支持按帧播放(run 按移动距离推进,攻击按 moveFrame 映射到帧),没有动画的姿势继续用静态图。先逐帧检查抖动和一致性,不行就只用特效
 1. 等 Codex 交第二批图(`art/source/` 下出现新文件):跑 `python3 scripts/art-build.py` → `npm run build:pages`,
    然后逐个角色截图检查新姿势的大小和位置(蓄力 / 闪避 / 起身这类「矮」姿势的估算比例在 `art-build.py` 的 `LOW` 表里,不准就调表或写 overrides)
 2. 等用户对这次手感修改(K 键、跑动)的试玩反馈

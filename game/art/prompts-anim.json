@@ -1,0 +1,203 @@
+{
+  "effects": [
+    {
+      "path": "art/source/fx-anim/slash.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 15,
+      "loop": false,
+      "note": "刀光挥过(横斩 / 下劈用)",
+      "prompt": "frame-by-frame animated game visual effect, a crescent sword-slash arc sweeping from the upper left down to the lower right, the arc bulges toward the RIGHT, appears thin, flares to full brightness, then thins out and vanishes. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    },
+    {
+      "path": "art/source/fx-anim/hit.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 6,
+      "fps": 15,
+      "loop": false,
+      "note": "命中火花",
+      "prompt": "frame-by-frame animated game visual effect, a sharp impact spark burst at the exact center, spikes shoot outward and fade. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    },
+    {
+      "path": "art/source/fx-anim/explosion.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 12,
+      "fps": 15,
+      "loop": false,
+      "note": "爆炸(爆裂箭、烬爆、木桶)",
+      "prompt": "frame-by-frame animated game visual effect, an explosion at the exact center: bright flash, expanding fireball with rolling turbulent edges, then breaking into fading smoke wisps. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    },
+    {
+      "path": "art/source/fx-anim/pillar.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 12,
+      "fps": 15,
+      "loop": false,
+      "note": "地面喷出的火柱 / 光柱(升焰、光柱、喷火口)",
+      "prompt": "frame-by-frame animated game visual effect, a pillar of flame erupting straight up from the bottom-center of the image, rising to nearly full height, then narrowing and dying down. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    },
+    {
+      "path": "art/source/fx-anim/lightning.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 15,
+      "loop": false,
+      "note": "落雷(审判、万卷坠落)",
+      "prompt": "frame-by-frame animated game visual effect, a jagged lightning bolt striking from the top-center straight down to the bottom-center, with a bright flash at the ground on impact, then flickering out. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    },
+    {
+      "path": "art/source/fx-anim/shockwave.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 10,
+      "fps": 15,
+      "loop": false,
+      "note": "砸地冲击波(裂地、震地锤)",
+      "prompt": "frame-by-frame animated game visual effect, a ground dust shockwave seen from the side: a low wall of dust and debris bursting up at the bottom-center and spreading outward to both left and right along the bottom edge, then settling. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames, the first frame and the last frame are almost completely black",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    },
+    {
+      "path": "art/source/fx-anim/flame.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 15,
+      "loop": true,
+      "note": "飞行的火球(循环播放)",
+      "prompt": "frame-by-frame animated game visual effect, a ball of fire with a flickering tail trailing to the LEFT, as if flying to the right, seamless loop. Pure white and light grey glow on a pure black background, no color, no character, no scenery, no text, the camera does not move or zoom, the effect stays the same size and position across frames",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, color, colored background, grey background, camera shake, zoom"
+    }
+  ],
+  "characters": [
+    {
+      "path": "art/source/anim/li/idle.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 6,
+      "fps": 12,
+      "loop": true,
+      "reference": "art/source/sprites/li/idle.png",
+      "note": "璃 角色动画:idle",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/li/run.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 12,
+      "loop": true,
+      "reference": "art/source/sprites/li/idle.png",
+      "note": "璃 角色动画:run",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/li/light.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 6,
+      "fps": 12,
+      "loop": false,
+      "reference": "art/source/sprites/li/idle.png",
+      "note": "璃 角色动画:light",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: one quick light attack: short wind-up, fast strike forward with the weapon, snap back to the ready stance. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/li/heavy.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 12,
+      "loop": false,
+      "reference": "art/source/sprites/li/idle.png",
+      "note": "璃 角色动画:heavy",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: one powerful heavy attack: clear wind-up pulling the weapon back, big committed swing or thrust forward, follow-through, recover to the ready stance. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/li/special.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 10,
+      "fps": 12,
+      "loop": false,
+      "reference": "art/source/sprites/li/idle.png",
+      "note": "璃 角色动画:special",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: signature special technique: gather power, unleash a dramatic strike forward with the weapon, hold the finishing pose briefly, recover. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/kael/idle.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 6,
+      "fps": 12,
+      "loop": true,
+      "reference": "art/source/sprites/kael/idle.png",
+      "note": "凯尔 角色动画:idle",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/kael/run.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 12,
+      "loop": true,
+      "reference": "art/source/sprites/kael/idle.png",
+      "note": "凯尔 角色动画:run",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/kael/light.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 6,
+      "fps": 12,
+      "loop": false,
+      "reference": "art/source/sprites/kael/idle.png",
+      "note": "凯尔 角色动画:light",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: one quick light attack: short wind-up, fast strike forward with the weapon, snap back to the ready stance. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/kael/heavy.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 8,
+      "fps": 12,
+      "loop": false,
+      "reference": "art/source/sprites/kael/idle.png",
+      "note": "凯尔 角色动画:heavy",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: one powerful heavy attack: clear wind-up pulling the weapon back, big committed swing or thrust forward, follow-through, recover to the ready stance. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    },
+    {
+      "path": "art/source/anim/kael/special.gif",
+      "width": 512,
+      "height": 512,
+      "frames": 10,
+      "fps": 12,
+      "loop": false,
+      "reference": "art/source/sprites/kael/idle.png",
+      "note": "凯尔 角色动画:special",
+      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animated game sprite of Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. Animation: signature special technique: gather power, unleash a dramatic strike forward with the weapon, hold the finishing pose briefly, recover. Full body, side view facing right, single character, same body size in every frame, feet on the same ground line near the bottom of the image in every frame, the camera does not move or zoom, flat solid pure magenta (#FF00FF) background with no shadow, no visual effects, no text",
+      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, background scenery, ground shadow, glow effects"
+    }
+  ]
+}
