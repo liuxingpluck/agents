@@ -11,7 +11,7 @@
       "width": 512,
       "height": 512,
       "frameCount": 8,
-      "encodedUniqueFrames": 8,
+      "encodedUniqueFrames": 7,
       "requestedFps": 15,
       "durationPerFrameMs": 70,
       "loop": false,
@@ -30,7 +30,10 @@
       "registration": "shared fixed grid and scale; no per-frame bounds fitting",
       "pngAlpha": false,
       "gifMatte": "grayscale on black",
-      "visualAcceptance": "not user accepted"
+      "visualAcceptance": "not user accepted",
+      "formatExport": {
+        "blackNoiseFloor": 3
+      }
     },
     {
       "path": "art/source/fx-anim/hit.gif",
@@ -92,7 +95,7 @@
       "width": 512,
       "height": 512,
       "frameCount": 12,
-      "encodedUniqueFrames": 12,
+      "encodedUniqueFrames": 11,
       "requestedFps": 15,
       "durationPerFrameMs": 70,
       "loop": false,
@@ -111,7 +114,10 @@
       "registration": "shared fixed grid and scale; no per-frame bounds fitting",
       "pngAlpha": false,
       "gifMatte": "grayscale on black",
-      "visualAcceptance": "not user accepted"
+      "visualAcceptance": "not user accepted",
+      "formatExport": {
+        "blackNoiseFloor": 3
+      }
     },
     {
       "path": "art/source/fx-anim/lightning.gif",
@@ -192,7 +198,10 @@
       "registration": "shared fixed grid and scale; no per-frame bounds fitting",
       "pngAlpha": false,
       "gifMatte": "grayscale on black",
-      "visualAcceptance": "not user accepted"
+      "visualAcceptance": "not user accepted",
+      "formatExport": {
+        "blackNoiseFloor": 3
+      }
     },
     {
       "path": "art/source/anim/li/idle.gif",
