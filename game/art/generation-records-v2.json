@@ -1,7 +1,7 @@
 {
   "date": "2026-11-14",
   "batch": 2,
-  "delivered": 94,
+  "delivered": 98,
   "requested": 268,
   "assets": [
     {
@@ -1066,6 +1066,50 @@
       "priority": 1,
       "referenceAssets": [
         "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/grab.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: production game combat sprite, NEW image with reference for identity and style.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. reaching forward with the shield arm to seize an opponent by the collar, sword held back ready. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nInput image 1 is an identity/style reference only, not an image to edit and not the target pose. Preserve the same adult character's face, hair, body build, costume, colors, and exact weapon design. Clearly perform the requested NEW action.\nComposition: ONE entire character and all weapons inside a square frame with generous transparent margins. Strict side view facing RIGHT. No opponent, duplicate body, motion echo, text, floor, scenery, cast shadow, detached effects, or large aura. Keep any glow tiny and attached to hands or weapon.\nOutput intent: square transparent PNG for export at 512x512; normalized visible bounds max 440x435, bottom near y480.\nReaching forward to seize an opponent, but depict ONLY this one character and no victim.\n\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/launched.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: production game combat sprite, NEW image with reference for identity and style.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. knocked high into the air, body arched backward and nearly horizontal, limbs flung loose, face up, pained expression. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nInput image 1 is an identity/style reference only, not an image to edit and not the target pose. Preserve the same adult character's face, hair, body build, costume, colors, and exact weapon design. Clearly perform the requested NEW action.\nComposition: ONE entire character and all weapons inside a square frame with generous transparent margins. Strict side view facing RIGHT. No opponent, duplicate body, motion echo, text, floor, scenery, cast shadow, detached effects, or large aura. Keep any glow tiny and attached to hands or weapon.\nOutput intent: square transparent PNG for export at 512x512; normalized visible bounds max 440x435, bottom near y480.\nOrientation: airborne body nearly horizontal, head toward TOP LEFT, feet toward RIGHT, face UP; not a standing or upright jumping pose.\n\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/kael/getup.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: production game combat sprite, NEW image with reference for identity and style.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Kael, a handsome stoic knight in his late twenties, short swept-back dark hair, sharp calm grey eyes, light stubble, blue-grey steel plate armor over dark chainmail, tattered crimson cape, longsword in right hand and kite shield on left arm, composed and resolute expression. rising from the ground, one knee and one hand on the floor, head lifting, about to stand back up. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nInput image 1 is an identity/style reference only, not an image to edit and not the target pose. Preserve the same adult character's face, hair, body build, costume, colors, and exact weapon design. Clearly perform the requested NEW action.\nComposition: ONE entire character and all weapons inside a square frame with generous transparent margins. Strict side view facing RIGHT. No opponent, duplicate body, motion echo, text, floor, scenery, cast shadow, detached effects, or large aura. Keep any glow tiny and attached to hands or weapon.\nOutput intent: square transparent PNG for export at 512x512; normalized visible bounds max 440x435, bottom near y480.\n\n\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/kael/idle.png"
+      ]
+    },
+    {
+      "path": "art/source/sprites/brynn/guard.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: production game combat sprite, NEW image with reference for identity and style.\nPrimary request: dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Brynn, a tall beautiful adult woman in her late twenties with an athletic figure and long legs, long golden braid over one shoulder, confident blue eyes, polished steel breastplate and pauldrons with navy-blue cloth, short armored battle skirt, black thigh-high stockings under steel greaves, huge tower shield and war hammer, proud protective stance. bracing in a firm defensive guard stance, knees bent, weapon or forearms raised in front of the body to block an incoming blow, eyes locked forward. full body, side view facing right, single character, centered, feet touching the bottom edge area, plain transparent background, no ground shadow, consistent proportions, game sprite, keep any glow or effect small and close to the body, same outfit colors and weapon as the reference idle image\nInput image 1 is an identity/style reference only, not an image to edit and not the target pose. Preserve the same adult character's face, hair, body build, costume, colors, and exact weapon design. Clearly perform the requested NEW action.\nComposition: ONE entire character and all weapons inside a square frame with generous transparent margins. Strict side view facing RIGHT. No opponent, duplicate body, motion echo, text, floor, scenery, cast shadow, detached effects, or large aura. Keep any glow tiny and attached to hands or weapon.\nOutput intent: square transparent PNG for export at 512x512; normalized visible bounds max 440x435, bottom near y480.\n\n\nAvoid: text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "priority": 1,
+      "referenceAssets": [
+        "art/source/sprites/brynn/idle.png"
       ]
     }
   ]
