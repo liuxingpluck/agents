@@ -357,8 +357,9 @@ const animV2 = [];
 for (const [id, moves] of Object.entries(ANIM_MOVES)) {
   const h = HEROES.find(x => x.id === id);
   for (const [name, [frames, loop, hit]] of Object.entries(ANIM_SHAPE)) {
-    const act = ANIM_GENERIC[name] ?? moves[name];
-    if (!act) continue; // 璃只重做 light 和 special
+    // 璃的待机、跑步、重攻击试做版可用,只重做 light 和 special
+    const act = id === 'li' ? moves[name] : ANIM_GENERIC[name] ?? moves[name];
+    if (!act) continue;
     const timing = hit === null ? '' : ` Frame 1 is the same ready stance as the reference image; the strike reaches full extension exactly at frame ${hit + 1} of ${frames}; the last frame is back in the ready stance.`;
     animV2.push({
       path: `art/source/anim/${id}/${name}.png`, width: 512 * frames, height: 512, frames, fps: 12, loop, hit,

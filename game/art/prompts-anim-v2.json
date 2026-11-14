@@ -456,32 +456,6 @@
       "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, small character, inconsistent size, background scenery, ground shadow"
     },
     {
-      "path": "art/source/anim/li/idle.png",
-      "width": 3072,
-      "height": 512,
-      "frames": 6,
-      "fps": 12,
-      "loop": true,
-      "hit": null,
-      "reference": "art/source/sprites/li/idle.png",
-      "note": "璃 角色动画:idle(重做:试做版人物太小)",
-      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animation sprite strip of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: standing in a ready combat stance, subtle breathing motion, hair and cloth swaying gently, feet planted, seamless loop. All frames side by side in ONE horizontal row, each frame 512x512, full body, side view facing right, single character. The character is exactly as large as in the reference image in EVERY frame: about 85% of the frame height, feet on the same ground line about 32 px above the bottom edge. Never shrink the character to fit the weapon; if the weapon would leave the frame, angle it instead. The camera does not move or zoom. Transparent background, no ground shadow, no visual effects beyond a small glow close to the body, no text",
-      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, small character, inconsistent size, background scenery, ground shadow"
-    },
-    {
-      "path": "art/source/anim/li/run.png",
-      "width": 4096,
-      "height": 512,
-      "frames": 8,
-      "fps": 12,
-      "loop": true,
-      "hit": null,
-      "reference": "art/source/sprites/li/idle.png",
-      "note": "璃 角色动画:run(重做:试做版人物太小)",
-      "prompt": "dark fantasy action game art, anime-influenced semi-realistic illustration, crisp cel shading with painterly highlights, muted ash-grey and charcoal palette with glowing ember-orange accents, falling ash snow, dramatic rim lighting, high detail, clean readable silhouette. Frame-by-frame animation sprite strip of Li, an elegant beautiful adult East-Asian woman in her mid twenties, tall with long toned legs, black hair in a high ponytail with a teal ribbon, calm dark eyes, white and teal qipao-style martial dress with high side slits and silver trim, white thigh-high stockings, flat martial shoes, long white-shafted spear with a silver blade, poised graceful stance. Animation: running cycle in place (the character stays at the same spot in the frame, only the limbs move), torso leaning forward, full stride, hair and cloth streaming back, seamless loop. All frames side by side in ONE horizontal row, each frame 512x512, full body, side view facing right, single character. The character is exactly as large as in the reference image in EVERY frame: about 85% of the frame height, feet on the same ground line about 32 px above the bottom edge. Never shrink the character to fit the weapon; if the weapon would leave the frame, angle it instead. The camera does not move or zoom. Transparent background, no ground shadow, no visual effects beyond a small glow close to the body, no text",
-      "negative": "text, watermark, logo, signature, frame, border, blurry, low quality, extra limbs, deformed hands, nudity, nsfw, child, childlike, camera movement, zoom, small character, inconsistent size, background scenery, ground shadow"
-    },
-    {
       "path": "art/source/anim/li/light.png",
       "width": 3072,
       "height": 512,
